@@ -30,20 +30,14 @@ dependencies = [
   'numpy==2.*',
   'sunpy==6.*',
   'matplotlib==3.10.*',
+  'pandas==2.3.*',
   'swxsoc @ git+https://github.com/swxsoc/swxsoc.git@main',
   'gitpython==3.1.*',
-  'solarnet_metadata @ git+https://github.com/IHDE-Alliance/solarnet_metadata.git@solarnet_metadata_package',
 ]
 
 [project.optional-dependencies]
 dev = [
-  'coverage>=5.0.3',
-  'pytest',
-  'pytest-astropy',
-  'pytest-cov',
-  'coverage[toml]',
-  'pytest-doctestplus',
-  'ruff',
+  "swxsoc_reach[docs, test, style]"
 ]
 
 docs = ['sphinx', 'sphinx-automodapi', 'matplotlib', 'sphinx-copybutton', 'pydata-sphinx-theme']

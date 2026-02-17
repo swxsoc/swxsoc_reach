@@ -4,77 +4,54 @@ Provides generic file readers.
 
 from pathlib import Path
 
+import json
+import pandas as pd
 import astropy.io.fits as fits
 from astropy.io import ascii
 from astropy.time import Time
 from astropy.timeseries import TimeSeries
 
-from swxsoc_reach import launch_date
-from swxsoc_reach.util.util import filename_to_datatype
-
 __all__ = ["read_file", "read_raw_file", "read_fits"]
 
 
-def read_file(filename: Path):
+def read_udl_json(file_path: Path) -> pd.DataFrame:
     """
-    Read a file.
+    Reads a UDL JSON file and returns a pandas DataFrame.
+    Unpacks nested JSON structures into a flat DataFrame.
 
     Parameters
     ----------
-    filename: Path
-        A file to read.
+    file_path : Path
+        The path to the UDL JSON file.
 
     Returns
     -------
-    data
-
-    Examples
-    --------
+    pd.DataFrame
+        A DataFrame containing the data from the UDL JSON file.
     """
-    # TODO: the following should use parse_science_filename
-    this_path = Path(filename)
-    match this_path.suffix.lower():
-        case ".csv":  # raw binary file
-            result = read_raw_file(this_path)
-        case _:
-            raise ValueError(f"File extension {this_path.suffix} not recognized.")
-    return result
-
-
-def read_raw_file(file_path: Path) -> TimeSeries:
-    """
-    Read a raw (csv) data file and return a timeseries.
-    Note that columns that cannot are not recognized as ints or floats are removed.
-
-    Parameters
-    ---------
-    filename : Path
-        A file to read
-
-    Returns
-    -------
-    ts : TimeSeries
-        The timeseries data
-    """
+    # Convert to Path if not already
     if not isinstance(file_path, Path):
         file_path = Path(file_path)
-    data_table = ascii.read(file_path, format="csv")
-    time_column_name = "timestamp_ms"
-    if time_column_name not in data_table.colnames:
-        raise ValueError("No time column found, timestamp_ms")
-    time = Time(data_table[time_column_name] / 1000.0, format="unix")
-    time.format = "isot"
-    ts = TimeSeries(time=time, data=data_table)
-    if any(ts.time < launch_date) > 0:
-        raise ValueError("Found time before launch.")
-    bad_col_names = []
-    for this_col in ts.itercols():
-        if not isinstance(this_col, Time):
-            if this_col.dtype.kind not in ["i", "f"]:
-                bad_col_names.append(this_col.name)
-    if len(bad_col_names) > 0:
-        ts.remove_columns(bad_col_names)
-    ts.meta.update({"filename": file_path.name})
-    ts.meta.update({"data_type": filename_to_datatype(file_path.name)})
-    ts.sort()
-    return ts
+    try:
+        data = pd.read_json(file_path)
+    except ValueError:
+        # pd.read_json uses ujson which can fail on very small or very large numeric values;
+        # fall back to the standard library json parser.
+        with open(file_path, "r") as file:
+            data = pd.DataFrame(json.load(file))
+            
+    # Unpack Nested Data Fields in the JSON Structure
+
+    # Unpack seoList
+    data["obDescription"] = data["seoList"].apply(lambda x: x[0]["obDescription"])
+    data["obValue"] = data["seoList"].apply(lambda x: x[0]["obValue"])
+    data["obQuality"] = data["seoList"].apply(lambda x: x[0]["obQuality"])
+
+    # Unpack senPos
+    for i in range(3):
+        data[f"senPos{i}"] = data["senPos"].apply(lambda x: x[i])
+        
+    # Drop previously nested columns
+    data = data.drop(columns=["seoList", "senPos"])
+
+    return data
