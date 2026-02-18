@@ -31,8 +31,8 @@ def mocked_timestream(aws_credentials):
     with mock_aws():
         """Fixture to mock Timestream database and table."""
         client = boto3.client("timestream-write", region_name="us-east-1")
-        database_name = "dev-padre_sdc_aws_logs"
-        table_name = "dev-padre_measures_table"
+        database_name = "dev-swxsoc_pipeline_sdc_aws_logs"
+        table_name = "dev-swxsoc_pipeline_measures_table"
         client.create_database(DatabaseName=database_name)
 
         client.create_table(
@@ -59,8 +59,8 @@ def test_record_timeseries_quantity_1col(mocked_timestream):
 
     aws.record_housekeeping(ts, "reach")
 
-    database_name = "dev-padre_sdc_aws_logs"
-    table_name = "dev-padre_measures_table"
+    database_name = "dev-swxsoc_pipeline_sdc_aws_logs"
+    table_name = "dev-swxsoc_pipeline_measures_table"
 
     backend = timestreamwrite_backends[ACCOUNT_ID]["us-east-1"]
     records = backend.databases[database_name].tables[table_name].records
@@ -75,13 +75,13 @@ def test_record_timeseries_quantity_1col(mocked_timestream):
         # Check the MeasureValues
         measure_values = record["MeasureValues"]
         assert len(measure_values) == 1  # Only one column of data
-
+        print(measure_values)
         # Assert the measure name, value, and type
         temp4_measure = next(
-            (mv for mv in measure_values if mv["Name"] == "fp_temp_deg_C"), None
+            (mv for mv in measure_values if mv["Name"] == "FPTemp"), None
         )
-        assert temp4_measure is not None, "fp_temp_deg_C not found in MeasureValues"
-        assert temp4_measure["Value"] == str(f(ts["FPTemp"][i]).value), (
+        assert temp4_measure is not None, "FPTemp not found in MeasureValues"
+        assert temp4_measure["Value"] == str(ts["FPTemp"][i]), (
             "MeasureValue does not match"
         )
         assert temp4_measure["Type"] == "DOUBLE", "MeasureValueType does not match"

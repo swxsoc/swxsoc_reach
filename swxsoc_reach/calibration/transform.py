@@ -87,7 +87,7 @@ def deduplicate_records(data: pd.DataFrame) -> pd.DataFrame:
 
 def extract_sensor_metadata(
     data: pd.DataFrame,
-) -> tuple[list[str], list[str], list[list[str]]]:
+) -> tuple[list[str], list[str], list[list[str | None]]]:
     """
     Extract sorted sensor IDs, observatory names, and per-sensor flavors.
 
@@ -102,9 +102,11 @@ def extract_sensor_metadata(
         Sorted list of unique sensor IDs.
     obs_names : list[str]
         Sorted list of unique observatory names.
-    observation_flavors : list[list[str]]
+    observation_flavors : list[list[str | None]]
         For each sensor (matching ``sensor_ids`` order), a list of the
-        sorted unique dosimeter flavor strings (``obDescription``).
+        sorted unique dosimeter flavor strings (``obDescription``),
+        padded with ``""`` so that every inner list has the same length
+        (equal to the maximum number of flavors across all sensors).
     """
     sensor_ids = sorted([str(s) for s in data["idSensor"].unique()])
     obs_names = sorted([str(n) for n in data["observatoryName"].unique()])
@@ -115,11 +117,17 @@ def extract_sensor_metadata(
     )
     observation_flavors = flavors_per_sensor.reindex(sensor_ids).tolist()
 
+    # Pad to rectangular shape so np.array() succeeds
+    max_flavors = max(len(f) for f in observation_flavors)
+    observation_flavors = [
+        f + [""] * (max_flavors - len(f)) for f in observation_flavors
+    ]
+
     log.info(
         "Found %d sensors, %d observatories, flavors per sensor: %s",
         len(sensor_ids),
         len(obs_names),
-        [len(f) for f in observation_flavors[:3]],
+        [len(f) for f in observation_flavors],
     )
     return sensor_ids, obs_names, observation_flavors
 
@@ -147,8 +155,10 @@ def create_observation_array(
     times_pd : pd.DatetimeIndex
         Sorted, UTC-localized DatetimeIndex of unique observation times.
     observation_flavors : list[list[str]]
-        For each sensor (matching ``sensor_ids`` order), a two-element list
-        of the expected flavor (``obDescription``) strings.
+        For each sensor (matching ``sensor_ids`` order), a list of the
+        sorted unique dosimeter flavor strings (``obDescription``),
+        padded with ``""`` so that every inner list has the same length
+        (equal to the maximum number of flavors across all sensors).
 
     Returns
     -------
@@ -181,7 +191,7 @@ def create_observation_array(
             else:
                 s = pd.Series(
                     dtype=float,
-                    index=pd.DatetimeIndex([]),
+                    index=pd.DatetimeIndex([]).tz_localize("UTC"),
                     name=f"flavor_{flavor_idx}",
                 )
             series_list.append(s)
@@ -296,9 +306,7 @@ def build_swxdata(
     }
 
     # --- 4. Pre-compute per-sensor groupby for scalar columns ----------
-    sensor_deduped = data.drop_duplicates(
-        subset=["idSensor", "obTime"], keep="first"
-    )
+    sensor_deduped = data.drop_duplicates(subset=["idSensor", "obTime"], keep="first")
     sensor_deduped_dt = pd.to_datetime(sensor_deduped["obTime"].astype(str))
     sensor_grouped = sensor_deduped.groupby("idSensor")
 

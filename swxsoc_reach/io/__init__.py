@@ -1,1 +1,1 @@
-from .file_tools import read_udl_json as read_udl_json
+from .file_tools import read_file as read_file

@@ -2,14 +2,10 @@
 Provides generic file readers.
 """
 
+import json
 from pathlib import Path
 
-import json
 import pandas as pd
-import astropy.io.fits as fits
-from astropy.io import ascii
-from astropy.time import Time
-from astropy.timeseries import TimeSeries
 
 __all__ = ["read_file", "read_udl_json", "read_udl_csv"]
 
@@ -37,6 +33,7 @@ def read_file(file_path: Path) -> pd.DataFrame:
         return read_udl_csv(file_path)
     else:
         raise ValueError(f"Unsupported file type: {file_path.suffix}")
+
 
 def _unpack_nested_columns(data: pd.DataFrame) -> pd.DataFrame:
     """
@@ -95,6 +92,7 @@ def read_udl_json(file_path: Path) -> pd.DataFrame:
             data = pd.DataFrame(json.load(file))
 
     return _unpack_nested_columns(data)
+
 
 def read_udl_csv(file_path: Path) -> pd.DataFrame:
     """

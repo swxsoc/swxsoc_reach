@@ -1,8 +1,5 @@
-
 from astropy.time import Time
 from swxsoc.util import create_science_filename, parse_science_filename
-
-from swxsoc_reach import log
 
 __all__ = [
     "create_reach_filename",
