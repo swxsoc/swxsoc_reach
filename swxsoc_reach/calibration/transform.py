@@ -177,8 +177,10 @@ def create_observation_array(
     Returns
     -------
     np.ndarray
-        3-D float array of shape ``(n_times, n_sensors, 2)`` with NaN for
-        missing values.
+        3-D float array of shape ``(n_times, n_sensors, n_flavors_max)`` with
+        NaN for missing values, where ``n_flavors_max`` is the maximum number
+        of dosimeter flavors across all sensors and the last dimension indexes
+        those flavors for each sensor.
     """
     # Pre-convert obTime to datetime once for the entire DataFrame
     dt_index = pd.to_datetime(data["obTime"].astype(str))
