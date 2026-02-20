@@ -14,3 +14,5 @@ Note that this package is still in active development.
 
    overview
    logger
+   customization
+   changelog

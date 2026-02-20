@@ -77,7 +77,7 @@ Data and Configuration
 
 * We store test data in ``./data/test`` as long as it is less than about 100 kB.
 
-* All persistent configuration should use the :obj:`swxsoc_reach.config` mechanism.
+* All persistent configuration should use the :ref:`customization` mechanism.
   Such configuration items should be placed at the top of the module or package that makes use of them, and supply a description sufficient for users to understand what the setting
   changes.
 
