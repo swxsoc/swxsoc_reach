@@ -1,105 +1,69 @@
 """
-A module for all things calibration.
+Pipeline entry point for processing REACH UDL files into CDF.
 """
 
 from pathlib import Path
 
-from astropy.io import fits
-from astropy.table import Table
+from swxsoc.util.validation import validate
 
-import swxsoc_reach.io.aws_db as aws_db
 from swxsoc_reach import log
-from swxsoc_reach.io import file_tools
-from swxsoc_reach.io.fits_tools import get_comment, get_obs_header, get_primary_header
-from swxsoc_reach.util.util import create_craft_filename
+from swxsoc_reach.calibration.transform import build_swxdata
+from swxsoc_reach.io.file_tools import read_file
+from swxsoc_reach.util.schema import REACHDataSchema
 
 __all__ = [
     "process_file",
 ]
 
 
-def process_file(filename: Path, overwrite=False, output_fits=False) -> list:
+def process_file(
+    filename: Path,
+) -> list[Path]:
     """
-    This is the entry point for the pipeline processing.
-    It runs all of the various processing steps required.
+    Process a REACH data file from one data level to the next (e.g. UDL file to an ISTP-compliant CDF).
+
+    Reads the file, transforms the data into an
+    :class:`~swxsoc.swxdata.SWXData` object, writes a CDF file, and
+    runs ISTP validation (logging warnings on any issues without raising).
 
     Parameters
     ----------
-    data_filename: str
-        Fully specificied filename of an input file
+    filename : Path
+        Path to the input UDL (JSON or CSV) file.
 
     Returns
     -------
-    output_filenames: list
-        Fully specificied filenames for the output files.
+    list[Path]
+        List containing the path to the output CDF file.
     """
-    log.info(f"Processing file {filename}.")
-
-    output_files = []
     file_path = Path(filename)
+    log.info(f"Processing file {file_path}.")
 
-    if file_path.suffix.lower() in [".csv"]:  # raw file
-        data_ts = file_tools.read_file(file_path)
+    # Stub Output Files
+    output_files = []
 
-        # Prepare Metadata for Output Files Naming and Headers
-        test_flag = False
-        level_str = "l0"
-        data_type = data_ts.meta["data_type"]
+    # Save to the working directory
+    output_path = Path.cwd()
 
-        aws_db.record_housekeeping(data_ts, data_type)
+    # Read and transform
+    data = read_file(file_path)
+    reach_data = build_swxdata(data)
 
-        if output_fits:
-            data_table = Table(data_ts)
+    # Write CDF
+    cdf_path = reach_data.save(output_path=output_path, overwrite=True)
+    log.info(f"Saved CDF to {cdf_path}")
+    output_files.append(cdf_path)
 
-            # Get FITS Primary Header Template
-            primary_hdr = get_primary_header(
-                file_path, data_level=level_str, data_type=data_type
-            )
-            date_beg = data_ts.time[0]
-            date_end = data_ts.time[-1]
-            primary_hdr["DATE-BEG"] = (date_beg.fits, get_comment("DATE-BEG"))
-            primary_hdr["DATE-END"] = (date_end.fits, get_comment("DATE-END"))
-            primary_hdr["DATEREF"] = (date_beg.fits, get_comment("DATEREF"))
+    # Validate (warn only, do not raise)
+    schema = REACHDataSchema()
+    try:
+        validation_errors = validate(cdf_path, schema=schema)
+        if validation_errors:
+            for err in validation_errors:
+                log.warning(f"Validation issue: {err}")
+    except Exception as exc:
+        log.warning(f"Validation could not complete: {exc}")
 
-            colnames_to_remove = [
-                "time",
-            ]
-            for this_col in colnames_to_remove:
-                if this_col in data_table.colnames:
-                    data_table.remove_column(this_col)
+    # NOTE: Can add additional processing steps here if needed and return multiple output files as needed.
 
-            path = create_craft_filename(
-                time=date_beg,
-                level=level_str,
-                descriptor=data_type,
-                test=test_flag,
-                version="1.0.0",
-                overwrite=overwrite,
-            )
-            primary_hdr["FILENAME"] = (path, get_comment("FILENAME"))
-            # record originating filename
-            # aws_db.record_filename(file_path.name, date_beg, date_end)
-            # record output filename
-            # aws_db.record_filename(path.name, date_beg, date_end)
-            empty_primary_hdu = fits.PrimaryHDU(header=primary_hdr)
-
-            # Create HK HDU
-            hk_header = get_obs_header(data_level=level_str, data_type=data_type)
-            hk_header["DATE-BEG"] = (date_beg.fits, get_comment("DATE-BEG"))
-            hk_header["DATEREF"] = (date_beg.fits, get_comment("DATEREF"))
-            hk_header["FILENAME"] = (path, get_comment("FILENAME"))
-
-            hk_hdu = fits.BinTableHDU(data=data_table, header=hk_header, name="HK")
-            hk_hdu.add_checksum()
-            hdul = fits.HDUList([empty_primary_hdu, hk_hdu])
-            hdul.writeto(path, overwrite=overwrite, checksum=True)
-            hdul.close()
-            output_files.append(path)
-        else: 
-            # If not outputting FITS, return a `None` placeholder
-            # We don't want to return an empty list as that would imply no processing was done
-            # We also don't want to return the original filename as an output
-            output_files.append(None)
-
-    # add other tasks below
     return output_files

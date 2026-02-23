@@ -3,8 +3,6 @@
 from astropy.timeseries import TimeSeries
 from swxsoc.util.util import record_timeseries
 
-import swxsoc_reach.util.util as util
-
 
 def record_housekeeping(hk_ts: TimeSeries, data_type):
     """Send the housekeeping time series to AWS."""

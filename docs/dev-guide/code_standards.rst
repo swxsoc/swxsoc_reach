@@ -77,7 +77,7 @@ Data and Configuration
 
 * We store test data in ``./data/test`` as long as it is less than about 100 kB.
 
-* All persistent configuration should use the :ref:`config` mechanism.
+* All persistent configuration should use the :ref:`customization` mechanism.
   Such configuration items should be placed at the top of the module or package that makes use of them, and supply a description sufficient for users to understand what the setting
   changes.
 
@@ -93,7 +93,7 @@ Any other standard output, warnings, and errors should follow these rules:
 Logging and all other messages
 ==============================
 
-All other types of messages should use the logging system (see :ref:`_logger`).
+All other types of messages should use the logging system (see :ref:`logger`).
 
 Including C Code
 ================

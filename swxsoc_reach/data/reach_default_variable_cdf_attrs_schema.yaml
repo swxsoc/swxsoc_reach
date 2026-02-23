@@ -1,0 +1,22 @@
+# =============================================================================
+# REACH Variable CDF Attribute Schema
+# =============================================================================
+# This file layers on top of the SWxSOC / SAMMI variable-attribute defaults.
+# Only attributes that need to CHANGE from the base schema are listed here.
+#
+# Key override:
+#   - LABLAXIS  →  derived: false, required: false
+#     REACH uses LABL_PTR_2 for its multi-dimensional variables, so the
+#     automatic LABLAXIS derivation must be disabled to avoid conflicts.
+# =============================================================================
+
+attribute_key:
+  LABLAXIS:
+    description: >
+      Used to label a plot axis or to provide a heading for a data listing.
+      Disabled for REACH because LABL_PTR_2 is used instead.
+    derived: false
+    required: false
+    overwrite: false
+    valid_values: null
+    alternate: LABL_PTR_1

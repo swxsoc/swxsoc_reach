@@ -1,0 +1,4019 @@
+[
+    {
+        "id": "d8d53569-4404-49ea-970b-cc23685a30e1",
+        "classificationMarking": "U",
+        "dataType": "ECP",
+        "genTime": "2025-12-01T01:30:10.286Z",
+        "idOnOrbit": "41917",
+        "satNo": 41917,
+        "idSensor": "REACH-105",
+        "origSensorId": "3",
+        "observatoryType": "ONORBIT",
+        "observatoryName": "Iridium-106",
+        "instrumentType": "DOSIMETER",
+        "lat": -63.3098145203956,
+        "lon": -71.6061141616536,
+        "alt": 803.1896429092334,
+        "senPos": [
+            3235.698743768994,
+            -84.21590398104829,
+            -6400.10486022768
+        ],
+        "obSetId": "REACH_U",
+        "particleType": "PROTONS",
+        "obTime": "2025-12-01T00:00:00.000Z",
+        "seoList": [
+            {
+                "obType": "Energetic Charged Particle",
+                "obUoM": "rad/second",
+                "obValue": 0.0,
+                "obQuality": "4",
+                "obDescription": "DOSE2 (Flavor U) in rad/second"
+            }
+        ],
+        "descriptor": "QUICKLOOK",
+        "createdAt": "2025-12-01T01:31:11.010Z",
+        "createdBy": "system.reach",
+        "source": "Aerospace",
+        "dataMode": "REAL",
+        "origNetwork": "OPS1"
+    },
+    {
+        "id": "00ef9c44-e3fc-48ca-a55e-67e910944eff",
+        "classificationMarking": "U",
+        "dataType": "ECP",
+        "genTime": "2025-12-01T01:30:07.591Z",
+        "idOnOrbit": "43479",
+        "satNo": 43479,
+        "idSensor": "REACH-164",
+        "origSensorId": "1",
+        "observatoryType": "ONORBIT",
+        "observatoryName": "Iridium-152",
+        "instrumentType": "DOSIMETER",
+        "lat": -30.828367173475723,
+        "lon": -76.8306860107438,
+        "alt": 790.1304602128581,
+        "senPos": [
+            6124.617968499559,
+            -721.154778049682,
+            -3658.4427563625213
+        ],
+        "obSetId": "REACH_W",
+        "particleType": "PROTONS",
+        "obTime": "2025-12-01T00:00:00.000Z",
+        "seoList": [
+            {
+                "obType": "Energetic Charged Particle",
+                "obUoM": "rad/second",
+                "obValue": 9.200000000000003e-05,
+                "obQuality": "0",
+                "obDescription": "DOSE2 (Flavor W) in rad/second"
+            }
+        ],
+        "descriptor": "QUICKLOOK",
+        "createdAt": "2025-12-01T01:31:21.487Z",
+        "createdBy": "system.reach",
+        "source": "Aerospace",
+        "dataMode": "REAL",
+        "origNetwork": "OPS1"
+    },
+    {
+        "id": "0ca4e807-b50f-4e4b-8125-c24070eaeb36",
+        "classificationMarking": "U",
+        "dataType": "ECP",
+        "genTime": "2025-12-01T01:30:10.286Z",
+        "idOnOrbit": "42957",
+        "satNo": 42957,
+        "idSensor": "REACH-140",
+        "origSensorId": "2",
+        "observatoryType": "ONORBIT",
+        "observatoryName": "Iridium-122",
+        "instrumentType": "DOSIMETER",
+        "lat": 49.53561244589375,
+        "lon": 42.16042046917803,
+        "alt": 784.5980120783346,
+        "senPos": [
+            -1767.0092060055908,
+            4313.639350068228,
+            5432.234577977498
+        ],
+        "obSetId": "REACH_V",
+        "particleType": "PROTONS",
+        "obTime": "2025-12-01T00:00:00.000Z",
+        "seoList": [
+            {
+                "obType": "Energetic Charged Particle",
+                "obUoM": "rad/second",
+                "obValue": 6.153846153846158e-08,
+                "obQuality": "0",
+                "obDescription": "DOSE2 (Flavor V) in rad/second"
+            }
+        ],
+        "descriptor": "QUICKLOOK",
+        "createdAt": "2025-12-01T01:30:39.888Z",
+        "createdBy": "system.reach",
+        "source": "Aerospace",
+        "dataMode": "REAL",
+        "origNetwork": "OPS1"
+    },
+    {
+        "id": "d6f0b4cb-b515-485e-ac57-b4b0e201fe0f",
+        "classificationMarking": "U",
+        "dataType": "ECP",
+        "genTime": "2025-12-05T06:05:17.706Z",
+        "idOnOrbit": "43481",
+        "satNo": 43481,
+        "idSensor": "REACH-114",
+        "origSensorId": "1",
+        "observatoryType": "ONORBIT",
+        "observatoryName": "Iridium-110",
+        "instrumentType": "DOSIMETER",
+        "lat": 34.78451230948762,
+        "lon": -81.37627716597628,
+        "alt": 781.9621293206928,
+        "senPos": [
+            5779.256027413257,
+            -1150.7263484231626,
+            4068.7633014396474
+        ],
+        "obSetId": "REACH_W",
+        "particleType": "PROTONS",
+        "obTime": "2025-12-01T00:00:00.000Z",
+        "seoList": [
+            {
+                "obType": "Energetic Charged Particle",
+                "obUoM": "rad/second",
+                "obValue": 9.857142857142862e-06,
+                "obQuality": "0",
+                "obDescription": "DOSE2 (Flavor W) in rad/second"
+            }
+        ],
+        "descriptor": "QUICKLOOK",
+        "createdAt": "2025-12-05T10:00:47.728Z",
+        "createdBy": "system.reach",
+        "source": "Aerospace",
+        "dataMode": "REAL",
+        "origNetwork": "OPS1"
+    },
+    {
+        "id": "777a90af-719e-4271-ab72-172a3548a4f0",
+        "classificationMarking": "U",
+        "dataType": "ECP",
+        "genTime": "2025-12-01T01:30:07.591Z",
+        "idOnOrbit": "42809",
+        "satNo": 42809,
+        "idSensor": "REACH-135",
+        "origSensorId": "1",
+        "observatoryType": "ONORBIT",
+        "observatoryName": "Iridium-126",
+        "instrumentType": "DOSIMETER",
+        "lat": -31.10650055267925,
+        "lon": 4.211193055852936,
+        "alt": 790.1926067885104,
+        "senPos": [
+            1661.227430941352,
+            5920.475252974896,
+            -3688.236839852294
+        ],
+        "obSetId": "REACH_W",
+        "particleType": "PROTONS",
+        "obTime": "2025-12-01T00:00:00.000Z",
+        "seoList": [
+            {
+                "obType": "Energetic Charged Particle",
+                "obUoM": "rad/second",
+                "obValue": 4.390909090909092e-05,
+                "obQuality": "0",
+                "obDescription": "DOSE2 (Flavor W) in rad/second"
+            }
+        ],
+        "descriptor": "QUICKLOOK",
+        "createdAt": "2025-12-01T01:30:26.988Z",
+        "createdBy": "system.reach",
+        "source": "Aerospace",
+        "dataMode": "REAL",
+        "origNetwork": "OPS1"
+    },
+    {
+        "id": "5768b1d9-4ed4-4f72-8f7f-34642b8426c2",
+        "classificationMarking": "U",
+        "dataType": "ECP",
+        "genTime": "2025-12-01T01:30:10.286Z",
+        "idOnOrbit": "43079",
+        "satNo": 43079,
+        "idSensor": "REACH-148",
+        "origSensorId": "2",
+        "observatoryType": "ONORBIT",
+        "observatoryName": "Iridium-131",
+        "instrumentType": "DOSIMETER",
+        "lat": 62.23025561895763,
+        "lon": 148.05880215726935,
+        "alt": 787.0327474772497,
+        "senPos": [
+            -2633.4298237351227,
+            -2070.371270704213,
+            6323.746092427489
+        ],
+        "obSetId": "REACH_Y",
+        "particleType": "PROTONS+ELECTRONS",
+        "obTime": "2025-12-01T00:00:00.000Z",
+        "seoList": [
+            {
+                "obType": "Energetic Charged Particle",
+                "obUoM": "rad/second",
+                "obValue": 0.0,
+                "obQuality": "0",
+                "obDescription": "DOSE1 (Flavor Y) in rad/second"
+            }
+        ],
+        "descriptor": "QUICKLOOK",
+        "createdAt": "2025-12-01T01:30:30.447Z",
+        "createdBy": "system.reach",
+        "source": "Aerospace",
+        "dataMode": "REAL",
+        "origNetwork": "OPS1"
+    },
+    {
+        "id": "8e190055-975b-455b-ba00-3a61dd19ee11",
+        "classificationMarking": "U",
+        "dataType": "ECP",
+        "genTime": "2025-12-05T06:05:17.706Z",
+        "idOnOrbit": "43929",
+        "satNo": 43929,
+        "idSensor": "REACH-180",
+        "origSensorId": "0",
+        "observatoryType": "ONORBIT",
+        "observatoryName": "Iridium-171",
+        "instrumentType": "DOSIMETER",
+        "lat": -82.73194376490471,
+        "lon": -143.9951335845312,
+        "alt": 807.7001649254726,
+        "senPos": [
+            253.42615048421095,
+            -876.8623722276665,
+            -7114.243352003122
+        ],
+        "obSetId": "REACH_X",
+        "particleType": "PROTONS+ELECTRONS",
+        "obTime": "2025-12-01T00:00:00.000Z",
+        "seoList": [
+            {
+                "obType": "Energetic Charged Particle",
+                "obUoM": "rad/second",
+                "obValue": 5.1080550098231855e-08,
+                "obQuality": "0",
+                "obDescription": "DOSE1 (Flavor X) in rad/second"
+            }
+        ],
+        "descriptor": "QUICKLOOK",
+        "createdAt": "2025-12-05T08:10:38.535Z",
+        "createdBy": "system.reach",
+        "source": "Aerospace",
+        "dataMode": "REAL",
+        "origNetwork": "OPS1"
+    },
+    {
+        "id": "208956a1-fb33-432a-af4c-390c9bcb5ece",
+        "classificationMarking": "U",
+        "dataType": "ECP",
+        "genTime": "2025-12-01T01:30:10.286Z",
+        "idOnOrbit": "42957",
+        "satNo": 42957,
+        "idSensor": "REACH-140",
+        "origSensorId": "2",
+        "observatoryType": "ONORBIT",
+        "observatoryName": "Iridium-122",
+        "instrumentType": "DOSIMETER",
+        "lat": 49.53561244589375,
+        "lon": 42.16042046917803,
+        "alt": 784.5980120783346,
+        "senPos": [
+            -1767.0092060055908,
+            4313.639350068228,
+            5432.234577977498
+        ],
+        "obSetId": "REACH_Y",
+        "particleType": "PROTONS",
+        "obTime": "2025-12-01T00:00:00.000Z",
+        "seoList": [
+            {
+                "obType": "Energetic Charged Particle",
+                "obUoM": "rad/second",
+                "obValue": 1.2322274881516596e-07,
+                "obQuality": "0",
+                "obDescription": "DOSE1 (Flavor Y) in rad/second"
+            }
+        ],
+        "descriptor": "QUICKLOOK",
+        "createdAt": "2025-12-01T01:30:39.888Z",
+        "createdBy": "system.reach",
+        "source": "Aerospace",
+        "dataMode": "REAL",
+        "origNetwork": "OPS1"
+    },
+    {
+        "id": "08e00d71-9c5e-4b6c-9362-ba744949957a",
+        "classificationMarking": "U",
+        "dataType": "ECP",
+        "genTime": "2025-12-05T06:05:17.706Z",
+        "idOnOrbit": "42808",
+        "satNo": 42808,
+        "idSensor": "REACH-133",
+        "origSensorId": "1",
+        "observatoryType": "ONORBIT",
+        "observatoryName": "Iridium-117",
+        "instrumentType": "DOSIMETER",
+        "lat": 79.44607312905235,
+        "lon": 166.6830852312214,
+        "alt": 789.6782936052098,
+        "senPos": [
+            -721.768768838818,
+            -1102.9065374542804,
+            7032.435629441678
+        ],
+        "obSetId": "REACH_W",
+        "particleType": "PROTONS",
+        "obTime": "2025-12-01T00:00:00.000Z",
+        "seoList": [
+            {
+                "obType": "Energetic Charged Particle",
+                "obUoM": "rad/second",
+                "obValue": 0.0,
+                "obQuality": "0",
+                "obDescription": "DOSE2 (Flavor W) in rad/second"
+            }
+        ],
+        "descriptor": "QUICKLOOK",
+        "createdAt": "2025-12-05T11:02:18.757Z",
+        "createdBy": "system.reach",
+        "source": "Aerospace",
+        "dataMode": "REAL",
+        "origNetwork": "OPS1"
+    },
+    {
+        "id": "a3709daa-a156-43a1-b613-1c27fa085bb8",
+        "classificationMarking": "U",
+        "dataType": "ECP",
+        "genTime": "2025-12-01T01:30:07.591Z",
+        "idOnOrbit": "42961",
+        "satNo": 42961,
+        "idSensor": "REACH-136",
+        "origSensorId": "1",
+        "observatoryType": "ONORBIT",
+        "observatoryName": "Iridium-132",
+        "instrumentType": "DOSIMETER",
+        "lat": -48.740462285142186,
+        "lon": 33.91079192922,
+        "alt": 797.7544494836854,
+        "senPos": [
+            -1150.1064362565523,
+            4603.924163440399,
+            -5377.087053009818
+        ],
+        "obSetId": "REACH_W",
+        "particleType": "PROTONS",
+        "obTime": "2025-12-01T00:00:00.000Z",
+        "seoList": [
+            {
+                "obType": "Energetic Charged Particle",
+                "obUoM": "rad/second",
+                "obValue": -1e+31,
+                "obQuality": "0",
+                "obDescription": "DOSE2 (Flavor W) in rad/second"
+            }
+        ],
+        "descriptor": "QUICKLOOK",
+        "createdAt": "2025-12-01T01:30:17.449Z",
+        "createdBy": "system.reach",
+        "source": "Aerospace",
+        "dataMode": "REAL",
+        "origNetwork": "OPS1"
+    },
+    {
+        "id": "047ff70d-6912-41ee-be06-fedca5759a79",
+        "classificationMarking": "U",
+        "dataType": "ECP",
+        "genTime": "2025-12-01T01:30:07.591Z",
+        "idOnOrbit": "42809",
+        "satNo": 42809,
+        "idSensor": "REACH-135",
+        "origSensorId": "1",
+        "observatoryType": "ONORBIT",
+        "observatoryName": "Iridium-126",
+        "instrumentType": "DOSIMETER",
+        "lat": -31.10650055267925,
+        "lon": 4.211193055852936,
+        "alt": 790.1926067885104,
+        "senPos": [
+            1661.227430941352,
+            5920.475252974896,
+            -3688.236839852294
+        ],
+        "obSetId": "REACH_X",
+        "particleType": "PROTONS",
+        "obTime": "2025-12-01T00:00:00.000Z",
+        "seoList": [
+            {
+                "obType": "Energetic Charged Particle",
+                "obUoM": "rad/second",
+                "obValue": 5.672727272727276e-05,
+                "obQuality": "0",
+                "obDescription": "DOSE1 (Flavor X) in rad/second"
+            }
+        ],
+        "descriptor": "QUICKLOOK",
+        "createdAt": "2025-12-01T01:30:26.988Z",
+        "createdBy": "system.reach",
+        "source": "Aerospace",
+        "dataMode": "REAL",
+        "origNetwork": "OPS1"
+    },
+    {
+        "id": "28ec6ed6-1a63-4206-b558-b3d7edf9008b",
+        "classificationMarking": "U",
+        "dataType": "ECP",
+        "genTime": "2025-12-01T01:30:10.286Z",
+        "idOnOrbit": "43079",
+        "satNo": 43079,
+        "idSensor": "REACH-148",
+        "origSensorId": "2",
+        "observatoryType": "ONORBIT",
+        "observatoryName": "Iridium-131",
+        "instrumentType": "DOSIMETER",
+        "lat": 62.23025561895763,
+        "lon": 148.05880215726935,
+        "alt": 787.0327474772497,
+        "senPos": [
+            -2633.4298237351227,
+            -2070.371270704213,
+            6323.746092427489
+        ],
+        "obSetId": "REACH_V",
+        "particleType": "PROTONS+ELECTRONS",
+        "obTime": "2025-12-01T00:00:00.000Z",
+        "seoList": [
+            {
+                "obType": "Energetic Charged Particle",
+                "obUoM": "rad/second",
+                "obValue": 2.353873014521145e-06,
+                "obQuality": "0",
+                "obDescription": "DOSE2 (Flavor V) in rad/second"
+            }
+        ],
+        "descriptor": "QUICKLOOK",
+        "createdAt": "2025-12-01T01:30:30.447Z",
+        "createdBy": "system.reach",
+        "source": "Aerospace",
+        "dataMode": "REAL",
+        "origNetwork": "OPS1"
+    },
+    {
+        "id": "47aa673a-0580-4df6-a008-872170b1a922",
+        "classificationMarking": "U",
+        "dataType": "ECP",
+        "genTime": "2025-12-01T01:30:07.591Z",
+        "idOnOrbit": "42961",
+        "satNo": 42961,
+        "idSensor": "REACH-136",
+        "origSensorId": "1",
+        "observatoryType": "ONORBIT",
+        "observatoryName": "Iridium-132",
+        "instrumentType": "DOSIMETER",
+        "lat": -48.740462285142186,
+        "lon": 33.91079192922,
+        "alt": 797.7544494836854,
+        "senPos": [
+            -1150.1064362565523,
+            4603.924163440399,
+            -5377.087053009818
+        ],
+        "obSetId": "REACH_X",
+        "particleType": "ELECTRONS",
+        "obTime": "2025-12-01T00:00:00.000Z",
+        "seoList": [
+            {
+                "obType": "Energetic Charged Particle",
+                "obUoM": "rad/second",
+                "obValue": -1e+31,
+                "obQuality": "0",
+                "obDescription": "DOSE1 (Flavor X) in rad/second"
+            }
+        ],
+        "descriptor": "QUICKLOOK",
+        "createdAt": "2025-12-01T01:30:17.449Z",
+        "createdBy": "system.reach",
+        "source": "Aerospace",
+        "dataMode": "REAL",
+        "origNetwork": "OPS1"
+    },
+    {
+        "id": "a8d7b1d4-3817-451b-8bed-12d8793988ea",
+        "classificationMarking": "U",
+        "dataType": "ECP",
+        "genTime": "2025-12-01T01:30:07.591Z",
+        "idOnOrbit": "42959",
+        "satNo": 42959,
+        "idSensor": "REACH-137",
+        "origSensorId": "1",
+        "observatoryType": "ONORBIT",
+        "observatoryName": "Iridium-119",
+        "instrumentType": "DOSIMETER",
+        "lat": 81.53061024843672,
+        "lon": 62.897309851163605,
+        "alt": 789.85463694804,
+        "senPos": [
+            -723.0514354387259,
+            775.038211670822,
+            7075.866308564517
+        ],
+        "obSetId": "REACH_X",
+        "particleType": "PROTONS+ELECTRONS",
+        "obTime": "2025-12-01T00:00:00.000Z",
+        "seoList": [
+            {
+                "obType": "Energetic Charged Particle",
+                "obUoM": "rad/second",
+                "obValue": 0.0,
+                "obQuality": "0",
+                "obDescription": "DOSE1 (Flavor X) in rad/second"
+            }
+        ],
+        "descriptor": "QUICKLOOK",
+        "createdAt": "2025-12-01T01:30:37.247Z",
+        "createdBy": "system.reach",
+        "source": "Aerospace",
+        "dataMode": "REAL",
+        "origNetwork": "OPS1"
+    },
+    {
+        "id": "6f1ecdb1-1614-48f1-b656-0bd8a65fd25f",
+        "classificationMarking": "U",
+        "dataType": "ECP",
+        "genTime": "2025-12-01T01:30:10.286Z",
+        "idOnOrbit": "41917",
+        "satNo": 41917,
+        "idSensor": "REACH-105",
+        "origSensorId": "3",
+        "observatoryType": "ONORBIT",
+        "observatoryName": "Iridium-106",
+        "instrumentType": "DOSIMETER",
+        "lat": -63.3098145203956,
+        "lon": -71.6061141616536,
+        "alt": 803.1896429092334,
+        "senPos": [
+            3235.698743768994,
+            -84.21590398104829,
+            -6400.10486022768
+        ],
+        "obSetId": "REACH_Y",
+        "particleType": "PROTONS",
+        "obTime": "2025-12-01T00:00:00.000Z",
+        "seoList": [
+            {
+                "obType": "Energetic Charged Particle",
+                "obUoM": "rad/second",
+                "obValue": 0.0,
+                "obQuality": "4",
+                "obDescription": "DOSE1 (Flavor Y) in rad/second"
+            }
+        ],
+        "descriptor": "QUICKLOOK",
+        "createdAt": "2025-12-01T01:31:11.010Z",
+        "createdBy": "system.reach",
+        "source": "Aerospace",
+        "dataMode": "REAL",
+        "origNetwork": "OPS1"
+    },
+    {
+        "id": "5c1a5106-22af-43ae-8e81-3915b9920685",
+        "classificationMarking": "U",
+        "dataType": "ECP",
+        "genTime": "2025-12-05T06:05:17.706Z",
+        "idOnOrbit": "43569",
+        "satNo": 43569,
+        "idSensor": "REACH-181",
+        "origSensorId": "0",
+        "observatoryType": "ONORBIT",
+        "observatoryName": "Iridium-160",
+        "instrumentType": "DOSIMETER",
+        "lat": 64.48416871480649,
+        "lon": 77.08323643598304,
+        "alt": 787.3862187060807,
+        "senPos": [
+            -2603.605864214097,
+            1678.0095982594576,
+            6450.739148561112
+        ],
+        "obSetId": "REACH_Z",
+        "particleType": "PROTONS+ELECTRONS",
+        "obTime": "2025-12-01T00:00:00.000Z",
+        "seoList": [
+            {
+                "obType": "Energetic Charged Particle",
+                "obUoM": "rad/second",
+                "obValue": 5.150684931506854e-06,
+                "obQuality": "0",
+                "obDescription": "DOSE2 (Flavor Z) in rad/second"
+            }
+        ],
+        "descriptor": "QUICKLOOK",
+        "createdAt": "2025-12-05T07:38:20.851Z",
+        "createdBy": "system.reach",
+        "source": "Aerospace",
+        "dataMode": "REAL",
+        "origNetwork": "OPS1"
+    },
+    {
+        "id": "5c9dc44e-393f-4ecb-a515-8a85d64a04b8",
+        "classificationMarking": "U",
+        "dataType": "ECP",
+        "genTime": "2025-12-05T06:05:17.706Z",
+        "idOnOrbit": "43929",
+        "satNo": 43929,
+        "idSensor": "REACH-180",
+        "origSensorId": "0",
+        "observatoryType": "ONORBIT",
+        "observatoryName": "Iridium-171",
+        "instrumentType": "DOSIMETER",
+        "lat": -82.73194376490471,
+        "lon": -143.9951335845312,
+        "alt": 807.7001649254726,
+        "senPos": [
+            253.42615048421095,
+            -876.8623722276665,
+            -7114.243352003122
+        ],
+        "obSetId": "REACH_Z",
+        "particleType": "ELECTRONS",
+        "obTime": "2025-12-01T00:00:00.000Z",
+        "seoList": [
+            {
+                "obType": "Energetic Charged Particle",
+                "obUoM": "rad/second",
+                "obValue": 1.6998191681735997e-06,
+                "obQuality": "0",
+                "obDescription": "DOSE2 (Flavor Z) in rad/second"
+            }
+        ],
+        "descriptor": "QUICKLOOK",
+        "createdAt": "2025-12-05T08:10:38.535Z",
+        "createdBy": "system.reach",
+        "source": "Aerospace",
+        "dataMode": "REAL",
+        "origNetwork": "OPS1"
+    },
+    {
+        "id": "b13cb931-950e-4445-b486-c06326d3a91e",
+        "classificationMarking": "U",
+        "dataType": "ECP",
+        "genTime": "2025-12-01T01:30:10.286Z",
+        "idOnOrbit": "43250",
+        "satNo": 43250,
+        "idSensor": "REACH-163",
+        "origSensorId": "2",
+        "observatoryType": "ONORBIT",
+        "observatoryName": "Iridium-149",
+        "instrumentType": "DOSIMETER",
+        "lat": -53.59843962268709,
+        "lon": 127.97882582249987,
+        "alt": 799.753665684384,
+        "senPos": [
+            -4061.2258507501915,
+            -1326.9450774008928,
+            -5760.282228606164
+        ],
+        "obSetId": "REACH_Y",
+        "particleType": "PROTONS",
+        "obTime": "2025-12-01T00:00:00.000Z",
+        "seoList": [
+            {
+                "obType": "Energetic Charged Particle",
+                "obUoM": "rad/second",
+                "obValue": 7.619047619047601e-08,
+                "obQuality": "16",
+                "obDescription": "DOSE1 (Flavor Y) in rad/second"
+            }
+        ],
+        "descriptor": "QUICKLOOK",
+        "createdAt": "2025-12-01T01:30:49.716Z",
+        "createdBy": "system.reach",
+        "source": "Aerospace",
+        "dataMode": "REAL",
+        "origNetwork": "OPS1"
+    },
+    {
+        "id": "72b3a8ee-fb4d-4ed8-83b7-f29bb3872818",
+        "classificationMarking": "U",
+        "dataType": "ECP",
+        "genTime": "2025-12-01T01:30:10.286Z",
+        "idOnOrbit": "43922",
+        "satNo": 43922,
+        "idSensor": "REACH-166",
+        "origSensorId": "2",
+        "observatoryType": "ONORBIT",
+        "observatoryName": "Iridium-180",
+        "instrumentType": "DOSIMETER",
+        "lat": 34.48568589801021,
+        "lon": 8.799290522648004,
+        "alt": 781.5385928234995,
+        "senPos": [
+            1137.0174315858583,
+            5803.198323102511,
+            4037.8590734966483
+        ],
+        "obSetId": "REACH_V",
+        "particleType": "PROTONS",
+        "obTime": "2025-12-01T00:00:00.000Z",
+        "seoList": [
+            {
+                "obType": "Energetic Charged Particle",
+                "obUoM": "rad/second",
+                "obValue": -1e+31,
+                "obQuality": "0",
+                "obDescription": "DOSE2 (Flavor V) in rad/second"
+            }
+        ],
+        "descriptor": "QUICKLOOK",
+        "createdAt": "2025-12-01T01:30:59.962Z",
+        "createdBy": "system.reach",
+        "source": "Aerospace",
+        "dataMode": "REAL",
+        "origNetwork": "OPS1"
+    },
+    {
+        "id": "3e40b4ec-c7cc-4fec-aecf-6a38cf536fff",
+        "classificationMarking": "U",
+        "dataType": "ECP",
+        "genTime": "2025-12-01T01:30:07.591Z",
+        "idOnOrbit": "43479",
+        "satNo": 43479,
+        "idSensor": "REACH-164",
+        "origSensorId": "1",
+        "observatoryType": "ONORBIT",
+        "observatoryName": "Iridium-152",
+        "instrumentType": "DOSIMETER",
+        "lat": -30.828367173475723,
+        "lon": -76.8306860107438,
+        "alt": 790.1304602128581,
+        "senPos": [
+            6124.617968499559,
+            -721.154778049682,
+            -3658.4427563625213
+        ],
+        "obSetId": "REACH_X",
+        "particleType": "PROTONS",
+        "obTime": "2025-12-01T00:00:00.000Z",
+        "seoList": [
+            {
+                "obType": "Energetic Charged Particle",
+                "obUoM": "rad/second",
+                "obValue": 8.666666666666672e-05,
+                "obQuality": "0",
+                "obDescription": "DOSE1 (Flavor X) in rad/second"
+            }
+        ],
+        "descriptor": "QUICKLOOK",
+        "createdAt": "2025-12-01T01:31:21.487Z",
+        "createdBy": "system.reach",
+        "source": "Aerospace",
+        "dataMode": "REAL",
+        "origNetwork": "OPS1"
+    },
+    {
+        "id": "3ce541d9-512d-4959-9f29-67ee8fe1646d",
+        "classificationMarking": "U",
+        "dataType": "ECP",
+        "genTime": "2025-12-05T06:05:17.706Z",
+        "idOnOrbit": "43576",
+        "satNo": 43576,
+        "idSensor": "REACH-170",
+        "origSensorId": "0",
+        "observatoryType": "ONORBIT",
+        "observatoryName": "Iridium-156",
+        "instrumentType": "DOSIMETER",
+        "lat": 49.85107489256873,
+        "lon": -114.78158758576367,
+        "alt": 784.4598253234827,
+        "senPos": [
+            3293.87283807192,
+            -3255.7356385456305,
+            5457.647696919173
+        ],
+        "obSetId": "REACH_X",
+        "particleType": "ELECTRONS",
+        "obTime": "2025-12-01T00:00:00.000Z",
+        "seoList": [
+            {
+                "obType": "Energetic Charged Particle",
+                "obUoM": "rad/second",
+                "obValue": 0.0002946666666666668,
+                "obQuality": "0",
+                "obDescription": "DOSE1 (Flavor X) in rad/second"
+            }
+        ],
+        "descriptor": "QUICKLOOK",
+        "createdAt": "2025-12-05T08:38:26.897Z",
+        "createdBy": "system.reach",
+        "source": "Aerospace",
+        "dataMode": "REAL",
+        "origNetwork": "OPS1"
+    },
+    {
+        "id": "2ad76816-27e1-4d8b-a376-fe2e0f82e4ef",
+        "classificationMarking": "U",
+        "dataType": "ECP",
+        "genTime": "2025-12-01T01:30:10.286Z",
+        "idOnOrbit": "43922",
+        "satNo": 43922,
+        "idSensor": "REACH-166",
+        "origSensorId": "2",
+        "observatoryType": "ONORBIT",
+        "observatoryName": "Iridium-180",
+        "instrumentType": "DOSIMETER",
+        "lat": 34.48568589801021,
+        "lon": 8.799290522648004,
+        "alt": 781.5385928234995,
+        "senPos": [
+            1137.0174315858583,
+            5803.198323102511,
+            4037.8590734966483
+        ],
+        "obSetId": "REACH_Y",
+        "particleType": "PROTONS",
+        "obTime": "2025-12-01T00:00:00.000Z",
+        "seoList": [
+            {
+                "obType": "Energetic Charged Particle",
+                "obUoM": "rad/second",
+                "obValue": -1e+31,
+                "obQuality": "0",
+                "obDescription": "DOSE1 (Flavor Y) in rad/second"
+            }
+        ],
+        "descriptor": "QUICKLOOK",
+        "createdAt": "2025-12-01T01:30:59.962Z",
+        "createdBy": "system.reach",
+        "source": "Aerospace",
+        "dataMode": "REAL",
+        "origNetwork": "OPS1"
+    },
+    {
+        "id": "da361773-6552-4eda-872b-dbc43f5c3caf",
+        "classificationMarking": "U",
+        "dataType": "ECP",
+        "genTime": "2025-12-01T01:30:07.591Z",
+        "idOnOrbit": "43577",
+        "satNo": 43577,
+        "idSensor": "REACH-149",
+        "origSensorId": "1",
+        "observatoryType": "ONORBIT",
+        "observatoryName": "Iridium-164",
+        "instrumentType": "DOSIMETER",
+        "lat": -48.34868520517873,
+        "lon": -106.44604850244652,
+        "alt": 797.6184735312036,
+        "senPos": [
+            3852.4997669922464,
+            -2833.136427585063,
+            -5344.496632078595
+        ],
+        "obSetId": "REACH_X",
+        "particleType": "PROTONS",
+        "obTime": "2025-12-01T00:00:00.000Z",
+        "seoList": [
+            {
+                "obType": "Energetic Charged Particle",
+                "obUoM": "rad/second",
+                "obValue": 9.638554216867475e-08,
+                "obQuality": "0",
+                "obDescription": "DOSE1 (Flavor X) in rad/second"
+            }
+        ],
+        "descriptor": "QUICKLOOK",
+        "createdAt": "2025-12-01T01:30:49.438Z",
+        "createdBy": "system.reach",
+        "source": "Aerospace",
+        "dataMode": "REAL",
+        "origNetwork": "OPS1"
+    },
+    {
+        "id": "794f667e-ebfb-4b7d-8399-88bb4b405694",
+        "classificationMarking": "U",
+        "dataType": "ECP",
+        "genTime": "2025-12-05T06:05:17.706Z",
+        "idOnOrbit": "42808",
+        "satNo": 42808,
+        "idSensor": "REACH-133",
+        "origSensorId": "1",
+        "observatoryType": "ONORBIT",
+        "observatoryName": "Iridium-117",
+        "instrumentType": "DOSIMETER",
+        "lat": 79.44607312905235,
+        "lon": 166.6830852312214,
+        "alt": 789.6782936052098,
+        "senPos": [
+            -721.768768838818,
+            -1102.9065374542804,
+            7032.435629441678
+        ],
+        "obSetId": "REACH_X",
+        "particleType": "PROTONS+ELECTRONS",
+        "obTime": "2025-12-01T00:00:00.000Z",
+        "seoList": [
+            {
+                "obType": "Energetic Charged Particle",
+                "obUoM": "rad/second",
+                "obValue": 1.3048933500627362e-07,
+                "obQuality": "0",
+                "obDescription": "DOSE1 (Flavor X) in rad/second"
+            }
+        ],
+        "descriptor": "QUICKLOOK",
+        "createdAt": "2025-12-05T11:02:18.757Z",
+        "createdBy": "system.reach",
+        "source": "Aerospace",
+        "dataMode": "REAL",
+        "origNetwork": "OPS1"
+    },
+    {
+        "id": "f03b1d1e-6630-49b9-a389-c61feb3cebb3",
+        "classificationMarking": "U",
+        "dataType": "ECP",
+        "genTime": "2025-12-01T01:30:07.591Z",
+        "idOnOrbit": "43577",
+        "satNo": 43577,
+        "idSensor": "REACH-149",
+        "origSensorId": "1",
+        "observatoryType": "ONORBIT",
+        "observatoryName": "Iridium-164",
+        "instrumentType": "DOSIMETER",
+        "lat": -48.34868520517873,
+        "lon": -106.44604850244652,
+        "alt": 797.6184735312036,
+        "senPos": [
+            3852.4997669922464,
+            -2833.136427585063,
+            -5344.496632078595
+        ],
+        "obSetId": "REACH_W",
+        "particleType": "PROTONS",
+        "obTime": "2025-12-01T00:00:00.000Z",
+        "seoList": [
+            {
+                "obType": "Energetic Charged Particle",
+                "obUoM": "rad/second",
+                "obValue": 0.0,
+                "obQuality": "0",
+                "obDescription": "DOSE2 (Flavor W) in rad/second"
+            }
+        ],
+        "descriptor": "QUICKLOOK",
+        "createdAt": "2025-12-01T01:30:49.438Z",
+        "createdBy": "system.reach",
+        "source": "Aerospace",
+        "dataMode": "REAL",
+        "origNetwork": "OPS1"
+    },
+    {
+        "id": "9647ae2a-f568-43c7-ab1b-4185d060eca9",
+        "classificationMarking": "U",
+        "dataType": "ECP",
+        "genTime": "2025-12-01T01:30:07.591Z",
+        "idOnOrbit": "42959",
+        "satNo": 42959,
+        "idSensor": "REACH-137",
+        "origSensorId": "1",
+        "observatoryType": "ONORBIT",
+        "observatoryName": "Iridium-119",
+        "instrumentType": "DOSIMETER",
+        "lat": 81.53061024843672,
+        "lon": 62.897309851163605,
+        "alt": 789.85463694804,
+        "senPos": [
+            -723.0514354387259,
+            775.038211670822,
+            7075.866308564517
+        ],
+        "obSetId": "REACH_W",
+        "particleType": "PROTONS",
+        "obTime": "2025-12-01T00:00:00.000Z",
+        "seoList": [
+            {
+                "obType": "Energetic Charged Particle",
+                "obUoM": "rad/second",
+                "obValue": 3.517716033647722e-08,
+                "obQuality": "0",
+                "obDescription": "DOSE2 (Flavor W) in rad/second"
+            }
+        ],
+        "descriptor": "QUICKLOOK",
+        "createdAt": "2025-12-01T01:30:37.247Z",
+        "createdBy": "system.reach",
+        "source": "Aerospace",
+        "dataMode": "REAL",
+        "origNetwork": "OPS1"
+    },
+    {
+        "id": "c8623577-d95a-4b0f-bc2d-22d0265b9004",
+        "classificationMarking": "U",
+        "dataType": "ECP",
+        "genTime": "2025-12-01T01:30:10.286Z",
+        "idOnOrbit": "43250",
+        "satNo": 43250,
+        "idSensor": "REACH-163",
+        "origSensorId": "2",
+        "observatoryType": "ONORBIT",
+        "observatoryName": "Iridium-149",
+        "instrumentType": "DOSIMETER",
+        "lat": -53.59843962268709,
+        "lon": 127.97882582249987,
+        "alt": 799.753665684384,
+        "senPos": [
+            -4061.2258507501915,
+            -1326.9450774008928,
+            -5760.282228606164
+        ],
+        "obSetId": "REACH_V",
+        "particleType": "PROTONS",
+        "obTime": "2025-12-01T00:00:00.000Z",
+        "seoList": [
+            {
+                "obType": "Energetic Charged Particle",
+                "obUoM": "rad/second",
+                "obValue": 1.0307234886025744e-07,
+                "obQuality": "16",
+                "obDescription": "DOSE2 (Flavor V) in rad/second"
+            }
+        ],
+        "descriptor": "QUICKLOOK",
+        "createdAt": "2025-12-01T01:30:49.716Z",
+        "createdBy": "system.reach",
+        "source": "Aerospace",
+        "dataMode": "REAL",
+        "origNetwork": "OPS1"
+    },
+    {
+        "id": "f047b71a-1a4e-4cf4-9473-d0af40642f03",
+        "classificationMarking": "U",
+        "dataType": "ECP",
+        "genTime": "2025-12-05T06:05:17.706Z",
+        "idOnOrbit": "43571",
+        "satNo": 43571,
+        "idSensor": "REACH-171",
+        "origSensorId": "0",
+        "observatoryType": "ONORBIT",
+        "observatoryName": "Iridium-158",
+        "instrumentType": "DOSIMETER",
+        "lat": 81.8238626526935,
+        "lon": -136.34863255943532,
+        "alt": 789.9172616366355,
+        "senPos": [
+            412.4877562835269,
+            -936.7145877432666,
+            7081.25948774308
+        ],
+        "obSetId": "REACH_Z",
+        "particleType": "ELECTRONS",
+        "obTime": "2025-12-01T00:00:00.000Z",
+        "seoList": [
+            {
+                "obType": "Energetic Charged Particle",
+                "obUoM": "rad/second",
+                "obValue": 9.148418491484193e-07,
+                "obQuality": "0",
+                "obDescription": "DOSE2 (Flavor Z) in rad/second"
+            }
+        ],
+        "descriptor": "QUICKLOOK",
+        "createdAt": "2025-12-05T06:36:48.983Z",
+        "createdBy": "system.reach",
+        "source": "Aerospace",
+        "dataMode": "REAL",
+        "origNetwork": "OPS1"
+    },
+    {
+        "id": "23c9f785-31af-44b8-99d1-bd7784f73732",
+        "classificationMarking": "U",
+        "dataType": "ECP",
+        "genTime": "2025-12-05T06:05:17.706Z",
+        "idOnOrbit": "43576",
+        "satNo": 43576,
+        "idSensor": "REACH-170",
+        "origSensorId": "0",
+        "observatoryType": "ONORBIT",
+        "observatoryName": "Iridium-156",
+        "instrumentType": "DOSIMETER",
+        "lat": 49.85107489256873,
+        "lon": -114.78158758576367,
+        "alt": 784.4598253234827,
+        "senPos": [
+            3293.87283807192,
+            -3255.7356385456305,
+            5457.647696919173
+        ],
+        "obSetId": "REACH_Z",
+        "particleType": "PROTONS+ELECTRONS",
+        "obTime": "2025-12-01T00:00:00.000Z",
+        "seoList": [
+            {
+                "obType": "Energetic Charged Particle",
+                "obUoM": "rad/second",
+                "obValue": 2.1860465116279087e-05,
+                "obQuality": "0",
+                "obDescription": "DOSE2 (Flavor Z) in rad/second"
+            }
+        ],
+        "descriptor": "QUICKLOOK",
+        "createdAt": "2025-12-05T08:38:26.897Z",
+        "createdBy": "system.reach",
+        "source": "Aerospace",
+        "dataMode": "REAL",
+        "origNetwork": "OPS1"
+    },
+    {
+        "id": "e2a43486-6c72-4d6a-9835-c907098a3cf8",
+        "classificationMarking": "U",
+        "dataType": "ECP",
+        "genTime": "2025-12-05T06:05:17.706Z",
+        "idOnOrbit": "43481",
+        "satNo": 43481,
+        "idSensor": "REACH-114",
+        "origSensorId": "1",
+        "observatoryType": "ONORBIT",
+        "observatoryName": "Iridium-110",
+        "instrumentType": "DOSIMETER",
+        "lat": 34.78451230948762,
+        "lon": -81.37627716597628,
+        "alt": 781.9621293206928,
+        "senPos": [
+            5779.256027413257,
+            -1150.7263484231626,
+            4068.7633014396474
+        ],
+        "obSetId": "REACH_X",
+        "particleType": "PROTONS",
+        "obTime": "2025-12-01T00:00:00.000Z",
+        "seoList": [
+            {
+                "obType": "Energetic Charged Particle",
+                "obUoM": "rad/second",
+                "obValue": 2.620307382212146e-08,
+                "obQuality": "0",
+                "obDescription": "DOSE1 (Flavor X) in rad/second"
+            }
+        ],
+        "descriptor": "QUICKLOOK",
+        "createdAt": "2025-12-05T10:00:47.728Z",
+        "createdBy": "system.reach",
+        "source": "Aerospace",
+        "dataMode": "REAL",
+        "origNetwork": "OPS1"
+    },
+    {
+        "id": "7beab96a-773d-4a76-9ebb-aa9575b0f553",
+        "classificationMarking": "U",
+        "dataType": "ECP",
+        "genTime": "2025-12-05T06:05:17.706Z",
+        "idOnOrbit": "43571",
+        "satNo": 43571,
+        "idSensor": "REACH-171",
+        "origSensorId": "0",
+        "observatoryType": "ONORBIT",
+        "observatoryName": "Iridium-158",
+        "instrumentType": "DOSIMETER",
+        "lat": 81.8238626526935,
+        "lon": -136.34863255943532,
+        "alt": 789.9172616366355,
+        "senPos": [
+            412.4877562835269,
+            -936.7145877432666,
+            7081.25948774308
+        ],
+        "obSetId": "REACH_X",
+        "particleType": "PROTONS+ELECTRONS",
+        "obTime": "2025-12-01T00:00:00.000Z",
+        "seoList": [
+            {
+                "obType": "Energetic Charged Particle",
+                "obUoM": "rad/second",
+                "obValue": 7.98771121351767e-08,
+                "obQuality": "0",
+                "obDescription": "DOSE1 (Flavor X) in rad/second"
+            }
+        ],
+        "descriptor": "QUICKLOOK",
+        "createdAt": "2025-12-05T06:36:48.983Z",
+        "createdBy": "system.reach",
+        "source": "Aerospace",
+        "dataMode": "REAL",
+        "origNetwork": "OPS1"
+    },
+    {
+        "id": "d36d1181-2d6c-47f9-9214-9832630d34d7",
+        "classificationMarking": "U",
+        "dataType": "ECP",
+        "genTime": "2025-12-05T06:05:17.706Z",
+        "idOnOrbit": "43569",
+        "satNo": 43569,
+        "idSensor": "REACH-181",
+        "origSensorId": "0",
+        "observatoryType": "ONORBIT",
+        "observatoryName": "Iridium-160",
+        "instrumentType": "DOSIMETER",
+        "lat": 64.48416871480649,
+        "lon": 77.08323643598304,
+        "alt": 787.3862187060807,
+        "senPos": [
+            -2603.605864214097,
+            1678.0095982594576,
+            6450.739148561112
+        ],
+        "obSetId": "REACH_X",
+        "particleType": "ELECTRONS",
+        "obTime": "2025-12-01T00:00:00.000Z",
+        "seoList": [
+            {
+                "obType": "Energetic Charged Particle",
+                "obUoM": "rad/second",
+                "obValue": 1.5367872271098084e-05,
+                "obQuality": "0",
+                "obDescription": "DOSE1 (Flavor X) in rad/second"
+            }
+        ],
+        "descriptor": "QUICKLOOK",
+        "createdAt": "2025-12-05T07:38:20.851Z",
+        "createdBy": "system.reach",
+        "source": "Aerospace",
+        "dataMode": "REAL",
+        "origNetwork": "OPS1"
+    },
+    {
+        "id": "58aaf12a-efea-4034-9efb-9a27da6f8f77",
+        "classificationMarking": "U",
+        "dataType": "ECP",
+        "genTime": "2025-12-01T01:30:10.286Z",
+        "idOnOrbit": "43922",
+        "satNo": 43922,
+        "idSensor": "REACH-166",
+        "origSensorId": "2",
+        "observatoryType": "ONORBIT",
+        "observatoryName": "Iridium-180",
+        "instrumentType": "DOSIMETER",
+        "lat": 34.784501528851294,
+        "lon": 8.806053735738114,
+        "alt": 781.5892665274487,
+        "senPos": [
+            1130.1621714141195,
+            5783.001034311425,
+            4068.549251775568
+        ],
+        "obSetId": "REACH_Y",
+        "particleType": "PROTONS",
+        "obTime": "2025-12-01T00:00:05.000Z",
+        "seoList": [
+            {
+                "obType": "Energetic Charged Particle",
+                "obUoM": "rad/second",
+                "obValue": 0.0,
+                "obQuality": "0",
+                "obDescription": "DOSE1 (Flavor Y) in rad/second"
+            }
+        ],
+        "descriptor": "QUICKLOOK",
+        "createdAt": "2025-12-01T01:30:59.962Z",
+        "createdBy": "system.reach",
+        "source": "Aerospace",
+        "dataMode": "REAL",
+        "origNetwork": "OPS1"
+    },
+    {
+        "id": "7cd078ca-1542-4d55-b6fb-3b83e140856e",
+        "classificationMarking": "U",
+        "dataType": "ECP",
+        "genTime": "2025-12-01T01:30:07.591Z",
+        "idOnOrbit": "43479",
+        "satNo": 43479,
+        "idSensor": "REACH-164",
+        "origSensorId": "1",
+        "observatoryType": "ONORBIT",
+        "observatoryName": "Iridium-152",
+        "instrumentType": "DOSIMETER",
+        "lat": -31.126656245247673,
+        "lon": -76.82617722073667,
+        "alt": 790.2537000916535,
+        "senPos": [
+            6106.01275169807,
+            -716.2198972294974,
+            -3690.421924087748
+        ],
+        "obSetId": "REACH_W",
+        "particleType": "PROTONS",
+        "obTime": "2025-12-01T00:00:05.000Z",
+        "seoList": [
+            {
+                "obType": "Energetic Charged Particle",
+                "obUoM": "rad/second",
+                "obValue": 1.18285714285714e-05,
+                "obQuality": "0",
+                "obDescription": "DOSE2 (Flavor W) in rad/second"
+            }
+        ],
+        "descriptor": "QUICKLOOK",
+        "createdAt": "2025-12-01T01:31:21.487Z",
+        "createdBy": "system.reach",
+        "source": "Aerospace",
+        "dataMode": "REAL",
+        "origNetwork": "OPS1"
+    },
+    {
+        "id": "efc2f076-67a0-48f8-854f-12570667bab1",
+        "classificationMarking": "U",
+        "dataType": "ECP",
+        "genTime": "2025-12-01T01:30:07.591Z",
+        "idOnOrbit": "42803",
+        "satNo": 42803,
+        "idSensor": "REACH-102",
+        "origSensorId": "2",
+        "observatoryType": "ONORBIT",
+        "observatoryName": "Iridium-113",
+        "instrumentType": "DOSIMETER",
+        "lat": -36.31816175494694,
+        "lon": 157.50313373293048,
+        "alt": 792.3893314785516,
+        "senPos": [
+            -3901.2098289907403,
+            -4278.249171732669,
+            -4230.579626315437
+        ],
+        "obSetId": "REACH_V",
+        "particleType": "PROTONS",
+        "obTime": "2025-12-01T00:00:05.000Z",
+        "seoList": [
+            {
+                "obType": "Energetic Charged Particle",
+                "obUoM": "rad/second",
+                "obValue": 9.454545454545431e-08,
+                "obQuality": "0",
+                "obDescription": "DOSE2 (Flavor V) in rad/second"
+            }
+        ],
+        "descriptor": "QUICKLOOK",
+        "createdAt": "2025-12-01T01:31:57.065Z",
+        "createdBy": "system.reach",
+        "source": "Aerospace",
+        "dataMode": "REAL",
+        "origNetwork": "OPS1"
+    },
+    {
+        "id": "8533987a-3453-4570-a9e9-12b631d2497f",
+        "classificationMarking": "U",
+        "dataType": "ECP",
+        "genTime": "2025-12-01T01:30:07.591Z",
+        "idOnOrbit": "42809",
+        "satNo": 42809,
+        "idSensor": "REACH-135",
+        "origSensorId": "1",
+        "observatoryType": "ONORBIT",
+        "observatoryName": "Iridium-126",
+        "instrumentType": "DOSIMETER",
+        "lat": -30.80820677840328,
+        "lon": 4.215707055363178,
+        "alt": 790.0694103223194,
+        "senPos": [
+            1663.738632174918,
+            5939.548350629001,
+            -3656.2508511559818
+        ],
+        "obSetId": "REACH_X",
+        "particleType": "PROTONS",
+        "obTime": "2025-12-01T00:00:05.000Z",
+        "seoList": [
+            {
+                "obType": "Energetic Charged Particle",
+                "obUoM": "rad/second",
+                "obValue": 5.200000000000018e-05,
+                "obQuality": "0",
+                "obDescription": "DOSE1 (Flavor X) in rad/second"
+            }
+        ],
+        "descriptor": "QUICKLOOK",
+        "createdAt": "2025-12-01T01:30:26.988Z",
+        "createdBy": "system.reach",
+        "source": "Aerospace",
+        "dataMode": "REAL",
+        "origNetwork": "OPS1"
+    },
+    {
+        "id": "4bc70f34-d9a0-42c4-993a-a4843617d237",
+        "classificationMarking": "U",
+        "dataType": "ECP",
+        "genTime": "2025-12-01T01:30:10.286Z",
+        "idOnOrbit": "43079",
+        "satNo": 43079,
+        "idSensor": "REACH-148",
+        "origSensorId": "2",
+        "observatoryType": "ONORBIT",
+        "observatoryName": "Iridium-131",
+        "instrumentType": "DOSIMETER",
+        "lat": 61.93469123209917,
+        "lon": 148.1228907688229,
+        "alt": 786.9756456419119,
+        "senPos": [
+            -2656.034681212286,
+            -2094.5245889329535,
+            6306.353643082413
+        ],
+        "obSetId": "REACH_Y",
+        "particleType": "PROTONS+ELECTRONS",
+        "obTime": "2025-12-01T00:00:05.000Z",
+        "seoList": [
+            {
+                "obType": "Energetic Charged Particle",
+                "obUoM": "rad/second",
+                "obValue": 0.0,
+                "obQuality": "0",
+                "obDescription": "DOSE1 (Flavor Y) in rad/second"
+            }
+        ],
+        "descriptor": "QUICKLOOK",
+        "createdAt": "2025-12-01T01:30:30.447Z",
+        "createdBy": "system.reach",
+        "source": "Aerospace",
+        "dataMode": "REAL",
+        "origNetwork": "OPS1"
+    },
+    {
+        "id": "bdb2010e-e8be-432a-bb22-e1ca6e1a1ad2",
+        "classificationMarking": "U",
+        "dataType": "ECP",
+        "genTime": "2025-12-01T01:30:10.286Z",
+        "idOnOrbit": "43075",
+        "satNo": 43075,
+        "idSensor": "REACH-138",
+        "origSensorId": "3",
+        "observatoryType": "ONORBIT",
+        "observatoryName": "Iridium-134",
+        "instrumentType": "DOSIMETER",
+        "lat": 84.02711760920769,
+        "lon": 11.51526700857021,
+        "alt": 789.9288855054147,
+        "senPos": [
+            108.73903045694462,
+            740.9751585525222,
+            7115.350603002764
+        ],
+        "obSetId": "REACH_U",
+        "particleType": "PROTONS",
+        "obTime": "2025-12-01T00:00:05.000Z",
+        "seoList": [
+            {
+                "obType": "Energetic Charged Particle",
+                "obUoM": "rad/second",
+                "obValue": 5.6986301369862884e-08,
+                "obQuality": "0",
+                "obDescription": "DOSE2 (Flavor U) in rad/second"
+            }
+        ],
+        "descriptor": "QUICKLOOK",
+        "createdAt": "2025-12-01T01:31:29.729Z",
+        "createdBy": "system.reach",
+        "source": "Aerospace",
+        "dataMode": "REAL",
+        "origNetwork": "OPS1"
+    },
+    {
+        "id": "a360a324-b1d6-4928-b774-7b5681a3fb37",
+        "classificationMarking": "U",
+        "dataType": "ECP",
+        "genTime": "2025-12-05T06:05:17.706Z",
+        "idOnOrbit": "43571",
+        "satNo": 43571,
+        "idSensor": "REACH-171",
+        "origSensorId": "0",
+        "observatoryType": "ONORBIT",
+        "observatoryName": "Iridium-158",
+        "instrumentType": "DOSIMETER",
+        "lat": 81.55560050867673,
+        "lon": -135.4786077555154,
+        "alt": 789.8986497865645,
+        "senPos": [
+            440.909903691678,
+            -960.4833811485078,
+            7076.371463443068
+        ],
+        "obSetId": "REACH_Z",
+        "particleType": "ELECTRONS",
+        "obTime": "2025-12-01T00:00:05.000Z",
+        "seoList": [
+            {
+                "obType": "Energetic Charged Particle",
+                "obUoM": "rad/second",
+                "obValue": 9.148418491484164e-07,
+                "obQuality": "0",
+                "obDescription": "DOSE2 (Flavor Z) in rad/second"
+            }
+        ],
+        "descriptor": "QUICKLOOK",
+        "createdAt": "2025-12-05T06:36:48.983Z",
+        "createdBy": "system.reach",
+        "source": "Aerospace",
+        "dataMode": "REAL",
+        "origNetwork": "OPS1"
+    },
+    {
+        "id": "bae612bf-e8f4-4fa0-a2ea-39541c94dae1",
+        "classificationMarking": "U",
+        "dataType": "ECP",
+        "genTime": "2025-12-01T01:30:07.591Z",
+        "idOnOrbit": "42961",
+        "satNo": 42961,
+        "idSensor": "REACH-136",
+        "origSensorId": "1",
+        "observatoryType": "ONORBIT",
+        "observatoryName": "Iridium-132",
+        "instrumentType": "DOSIMETER",
+        "lat": -48.443983114222014,
+        "lon": 33.93246036618646,
+        "alt": 797.6303953690617,
+        "senPos": [
+            -1160.2765947095118,
+            4630.0069093018865,
+            -5352.431089243212
+        ],
+        "obSetId": "REACH_W",
+        "particleType": "PROTONS",
+        "obTime": "2025-12-01T00:00:05.000Z",
+        "seoList": [
+            {
+                "obType": "Energetic Charged Particle",
+                "obUoM": "rad/second",
+                "obValue": 9.003131524008329e-09,
+                "obQuality": "0",
+                "obDescription": "DOSE2 (Flavor W) in rad/second"
+            }
+        ],
+        "descriptor": "QUICKLOOK",
+        "createdAt": "2025-12-01T01:30:17.449Z",
+        "createdBy": "system.reach",
+        "source": "Aerospace",
+        "dataMode": "REAL",
+        "origNetwork": "OPS1"
+    },
+    {
+        "id": "7eae60d3-46cd-4153-ace7-e08c93220252",
+        "classificationMarking": "U",
+        "dataType": "ECP",
+        "genTime": "2025-12-01T01:30:10.286Z",
+        "idOnOrbit": "41924",
+        "satNo": 41924,
+        "idSensor": "REACH-116",
+        "origSensorId": "2",
+        "observatoryType": "ONORBIT",
+        "observatoryName": "Iridium-108",
+        "instrumentType": "DOSIMETER",
+        "lat": -16.05690497980979,
+        "lon": -109.47662760153204,
+        "alt": 784.579507394212,
+        "senPos": [
+            5330.455033065756,
+            -4369.227329892318,
+            -1971.9219073871625
+        ],
+        "obSetId": "REACH_V",
+        "particleType": "PROTONS",
+        "obTime": "2025-12-01T00:00:05.000Z",
+        "seoList": [
+            {
+                "obType": "Energetic Charged Particle",
+                "obUoM": "rad/second",
+                "obValue": 0.0,
+                "obQuality": "0",
+                "obDescription": "DOSE2 (Flavor V) in rad/second"
+            }
+        ],
+        "descriptor": "QUICKLOOK",
+        "createdAt": "2025-12-01T01:30:19.643Z",
+        "createdBy": "system.reach",
+        "source": "Aerospace",
+        "dataMode": "REAL",
+        "origNetwork": "OPS1"
+    },
+    {
+        "id": "5bd9c9f9-643d-4bec-a219-7a3313eb06c9",
+        "classificationMarking": "U",
+        "dataType": "ECP",
+        "genTime": "2025-12-05T06:05:17.706Z",
+        "idOnOrbit": "43481",
+        "satNo": 43481,
+        "idSensor": "REACH-114",
+        "origSensorId": "1",
+        "observatoryType": "ONORBIT",
+        "observatoryName": "Iridium-110",
+        "instrumentType": "DOSIMETER",
+        "lat": 34.485726569966154,
+        "lon": -81.36953596625416,
+        "alt": 781.9124518122015,
+        "senPos": [
+            5800.543001552897,
+            -1152.0568594911947,
+            4038.075162759735
+        ],
+        "obSetId": "REACH_W",
+        "particleType": "PROTONS",
+        "obTime": "2025-12-01T00:00:05.000Z",
+        "seoList": [
+            {
+                "obType": "Energetic Charged Particle",
+                "obUoM": "rad/second",
+                "obValue": 0.0,
+                "obQuality": "0",
+                "obDescription": "DOSE2 (Flavor W) in rad/second"
+            }
+        ],
+        "descriptor": "QUICKLOOK",
+        "createdAt": "2025-12-05T10:00:47.728Z",
+        "createdBy": "system.reach",
+        "source": "Aerospace",
+        "dataMode": "REAL",
+        "origNetwork": "OPS1"
+    },
+    {
+        "id": "ebddf87e-c13a-46e5-87e0-ee3c04ef969f",
+        "classificationMarking": "U",
+        "dataType": "ECP",
+        "genTime": "2025-12-01T01:30:10.286Z",
+        "idOnOrbit": "42964",
+        "satNo": 42964,
+        "idSensor": "REACH-134",
+        "origSensorId": "3",
+        "observatoryType": "ONORBIT",
+        "observatoryName": "Iridium-125",
+        "instrumentType": "DOSIMETER",
+        "lat": -0.972090913204439,
+        "lon": -141.8305486800473,
+        "alt": 780.8246121897789,
+        "senPos": [
+            2250.631259323062,
+            -6803.070213603205,
+            -120.86092709870061
+        ],
+        "obSetId": "REACH_Y",
+        "particleType": "PROTONS",
+        "obTime": "2025-12-01T00:00:05.000Z",
+        "seoList": [
+            {
+                "obType": "Energetic Charged Particle",
+                "obUoM": "rad/second",
+                "obValue": 2.7111574556829968e-08,
+                "obQuality": "0",
+                "obDescription": "DOSE1 (Flavor Y) in rad/second"
+            }
+        ],
+        "descriptor": "QUICKLOOK",
+        "createdAt": "2025-12-01T01:31:46.789Z",
+        "createdBy": "system.reach",
+        "source": "Aerospace",
+        "dataMode": "REAL",
+        "origNetwork": "OPS1"
+    },
+    {
+        "id": "b85536f0-45ba-4b06-9c35-8bd9298b30c2",
+        "classificationMarking": "U",
+        "dataType": "ECP",
+        "genTime": "2025-12-01T01:30:10.286Z",
+        "idOnOrbit": "43075",
+        "satNo": 43075,
+        "idSensor": "REACH-138",
+        "origSensorId": "3",
+        "observatoryType": "ONORBIT",
+        "observatoryName": "Iridium-134",
+        "instrumentType": "DOSIMETER",
+        "lat": 84.02711760920769,
+        "lon": 11.51526700857021,
+        "alt": 789.9288855054147,
+        "senPos": [
+            108.73903045694462,
+            740.9751585525222,
+            7115.350603002764
+        ],
+        "obSetId": "REACH_Y",
+        "particleType": "PROTONS",
+        "obTime": "2025-12-01T00:00:05.000Z",
+        "seoList": [
+            {
+                "obType": "Energetic Charged Particle",
+                "obUoM": "rad/second",
+                "obValue": 1.8277680140597497e-07,
+                "obQuality": "0",
+                "obDescription": "DOSE1 (Flavor Y) in rad/second"
+            }
+        ],
+        "descriptor": "QUICKLOOK",
+        "createdAt": "2025-12-01T01:31:29.729Z",
+        "createdBy": "system.reach",
+        "source": "Aerospace",
+        "dataMode": "REAL",
+        "origNetwork": "OPS1"
+    },
+    {
+        "id": "d7acbbe5-0dd0-41d5-ac83-1466d672f33d",
+        "classificationMarking": "U",
+        "dataType": "ECP",
+        "genTime": "2025-12-01T01:30:07.591Z",
+        "idOnOrbit": "42809",
+        "satNo": 42809,
+        "idSensor": "REACH-135",
+        "origSensorId": "1",
+        "observatoryType": "ONORBIT",
+        "observatoryName": "Iridium-126",
+        "instrumentType": "DOSIMETER",
+        "lat": -30.80820677840328,
+        "lon": 4.215707055363178,
+        "alt": 790.0694103223194,
+        "senPos": [
+            1663.738632174918,
+            5939.548350629001,
+            -3656.2508511559818
+        ],
+        "obSetId": "REACH_W",
+        "particleType": "PROTONS",
+        "obTime": "2025-12-01T00:00:05.000Z",
+        "seoList": [
+            {
+                "obType": "Energetic Charged Particle",
+                "obUoM": "rad/second",
+                "obValue": 1.36539682539683e-05,
+                "obQuality": "0",
+                "obDescription": "DOSE2 (Flavor W) in rad/second"
+            }
+        ],
+        "descriptor": "QUICKLOOK",
+        "createdAt": "2025-12-01T01:30:26.988Z",
+        "createdBy": "system.reach",
+        "source": "Aerospace",
+        "dataMode": "REAL",
+        "origNetwork": "OPS1"
+    },
+    {
+        "id": "c16b76e8-d49b-45af-b37c-83a88ef8e41d",
+        "classificationMarking": "U",
+        "dataType": "ECP",
+        "genTime": "2025-12-01T01:30:10.286Z",
+        "idOnOrbit": "42964",
+        "satNo": 42964,
+        "idSensor": "REACH-134",
+        "origSensorId": "3",
+        "observatoryType": "ONORBIT",
+        "observatoryName": "Iridium-125",
+        "instrumentType": "DOSIMETER",
+        "lat": -0.972090913204439,
+        "lon": -141.8305486800473,
+        "alt": 780.8246121897789,
+        "senPos": [
+            2250.631259323062,
+            -6803.070213603205,
+            -120.86092709870061
+        ],
+        "obSetId": "REACH_U",
+        "particleType": "PROTONS",
+        "obTime": "2025-12-01T00:00:05.000Z",
+        "seoList": [
+            {
+                "obType": "Energetic Charged Particle",
+                "obUoM": "rad/second",
+                "obValue": 4.9736967957914765e-08,
+                "obQuality": "0",
+                "obDescription": "DOSE2 (Flavor U) in rad/second"
+            }
+        ],
+        "descriptor": "QUICKLOOK",
+        "createdAt": "2025-12-01T01:31:46.789Z",
+        "createdBy": "system.reach",
+        "source": "Aerospace",
+        "dataMode": "REAL",
+        "origNetwork": "OPS1"
+    },
+    {
+        "id": "2c47a213-12ad-44c0-8374-01bd2dcb5678",
+        "classificationMarking": "U",
+        "dataType": "ECP",
+        "genTime": "2025-12-01T01:30:07.591Z",
+        "idOnOrbit": "42961",
+        "satNo": 42961,
+        "idSensor": "REACH-136",
+        "origSensorId": "1",
+        "observatoryType": "ONORBIT",
+        "observatoryName": "Iridium-132",
+        "instrumentType": "DOSIMETER",
+        "lat": -48.443983114222014,
+        "lon": 33.93246036618646,
+        "alt": 797.6303953690617,
+        "senPos": [
+            -1160.2765947095118,
+            4630.0069093018865,
+            -5352.431089243212
+        ],
+        "obSetId": "REACH_X",
+        "particleType": "ELECTRONS",
+        "obTime": "2025-12-01T00:00:05.000Z",
+        "seoList": [
+            {
+                "obType": "Energetic Charged Particle",
+                "obUoM": "rad/second",
+                "obValue": 1.2202403542061955e-05,
+                "obQuality": "0",
+                "obDescription": "DOSE1 (Flavor X) in rad/second"
+            }
+        ],
+        "descriptor": "QUICKLOOK",
+        "createdAt": "2025-12-01T01:30:17.449Z",
+        "createdBy": "system.reach",
+        "source": "Aerospace",
+        "dataMode": "REAL",
+        "origNetwork": "OPS1"
+    },
+    {
+        "id": "4fbb0f43-5361-4b8d-9dab-491f09d4afa1",
+        "classificationMarking": "U",
+        "dataType": "ECP",
+        "genTime": "2025-12-01T01:30:10.286Z",
+        "idOnOrbit": "41917",
+        "satNo": 41917,
+        "idSensor": "REACH-105",
+        "origSensorId": "3",
+        "observatoryType": "ONORBIT",
+        "observatoryName": "Iridium-106",
+        "instrumentType": "DOSIMETER",
+        "lat": -63.60374003336986,
+        "lon": -71.53415157553376,
+        "alt": 803.2873059009625,
+        "senPos": [
+            3202.8523316298247,
+            -78.16719505825935,
+            -6416.692671617134
+        ],
+        "obSetId": "REACH_Y",
+        "particleType": "PROTONS",
+        "obTime": "2025-12-01T00:00:05.000Z",
+        "seoList": [
+            {
+                "obType": "Energetic Charged Particle",
+                "obUoM": "rad/second",
+                "obValue": 0.0,
+                "obQuality": "4",
+                "obDescription": "DOSE1 (Flavor Y) in rad/second"
+            }
+        ],
+        "descriptor": "QUICKLOOK",
+        "createdAt": "2025-12-01T01:31:11.010Z",
+        "createdBy": "system.reach",
+        "source": "Aerospace",
+        "dataMode": "REAL",
+        "origNetwork": "OPS1"
+    },
+    {
+        "id": "d532e2a2-2efa-4320-8c42-35026f543166",
+        "classificationMarking": "U",
+        "dataType": "ECP",
+        "genTime": "2025-12-01T01:30:10.286Z",
+        "idOnOrbit": "41924",
+        "satNo": 41924,
+        "idSensor": "REACH-116",
+        "origSensorId": "2",
+        "observatoryType": "ONORBIT",
+        "observatoryName": "Iridium-108",
+        "instrumentType": "DOSIMETER",
+        "lat": -16.05690497980979,
+        "lon": -109.47662760153204,
+        "alt": 784.579507394212,
+        "senPos": [
+            5330.455033065756,
+            -4369.227329892318,
+            -1971.9219073871625
+        ],
+        "obSetId": "REACH_Y",
+        "particleType": "PROTONS",
+        "obTime": "2025-12-01T00:00:05.000Z",
+        "seoList": [
+            {
+                "obType": "Energetic Charged Particle",
+                "obUoM": "rad/second",
+                "obValue": 5.319693094629143e-08,
+                "obQuality": "0",
+                "obDescription": "DOSE1 (Flavor Y) in rad/second"
+            }
+        ],
+        "descriptor": "QUICKLOOK",
+        "createdAt": "2025-12-01T01:30:19.643Z",
+        "createdBy": "system.reach",
+        "source": "Aerospace",
+        "dataMode": "REAL",
+        "origNetwork": "OPS1"
+    },
+    {
+        "id": "daa6aaf8-f861-4d02-b9bc-2c1ee59bafb6",
+        "classificationMarking": "U",
+        "dataType": "ECP",
+        "genTime": "2025-12-05T06:05:17.706Z",
+        "idOnOrbit": "43571",
+        "satNo": 43571,
+        "idSensor": "REACH-171",
+        "origSensorId": "0",
+        "observatoryType": "ONORBIT",
+        "observatoryName": "Iridium-158",
+        "instrumentType": "DOSIMETER",
+        "lat": 81.55560050867673,
+        "lon": -135.4786077555154,
+        "alt": 789.8986497865645,
+        "senPos": [
+            440.909903691678,
+            -960.4833811485078,
+            7076.371463443068
+        ],
+        "obSetId": "REACH_X",
+        "particleType": "PROTONS+ELECTRONS",
+        "obTime": "2025-12-01T00:00:05.000Z",
+        "seoList": [
+            {
+                "obType": "Energetic Charged Particle",
+                "obUoM": "rad/second",
+                "obValue": 7.987711213517646e-08,
+                "obQuality": "0",
+                "obDescription": "DOSE1 (Flavor X) in rad/second"
+            }
+        ],
+        "descriptor": "QUICKLOOK",
+        "createdAt": "2025-12-05T06:36:48.983Z",
+        "createdBy": "system.reach",
+        "source": "Aerospace",
+        "dataMode": "REAL",
+        "origNetwork": "OPS1"
+    },
+    {
+        "id": "b00d0215-ef0f-4749-a9cf-a70be248cc5c",
+        "classificationMarking": "U",
+        "dataType": "ECP",
+        "genTime": "2025-12-05T06:05:17.706Z",
+        "idOnOrbit": "41920",
+        "satNo": 41920,
+        "idSensor": "REACH-101",
+        "origSensorId": "1",
+        "observatoryType": "ONORBIT",
+        "observatoryName": "Iridium-102",
+        "instrumentType": "DOSIMETER",
+        "lat": 79.44565621850217,
+        "lon": 120.73593632197213,
+        "alt": 789.535929882848,
+        "senPos": [
+            -1294.4532930778666,
+            -248.617215196464,
+            7032.285933445594
+        ],
+        "obSetId": "REACH_W",
+        "particleType": "PROTONS",
+        "obTime": "2025-12-01T00:00:05.000Z",
+        "seoList": [
+            {
+                "obType": "Energetic Charged Particle",
+                "obUoM": "rad/second",
+                "obValue": 2.6391279403327527e-08,
+                "obQuality": "0",
+                "obDescription": "DOSE2 (Flavor W) in rad/second"
+            }
+        ],
+        "descriptor": "QUICKLOOK",
+        "createdAt": "2025-12-05T10:28:55.181Z",
+        "createdBy": "system.reach",
+        "source": "Aerospace",
+        "dataMode": "REAL",
+        "origNetwork": "OPS1"
+    },
+    {
+        "id": "91ea2e90-5025-44aa-92e7-d543f09defa5",
+        "classificationMarking": "U",
+        "dataType": "ECP",
+        "genTime": "2025-12-01T01:30:10.286Z",
+        "idOnOrbit": "43924",
+        "satNo": 43924,
+        "idSensor": "REACH-175",
+        "origSensorId": "3",
+        "observatoryType": "ONORBIT",
+        "observatoryName": "Iridium-168",
+        "instrumentType": "DOSIMETER",
+        "lat": 67.33802618258282,
+        "lon": 15.01238736841966,
+        "alt": 788.1280077459028,
+        "senPos": [
+            234.36652515106204,
+            2761.220708673497,
+            6597.457819464097
+        ],
+        "obSetId": "REACH_U",
+        "particleType": "PROTONS",
+        "obTime": "2025-12-01T00:00:05.000Z",
+        "seoList": [
+            {
+                "obType": "Energetic Charged Particle",
+                "obUoM": "rad/second",
+                "obValue": 6.910299003322243e-08,
+                "obQuality": "0",
+                "obDescription": "DOSE2 (Flavor U) in rad/second"
+            }
+        ],
+        "descriptor": "QUICKLOOK",
+        "createdAt": "2025-12-01T01:31:20.195Z",
+        "createdBy": "system.reach",
+        "source": "Aerospace",
+        "dataMode": "REAL",
+        "origNetwork": "OPS1"
+    },
+    {
+        "id": "5597e910-cad5-4252-bde1-59e0b7c22aab",
+        "classificationMarking": "U",
+        "dataType": "ECP",
+        "genTime": "2025-12-01T01:30:10.286Z",
+        "idOnOrbit": "43079",
+        "satNo": 43079,
+        "idSensor": "REACH-148",
+        "origSensorId": "2",
+        "observatoryType": "ONORBIT",
+        "observatoryName": "Iridium-131",
+        "instrumentType": "DOSIMETER",
+        "lat": 61.93469123209917,
+        "lon": 148.1228907688229,
+        "alt": 786.9756456419119,
+        "senPos": [
+            -2656.034681212286,
+            -2094.5245889329535,
+            6306.353643082413
+        ],
+        "obSetId": "REACH_V",
+        "particleType": "PROTONS+ELECTRONS",
+        "obTime": "2025-12-01T00:00:05.000Z",
+        "seoList": [
+            {
+                "obType": "Energetic Charged Particle",
+                "obUoM": "rad/second",
+                "obValue": 1.0186092066601347e-07,
+                "obQuality": "0",
+                "obDescription": "DOSE2 (Flavor V) in rad/second"
+            }
+        ],
+        "descriptor": "QUICKLOOK",
+        "createdAt": "2025-12-01T01:30:30.447Z",
+        "createdBy": "system.reach",
+        "source": "Aerospace",
+        "dataMode": "REAL",
+        "origNetwork": "OPS1"
+    },
+    {
+        "id": "730566db-f0b5-49f2-897c-93644113329a",
+        "classificationMarking": "U",
+        "dataType": "ECP",
+        "genTime": "2025-12-01T01:30:10.286Z",
+        "idOnOrbit": "41917",
+        "satNo": 41917,
+        "idSensor": "REACH-105",
+        "origSensorId": "3",
+        "observatoryType": "ONORBIT",
+        "observatoryName": "Iridium-106",
+        "instrumentType": "DOSIMETER",
+        "lat": -63.60374003336986,
+        "lon": -71.53415157553376,
+        "alt": 803.2873059009625,
+        "senPos": [
+            3202.8523316298247,
+            -78.16719505825935,
+            -6416.692671617134
+        ],
+        "obSetId": "REACH_U",
+        "particleType": "PROTONS",
+        "obTime": "2025-12-01T00:00:05.000Z",
+        "seoList": [
+            {
+                "obType": "Energetic Charged Particle",
+                "obUoM": "rad/second",
+                "obValue": 0.0,
+                "obQuality": "4",
+                "obDescription": "DOSE2 (Flavor U) in rad/second"
+            }
+        ],
+        "descriptor": "QUICKLOOK",
+        "createdAt": "2025-12-01T01:31:11.010Z",
+        "createdBy": "system.reach",
+        "source": "Aerospace",
+        "dataMode": "REAL",
+        "origNetwork": "OPS1"
+    },
+    {
+        "id": "a1004a02-3eab-43a5-b9d1-a9dd8b796b95",
+        "classificationMarking": "U",
+        "dataType": "ECP",
+        "genTime": "2025-12-01T01:30:10.286Z",
+        "idOnOrbit": "43924",
+        "satNo": 43924,
+        "idSensor": "REACH-175",
+        "origSensorId": "3",
+        "observatoryType": "ONORBIT",
+        "observatoryName": "Iridium-168",
+        "instrumentType": "DOSIMETER",
+        "lat": 67.33802618258282,
+        "lon": 15.01238736841966,
+        "alt": 788.1280077459028,
+        "senPos": [
+            234.36652515106204,
+            2761.220708673497,
+            6597.457819464097
+        ],
+        "obSetId": "REACH_Y",
+        "particleType": "PROTONS",
+        "obTime": "2025-12-01T00:00:05.000Z",
+        "seoList": [
+            {
+                "obType": "Energetic Charged Particle",
+                "obUoM": "rad/second",
+                "obValue": 3.3755274261603295e-08,
+                "obQuality": "0",
+                "obDescription": "DOSE1 (Flavor Y) in rad/second"
+            }
+        ],
+        "descriptor": "QUICKLOOK",
+        "createdAt": "2025-12-01T01:31:20.195Z",
+        "createdBy": "system.reach",
+        "source": "Aerospace",
+        "dataMode": "REAL",
+        "origNetwork": "OPS1"
+    },
+    {
+        "id": "7f0c9fd8-e157-4b76-8da9-ae5d047b06ac",
+        "classificationMarking": "U",
+        "dataType": "ECP",
+        "genTime": "2025-12-05T06:05:17.706Z",
+        "idOnOrbit": "41920",
+        "satNo": 41920,
+        "idSensor": "REACH-101",
+        "origSensorId": "1",
+        "observatoryType": "ONORBIT",
+        "observatoryName": "Iridium-102",
+        "instrumentType": "DOSIMETER",
+        "lat": 79.44565621850217,
+        "lon": 120.73593632197213,
+        "alt": 789.535929882848,
+        "senPos": [
+            -1294.4532930778666,
+            -248.617215196464,
+            7032.285933445594
+        ],
+        "obSetId": "REACH_X",
+        "particleType": "PROTONS+ELECTRONS",
+        "obTime": "2025-12-01T00:00:05.000Z",
+        "seoList": [
+            {
+                "obType": "Energetic Charged Particle",
+                "obUoM": "rad/second",
+                "obValue": 1.733333333333329e-05,
+                "obQuality": "0",
+                "obDescription": "DOSE1 (Flavor X) in rad/second"
+            }
+        ],
+        "descriptor": "QUICKLOOK",
+        "createdAt": "2025-12-05T10:28:55.181Z",
+        "createdBy": "system.reach",
+        "source": "Aerospace",
+        "dataMode": "REAL",
+        "origNetwork": "OPS1"
+    },
+    {
+        "id": "88ccc869-b17b-402a-9b17-f3a0a331502b",
+        "classificationMarking": "U",
+        "dataType": "ECP",
+        "genTime": "2025-12-01T01:30:07.591Z",
+        "idOnOrbit": "43479",
+        "satNo": 43479,
+        "idSensor": "REACH-164",
+        "origSensorId": "1",
+        "observatoryType": "ONORBIT",
+        "observatoryName": "Iridium-152",
+        "instrumentType": "DOSIMETER",
+        "lat": -31.126656245247673,
+        "lon": -76.82617722073667,
+        "alt": 790.2537000916535,
+        "senPos": [
+            6106.01275169807,
+            -716.2198972294974,
+            -3690.421924087748
+        ],
+        "obSetId": "REACH_X",
+        "particleType": "PROTONS",
+        "obTime": "2025-12-01T00:00:05.000Z",
+        "seoList": [
+            {
+                "obType": "Energetic Charged Particle",
+                "obUoM": "rad/second",
+                "obValue": 1.1142857142857113e-05,
+                "obQuality": "0",
+                "obDescription": "DOSE1 (Flavor X) in rad/second"
+            }
+        ],
+        "descriptor": "QUICKLOOK",
+        "createdAt": "2025-12-01T01:31:21.487Z",
+        "createdBy": "system.reach",
+        "source": "Aerospace",
+        "dataMode": "REAL",
+        "origNetwork": "OPS1"
+    },
+    {
+        "id": "c7410fa9-a96d-4811-a28c-788d61fb5731",
+        "classificationMarking": "U",
+        "dataType": "ECP",
+        "genTime": "2025-12-01T01:30:10.286Z",
+        "idOnOrbit": "43922",
+        "satNo": 43922,
+        "idSensor": "REACH-166",
+        "origSensorId": "2",
+        "observatoryType": "ONORBIT",
+        "observatoryName": "Iridium-180",
+        "instrumentType": "DOSIMETER",
+        "lat": 34.784501528851294,
+        "lon": 8.806053735738114,
+        "alt": 781.5892665274487,
+        "senPos": [
+            1130.1621714141195,
+            5783.001034311425,
+            4068.549251775568
+        ],
+        "obSetId": "REACH_V",
+        "particleType": "PROTONS",
+        "obTime": "2025-12-01T00:00:05.000Z",
+        "seoList": [
+            {
+                "obType": "Energetic Charged Particle",
+                "obUoM": "rad/second",
+                "obValue": 6.31067961165047e-08,
+                "obQuality": "0",
+                "obDescription": "DOSE2 (Flavor V) in rad/second"
+            }
+        ],
+        "descriptor": "QUICKLOOK",
+        "createdAt": "2025-12-01T01:30:59.962Z",
+        "createdBy": "system.reach",
+        "source": "Aerospace",
+        "dataMode": "REAL",
+        "origNetwork": "OPS1"
+    },
+    {
+        "id": "1f9a6b86-463f-42fc-a69b-ff021f4b84cb",
+        "classificationMarking": "U",
+        "dataType": "ECP",
+        "genTime": "2025-12-05T06:05:17.706Z",
+        "idOnOrbit": "43481",
+        "satNo": 43481,
+        "idSensor": "REACH-114",
+        "origSensorId": "1",
+        "observatoryType": "ONORBIT",
+        "observatoryName": "Iridium-110",
+        "instrumentType": "DOSIMETER",
+        "lat": 34.485726569966154,
+        "lon": -81.36953596625416,
+        "alt": 781.9124518122015,
+        "senPos": [
+            5800.543001552897,
+            -1152.0568594911947,
+            4038.075162759735
+        ],
+        "obSetId": "REACH_X",
+        "particleType": "PROTONS",
+        "obTime": "2025-12-01T00:00:05.000Z",
+        "seoList": [
+            {
+                "obType": "Energetic Charged Particle",
+                "obUoM": "rad/second",
+                "obValue": 2.620307382212154e-08,
+                "obQuality": "0",
+                "obDescription": "DOSE1 (Flavor X) in rad/second"
+            }
+        ],
+        "descriptor": "QUICKLOOK",
+        "createdAt": "2025-12-05T10:00:47.728Z",
+        "createdBy": "system.reach",
+        "source": "Aerospace",
+        "dataMode": "REAL",
+        "origNetwork": "OPS1"
+    },
+    {
+        "id": "404f05f0-4164-458b-aed6-4737210ee9e6",
+        "classificationMarking": "U",
+        "dataType": "ECP",
+        "genTime": "2025-12-01T01:30:07.591Z",
+        "idOnOrbit": "42803",
+        "satNo": 42803,
+        "idSensor": "REACH-102",
+        "origSensorId": "2",
+        "observatoryType": "ONORBIT",
+        "observatoryName": "Iridium-113",
+        "instrumentType": "DOSIMETER",
+        "lat": -36.31816175494694,
+        "lon": 157.50313373293048,
+        "alt": 792.3893314785516,
+        "senPos": [
+            -3901.2098289907403,
+            -4278.249171732669,
+            -4230.579626315437
+        ],
+        "obSetId": "REACH_Y",
+        "particleType": "PROTONS",
+        "obTime": "2025-12-01T00:00:05.000Z",
+        "seoList": [
+            {
+                "obType": "Energetic Charged Particle",
+                "obUoM": "rad/second",
+                "obValue": 0.0,
+                "obQuality": "0",
+                "obDescription": "DOSE1 (Flavor Y) in rad/second"
+            }
+        ],
+        "descriptor": "QUICKLOOK",
+        "createdAt": "2025-12-01T01:31:57.065Z",
+        "createdBy": "system.reach",
+        "source": "Aerospace",
+        "dataMode": "REAL",
+        "origNetwork": "OPS1"
+    },
+    {
+        "id": "05b85245-458c-4ae7-ae56-bc7ac20735f8",
+        "classificationMarking": "U",
+        "dataType": "ECP",
+        "genTime": "2025-12-01T01:30:07.591Z",
+        "idOnOrbit": "43076",
+        "satNo": 43076,
+        "idSensor": "REACH-139",
+        "origSensorId": "1",
+        "observatoryType": "ONORBIT",
+        "observatoryName": "Iridium-137",
+        "instrumentType": "DOSIMETER",
+        "lat": 19.977635908740492,
+        "lon": -23.8658499768967,
+        "alt": 779.9117439671154,
+        "senPos": [
+            4655.195144314661,
+            4869.875166482033,
+            2434.4632875210764
+        ],
+        "obSetId": "REACH_X",
+        "particleType": "PROTONS",
+        "obTime": "2025-12-01T00:00:10.000Z",
+        "seoList": [
+            {
+                "obType": "Energetic Charged Particle",
+                "obUoM": "rad/second",
+                "obValue": 0.0,
+                "obQuality": "0",
+                "obDescription": "DOSE1 (Flavor X) in rad/second"
+            }
+        ],
+        "descriptor": "QUICKLOOK",
+        "createdAt": "2025-12-01T01:30:58.286Z",
+        "createdBy": "system.reach",
+        "source": "Aerospace",
+        "dataMode": "REAL",
+        "origNetwork": "OPS1"
+    },
+    {
+        "id": "74c268e6-dfb1-4aa5-87f8-873b361dc1e0",
+        "classificationMarking": "U",
+        "dataType": "ECP",
+        "genTime": "2025-12-05T06:05:17.706Z",
+        "idOnOrbit": "42955",
+        "satNo": 42955,
+        "idSensor": "REACH-108",
+        "origSensorId": "1",
+        "observatoryType": "ONORBIT",
+        "observatoryName": "Iridium-133",
+        "instrumentType": "DOSIMETER",
+        "lat": -34.03006493881067,
+        "lon": -139.5924743436047,
+        "alt": 791.3061984792139,
+        "senPos": [
+            2091.2807677220144,
+            -5574.242696570901,
+            -3996.371366089321
+        ],
+        "obSetId": "REACH_W",
+        "particleType": "PROTONS",
+        "obTime": "2025-12-01T00:00:10.000Z",
+        "seoList": [
+            {
+                "obType": "Energetic Charged Particle",
+                "obUoM": "rad/second",
+                "obValue": -1e+31,
+                "obQuality": "0",
+                "obDescription": "DOSE2 (Flavor W) in rad/second"
+            }
+        ],
+        "descriptor": "QUICKLOOK",
+        "createdAt": "2025-12-05T09:33:29.469Z",
+        "createdBy": "system.reach",
+        "source": "Aerospace",
+        "dataMode": "REAL",
+        "origNetwork": "OPS1"
+    },
+    {
+        "id": "f8d7fe9a-e2cd-437a-bd13-8c035d0c57cb",
+        "classificationMarking": "U",
+        "dataType": "ECP",
+        "genTime": "2025-12-05T06:05:17.706Z",
+        "idOnOrbit": "43576",
+        "satNo": 43576,
+        "idSensor": "REACH-170",
+        "origSensorId": "0",
+        "observatoryType": "ONORBIT",
+        "observatoryName": "Iridium-156",
+        "instrumentType": "DOSIMETER",
+        "lat": 49.25608572638048,
+        "lon": -114.7345962696236,
+        "alt": 784.3305183191711,
+        "senPos": [
+            3339.1837576923363,
+            -3290.3094510496057,
+            5409.282740452997
+        ],
+        "obSetId": "REACH_X",
+        "particleType": "ELECTRONS",
+        "obTime": "2025-12-01T00:00:10.000Z",
+        "seoList": [
+            {
+                "obType": "Energetic Charged Particle",
+                "obUoM": "rad/second",
+                "obValue": 0.00019066666666666621,
+                "obQuality": "0",
+                "obDescription": "DOSE1 (Flavor X) in rad/second"
+            }
+        ],
+        "descriptor": "QUICKLOOK",
+        "createdAt": "2025-12-05T08:38:26.897Z",
+        "createdBy": "system.reach",
+        "source": "Aerospace",
+        "dataMode": "REAL",
+        "origNetwork": "OPS1"
+    },
+    {
+        "id": "ec0a903d-2be5-46f4-bd74-3b5b898715ca",
+        "classificationMarking": "U",
+        "dataType": "ECP",
+        "genTime": "2025-12-01T01:30:10.286Z",
+        "idOnOrbit": "41917",
+        "satNo": 41917,
+        "idSensor": "REACH-105",
+        "origSensorId": "3",
+        "observatoryType": "ONORBIT",
+        "observatoryName": "Iridium-106",
+        "instrumentType": "DOSIMETER",
+        "lat": -63.89758530383311,
+        "lon": -71.46025539015551,
+        "alt": 803.3841535785365,
+        "senPos": [
+            3169.9197249186773,
+            -72.11642472322217,
+            -6433.10668751694
+        ],
+        "obSetId": "REACH_U",
+        "particleType": "PROTONS",
+        "obTime": "2025-12-01T00:00:10.000Z",
+        "seoList": [
+            {
+                "obType": "Energetic Charged Particle",
+                "obUoM": "rad/second",
+                "obValue": 0.0,
+                "obQuality": "4",
+                "obDescription": "DOSE2 (Flavor U) in rad/second"
+            }
+        ],
+        "descriptor": "QUICKLOOK",
+        "createdAt": "2025-12-01T01:31:11.010Z",
+        "createdBy": "system.reach",
+        "source": "Aerospace",
+        "dataMode": "REAL",
+        "origNetwork": "OPS1"
+    },
+    {
+        "id": "3a0e01c5-6f14-41ea-9b01-52746e50b504",
+        "classificationMarking": "U",
+        "dataType": "ECP",
+        "genTime": "2025-12-01T01:30:07.591Z",
+        "idOnOrbit": "43577",
+        "satNo": 43577,
+        "idSensor": "REACH-149",
+        "origSensorId": "1",
+        "observatoryType": "ONORBIT",
+        "observatoryName": "Iridium-164",
+        "instrumentType": "DOSIMETER",
+        "lat": -48.941625682996865,
+        "lon": -106.40256753549147,
+        "alt": 797.869491282316,
+        "senPos": [
+            3811.88257642358,
+            -2794.535799638754,
+            -5393.7585194314825
+        ],
+        "obSetId": "REACH_X",
+        "particleType": "PROTONS",
+        "obTime": "2025-12-01T00:00:10.000Z",
+        "seoList": [
+            {
+                "obType": "Energetic Charged Particle",
+                "obUoM": "rad/second",
+                "obValue": 9.638554216867448e-08,
+                "obQuality": "0",
+                "obDescription": "DOSE1 (Flavor X) in rad/second"
+            }
+        ],
+        "descriptor": "QUICKLOOK",
+        "createdAt": "2025-12-01T01:30:49.438Z",
+        "createdBy": "system.reach",
+        "source": "Aerospace",
+        "dataMode": "REAL",
+        "origNetwork": "OPS1"
+    },
+    {
+        "id": "2fbe36a7-f5fb-4c52-b435-cb5668327e42",
+        "classificationMarking": "U",
+        "dataType": "ECP",
+        "genTime": "2025-12-01T01:30:07.591Z",
+        "idOnOrbit": "43479",
+        "satNo": 43479,
+        "idSensor": "REACH-164",
+        "origSensorId": "1",
+        "observatoryType": "ONORBIT",
+        "observatoryName": "Iridium-152",
+        "instrumentType": "DOSIMETER",
+        "lat": -31.424917621687293,
+        "lon": -76.82151002178125,
+        "alt": 790.3772712154766,
+        "senPos": [
+            6087.242176776579,
+            -711.2656424867345,
+            -3722.3005449504276
+        ],
+        "obSetId": "REACH_X",
+        "particleType": "PROTONS",
+        "obTime": "2025-12-01T00:00:10.000Z",
+        "seoList": [
+            {
+                "obType": "Energetic Charged Particle",
+                "obUoM": "rad/second",
+                "obValue": 7.0365079365079185e-06,
+                "obQuality": "0",
+                "obDescription": "DOSE1 (Flavor X) in rad/second"
+            }
+        ],
+        "descriptor": "QUICKLOOK",
+        "createdAt": "2025-12-01T01:31:21.487Z",
+        "createdBy": "system.reach",
+        "source": "Aerospace",
+        "dataMode": "REAL",
+        "origNetwork": "OPS1"
+    },
+    {
+        "id": "61e791b7-db63-4365-996c-a74884c49d13",
+        "classificationMarking": "U",
+        "dataType": "ECP",
+        "genTime": "2025-12-01T01:30:10.286Z",
+        "idOnOrbit": "43924",
+        "satNo": 43924,
+        "idSensor": "REACH-175",
+        "origSensorId": "3",
+        "observatoryType": "ONORBIT",
+        "observatoryName": "Iridium-168",
+        "instrumentType": "DOSIMETER",
+        "lat": 67.63200391476346,
+        "lon": 15.11852482262616,
+        "alt": 788.1766372706971,
+        "senPos": [
+            225.4403495402898,
+            2727.8074458767255,
+            6611.621501502481
+        ],
+        "obSetId": "REACH_U",
+        "particleType": "PROTONS",
+        "obTime": "2025-12-01T00:00:10.000Z",
+        "seoList": [
+            {
+                "obType": "Energetic Charged Particle",
+                "obUoM": "rad/second",
+                "obValue": 6.910299003322243e-08,
+                "obQuality": "0",
+                "obDescription": "DOSE2 (Flavor U) in rad/second"
+            }
+        ],
+        "descriptor": "QUICKLOOK",
+        "createdAt": "2025-12-01T01:31:20.195Z",
+        "createdBy": "system.reach",
+        "source": "Aerospace",
+        "dataMode": "REAL",
+        "origNetwork": "OPS1"
+    },
+    {
+        "id": "e24279fb-3d63-4c76-b09b-3be923d71b30",
+        "classificationMarking": "U",
+        "dataType": "ECP",
+        "genTime": "2025-12-05T06:05:17.706Z",
+        "idOnOrbit": "42960",
+        "satNo": 42960,
+        "idSensor": "REACH-115",
+        "origSensorId": "1",
+        "observatoryType": "ONORBIT",
+        "observatoryName": "Iridium-107",
+        "instrumentType": "DOSIMETER",
+        "lat": -15.467800135963806,
+        "lon": 36.990847186807805,
+        "alt": 784.5651404956652,
+        "senPos": [
+            -2037.9847793118392,
+            6604.947053130871,
+            -1901.3416121944115
+        ],
+        "obSetId": "REACH_X",
+        "particleType": "PROTONS",
+        "obTime": "2025-12-01T00:00:10.000Z",
+        "seoList": [
+            {
+                "obType": "Energetic Charged Particle",
+                "obUoM": "rad/second",
+                "obValue": 1.602465331278887e-07,
+                "obQuality": "0",
+                "obDescription": "DOSE1 (Flavor X) in rad/second"
+            }
+        ],
+        "descriptor": "QUICKLOOK",
+        "createdAt": "2025-12-05T11:32:35.231Z",
+        "createdBy": "system.reach",
+        "source": "Aerospace",
+        "dataMode": "REAL",
+        "origNetwork": "OPS1"
+    },
+    {
+        "id": "33c61585-8f88-45b4-ba8d-21c15083a134",
+        "classificationMarking": "U",
+        "dataType": "ECP",
+        "genTime": "2025-12-01T01:30:07.591Z",
+        "idOnOrbit": "43577",
+        "satNo": 43577,
+        "idSensor": "REACH-149",
+        "origSensorId": "1",
+        "observatoryType": "ONORBIT",
+        "observatoryName": "Iridium-164",
+        "instrumentType": "DOSIMETER",
+        "lat": -48.941625682996865,
+        "lon": -106.40256753549147,
+        "alt": 797.869491282316,
+        "senPos": [
+            3811.88257642358,
+            -2794.535799638754,
+            -5393.7585194314825
+        ],
+        "obSetId": "REACH_W",
+        "particleType": "PROTONS",
+        "obTime": "2025-12-01T00:00:10.000Z",
+        "seoList": [
+            {
+                "obType": "Energetic Charged Particle",
+                "obUoM": "rad/second",
+                "obValue": 0.0,
+                "obQuality": "0",
+                "obDescription": "DOSE2 (Flavor W) in rad/second"
+            }
+        ],
+        "descriptor": "QUICKLOOK",
+        "createdAt": "2025-12-01T01:30:49.438Z",
+        "createdBy": "system.reach",
+        "source": "Aerospace",
+        "dataMode": "REAL",
+        "origNetwork": "OPS1"
+    },
+    {
+        "id": "293926e4-3bd9-48a3-969f-0fcff11efdea",
+        "classificationMarking": "U",
+        "dataType": "ECP",
+        "genTime": "2025-12-01T01:30:10.286Z",
+        "idOnOrbit": "41917",
+        "satNo": 41917,
+        "idSensor": "REACH-105",
+        "origSensorId": "3",
+        "observatoryType": "ONORBIT",
+        "observatoryName": "Iridium-106",
+        "instrumentType": "DOSIMETER",
+        "lat": -63.89758530383311,
+        "lon": -71.46025539015551,
+        "alt": 803.3841535785365,
+        "senPos": [
+            3169.9197249186773,
+            -72.11642472322217,
+            -6433.10668751694
+        ],
+        "obSetId": "REACH_Y",
+        "particleType": "PROTONS",
+        "obTime": "2025-12-01T00:00:10.000Z",
+        "seoList": [
+            {
+                "obType": "Energetic Charged Particle",
+                "obUoM": "rad/second",
+                "obValue": 0.0,
+                "obQuality": "4",
+                "obDescription": "DOSE1 (Flavor Y) in rad/second"
+            }
+        ],
+        "descriptor": "QUICKLOOK",
+        "createdAt": "2025-12-01T01:31:11.010Z",
+        "createdBy": "system.reach",
+        "source": "Aerospace",
+        "dataMode": "REAL",
+        "origNetwork": "OPS1"
+    },
+    {
+        "id": "d7473fa8-35b8-4842-9223-b6017a7e5926",
+        "classificationMarking": "U",
+        "dataType": "ECP",
+        "genTime": "2025-12-01T01:30:07.591Z",
+        "idOnOrbit": "43479",
+        "satNo": 43479,
+        "idSensor": "REACH-164",
+        "origSensorId": "1",
+        "observatoryType": "ONORBIT",
+        "observatoryName": "Iridium-152",
+        "instrumentType": "DOSIMETER",
+        "lat": -31.424917621687293,
+        "lon": -76.82151002178125,
+        "alt": 790.3772712154766,
+        "senPos": [
+            6087.242176776579,
+            -711.2656424867345,
+            -3722.3005449504276
+        ],
+        "obSetId": "REACH_W",
+        "particleType": "PROTONS",
+        "obTime": "2025-12-01T00:00:10.000Z",
+        "seoList": [
+            {
+                "obType": "Energetic Charged Particle",
+                "obUoM": "rad/second",
+                "obValue": 2.0381538461538416e-05,
+                "obQuality": "0",
+                "obDescription": "DOSE2 (Flavor W) in rad/second"
+            }
+        ],
+        "descriptor": "QUICKLOOK",
+        "createdAt": "2025-12-01T01:31:21.487Z",
+        "createdBy": "system.reach",
+        "source": "Aerospace",
+        "dataMode": "REAL",
+        "origNetwork": "OPS1"
+    },
+    {
+        "id": "d941f400-72c6-43f9-b38b-5f80ba252ae6",
+        "classificationMarking": "U",
+        "dataType": "ECP",
+        "genTime": "2025-12-01T01:30:10.286Z",
+        "idOnOrbit": "43253",
+        "satNo": 43253,
+        "idSensor": "REACH-165",
+        "origSensorId": "3",
+        "observatoryType": "ONORBIT",
+        "observatoryName": "Iridium-145",
+        "instrumentType": "DOSIMETER",
+        "lat": 76.41046963189618,
+        "lon": 108.09356392743523,
+        "alt": 789.0206278817659,
+        "senPos": [
+            -1689.8304468468523,
+            51.61270683790278,
+            6952.091324542944
+        ],
+        "obSetId": "REACH_Y",
+        "particleType": "PROTONS",
+        "obTime": "2025-12-01T00:00:10.000Z",
+        "seoList": [
+            {
+                "obType": "Energetic Charged Particle",
+                "obUoM": "rad/second",
+                "obValue": 1.733333333333329e-05,
+                "obQuality": "0",
+                "obDescription": "DOSE1 (Flavor Y) in rad/second"
+            }
+        ],
+        "descriptor": "QUICKLOOK",
+        "createdAt": "2025-12-01T01:31:54.282Z",
+        "createdBy": "system.reach",
+        "source": "Aerospace",
+        "dataMode": "REAL",
+        "origNetwork": "OPS1"
+    },
+    {
+        "id": "4b62acf5-8de4-45a3-9cb2-0c816146a9d1",
+        "classificationMarking": "U",
+        "dataType": "ECP",
+        "genTime": "2025-12-05T06:05:17.706Z",
+        "idOnOrbit": "43078",
+        "satNo": 43078,
+        "idSensor": "REACH-169",
+        "origSensorId": "0",
+        "observatoryType": "ONORBIT",
+        "observatoryName": "Iridium-153",
+        "instrumentType": "DOSIMETER",
+        "lat": -60.548339288819655,
+        "lon": -63.201132803754575,
+        "alt": 802.3329810879991,
+        "senPos": [
+            3516.307842068413,
+            428.998490349353,
+            -6236.165234219619
+        ],
+        "obSetId": "REACH_Z",
+        "particleType": "PROTONS+ELECTRONS",
+        "obTime": "2025-12-01T00:00:10.000Z",
+        "seoList": [
+            {
+                "obType": "Energetic Charged Particle",
+                "obUoM": "rad/second",
+                "obValue": 5.371428571428559e-05,
+                "obQuality": "0",
+                "obDescription": "DOSE2 (Flavor Z) in rad/second"
+            }
+        ],
+        "descriptor": "QUICKLOOK",
+        "createdAt": "2025-12-05T07:08:27.645Z",
+        "createdBy": "system.reach",
+        "source": "Aerospace",
+        "dataMode": "REAL",
+        "origNetwork": "OPS1"
+    },
+    {
+        "id": "512294f8-9417-45c1-a41b-7dcd06bcaf6c",
+        "classificationMarking": "U",
+        "dataType": "ECP",
+        "genTime": "2025-12-01T01:30:10.286Z",
+        "idOnOrbit": "43253",
+        "satNo": 43253,
+        "idSensor": "REACH-165",
+        "origSensorId": "3",
+        "observatoryType": "ONORBIT",
+        "observatoryName": "Iridium-145",
+        "instrumentType": "DOSIMETER",
+        "lat": 76.41046963189618,
+        "lon": 108.09356392743523,
+        "alt": 789.0206278817659,
+        "senPos": [
+            -1689.8304468468523,
+            51.61270683790278,
+            6952.091324542944
+        ],
+        "obSetId": "REACH_U",
+        "particleType": "PROTONS",
+        "obTime": "2025-12-01T00:00:10.000Z",
+        "seoList": [
+            {
+                "obType": "Energetic Charged Particle",
+                "obUoM": "rad/second",
+                "obValue": 1.0958904109589014e-07,
+                "obQuality": "0",
+                "obDescription": "DOSE2 (Flavor U) in rad/second"
+            }
+        ],
+        "descriptor": "QUICKLOOK",
+        "createdAt": "2025-12-01T01:31:54.282Z",
+        "createdBy": "system.reach",
+        "source": "Aerospace",
+        "dataMode": "REAL",
+        "origNetwork": "OPS1"
+    },
+    {
+        "id": "b157cb61-cd70-494c-b51d-cd3ce20e2b23",
+        "classificationMarking": "U",
+        "dataType": "ECP",
+        "genTime": "2025-12-05T06:05:17.706Z",
+        "idOnOrbit": "43929",
+        "satNo": 43929,
+        "idSensor": "REACH-180",
+        "origSensorId": "0",
+        "observatoryType": "ONORBIT",
+        "observatoryName": "Iridium-171",
+        "instrumentType": "DOSIMETER",
+        "lat": -83.24046148315963,
+        "lon": -141.5505638413952,
+        "alt": 807.7534315334466,
+        "senPos": [
+            270.9529972990657,
+            -804.8220374530187,
+            -7122.114591110843
+        ],
+        "obSetId": "REACH_X",
+        "particleType": "PROTONS+ELECTRONS",
+        "obTime": "2025-12-01T00:00:10.000Z",
+        "seoList": [
+            {
+                "obType": "Energetic Charged Particle",
+                "obUoM": "rad/second",
+                "obValue": 5.1080550098232305e-08,
+                "obQuality": "0",
+                "obDescription": "DOSE1 (Flavor X) in rad/second"
+            }
+        ],
+        "descriptor": "QUICKLOOK",
+        "createdAt": "2025-12-05T08:10:38.535Z",
+        "createdBy": "system.reach",
+        "source": "Aerospace",
+        "dataMode": "REAL",
+        "origNetwork": "OPS1"
+    },
+    {
+        "id": "a8d611dd-c277-433d-94d2-e2e5ae5d9b2a",
+        "classificationMarking": "U",
+        "dataType": "ECP",
+        "genTime": "2025-12-05T06:05:17.706Z",
+        "idOnOrbit": "43578",
+        "satNo": 43578,
+        "idSensor": "REACH-172",
+        "origSensorId": "0",
+        "observatoryType": "ONORBIT",
+        "observatoryName": "Iridium-159",
+        "instrumentType": "DOSIMETER",
+        "lat": 32.476584803659314,
+        "lon": 71.69979776515181,
+        "alt": 781.0405503151945,
+        "senPos": [
+            -4759.168052487113,
+            3737.464289442576,
+            3828.658553478916
+        ],
+        "obSetId": "REACH_Z",
+        "particleType": "ELECTRONS",
+        "obTime": "2025-12-01T00:00:10.000Z",
+        "seoList": [
+            {
+                "obType": "Energetic Charged Particle",
+                "obUoM": "rad/second",
+                "obValue": 5.257270693512292e-07,
+                "obQuality": "0",
+                "obDescription": "DOSE2 (Flavor Z) in rad/second"
+            }
+        ],
+        "descriptor": "QUICKLOOK",
+        "createdAt": "2025-12-05T09:07:09.745Z",
+        "createdBy": "system.reach",
+        "source": "Aerospace",
+        "dataMode": "REAL",
+        "origNetwork": "OPS1"
+    },
+    {
+        "id": "481018d4-a6fe-4f30-8cac-d5bfe7957f3b",
+        "classificationMarking": "U",
+        "dataType": "ECP",
+        "genTime": "2025-12-05T06:05:17.706Z",
+        "idOnOrbit": "43576",
+        "satNo": 43576,
+        "idSensor": "REACH-170",
+        "origSensorId": "0",
+        "observatoryType": "ONORBIT",
+        "observatoryName": "Iridium-156",
+        "instrumentType": "DOSIMETER",
+        "lat": 49.25608572638048,
+        "lon": -114.7345962696236,
+        "alt": 784.3305183191711,
+        "senPos": [
+            3339.1837576923363,
+            -3290.3094510496057,
+            5409.282740452997
+        ],
+        "obSetId": "REACH_Z",
+        "particleType": "PROTONS+ELECTRONS",
+        "obTime": "2025-12-01T00:00:10.000Z",
+        "seoList": [
+            {
+                "obType": "Energetic Charged Particle",
+                "obUoM": "rad/second",
+                "obValue": 1.7389006342494678e-05,
+                "obQuality": "0",
+                "obDescription": "DOSE2 (Flavor Z) in rad/second"
+            }
+        ],
+        "descriptor": "QUICKLOOK",
+        "createdAt": "2025-12-05T08:38:26.897Z",
+        "createdBy": "system.reach",
+        "source": "Aerospace",
+        "dataMode": "REAL",
+        "origNetwork": "OPS1"
+    },
+    {
+        "id": "347fd5bf-1ed6-4106-a813-c4fb44df99d7",
+        "classificationMarking": "U",
+        "dataType": "ECP",
+        "genTime": "2025-12-01T01:30:07.591Z",
+        "idOnOrbit": "43076",
+        "satNo": 43076,
+        "idSensor": "REACH-139",
+        "origSensorId": "1",
+        "observatoryType": "ONORBIT",
+        "observatoryName": "Iridium-137",
+        "instrumentType": "DOSIMETER",
+        "lat": 19.977635908740492,
+        "lon": -23.8658499768967,
+        "alt": 779.9117439671154,
+        "senPos": [
+            4655.195144314661,
+            4869.875166482033,
+            2434.4632875210764
+        ],
+        "obSetId": "REACH_W",
+        "particleType": "PROTONS",
+        "obTime": "2025-12-01T00:00:10.000Z",
+        "seoList": [
+            {
+                "obType": "Energetic Charged Particle",
+                "obUoM": "rad/second",
+                "obValue": 0.0,
+                "obQuality": "0",
+                "obDescription": "DOSE2 (Flavor W) in rad/second"
+            }
+        ],
+        "descriptor": "QUICKLOOK",
+        "createdAt": "2025-12-01T01:30:58.286Z",
+        "createdBy": "system.reach",
+        "source": "Aerospace",
+        "dataMode": "REAL",
+        "origNetwork": "OPS1"
+    },
+    {
+        "id": "783d9177-e371-42be-9ad9-6501543d6618",
+        "classificationMarking": "U",
+        "dataType": "ECP",
+        "genTime": "2025-12-01T01:30:10.286Z",
+        "idOnOrbit": "43079",
+        "satNo": 43079,
+        "idSensor": "REACH-148",
+        "origSensorId": "2",
+        "observatoryType": "ONORBIT",
+        "observatoryName": "Iridium-131",
+        "instrumentType": "DOSIMETER",
+        "lat": 61.63906392149758,
+        "lon": 148.18535336612777,
+        "alt": 786.9182035486149,
+        "senPos": [
+            -2678.567171856302,
+            -2118.620788597381,
+            6288.789497136315
+        ],
+        "obSetId": "REACH_Y",
+        "particleType": "PROTONS+ELECTRONS",
+        "obTime": "2025-12-01T00:00:10.000Z",
+        "seoList": [
+            {
+                "obType": "Energetic Charged Particle",
+                "obUoM": "rad/second",
+                "obValue": 0.0,
+                "obQuality": "0",
+                "obDescription": "DOSE1 (Flavor Y) in rad/second"
+            }
+        ],
+        "descriptor": "QUICKLOOK",
+        "createdAt": "2025-12-01T01:30:30.447Z",
+        "createdBy": "system.reach",
+        "source": "Aerospace",
+        "dataMode": "REAL",
+        "origNetwork": "OPS1"
+    },
+    {
+        "id": "3eba2c98-46f7-42b6-a3a9-c0dc60da8970",
+        "classificationMarking": "U",
+        "dataType": "ECP",
+        "genTime": "2025-12-05T06:05:17.706Z",
+        "idOnOrbit": "43929",
+        "satNo": 43929,
+        "idSensor": "REACH-180",
+        "origSensorId": "0",
+        "observatoryType": "ONORBIT",
+        "observatoryName": "Iridium-171",
+        "instrumentType": "DOSIMETER",
+        "lat": -83.24046148315963,
+        "lon": -141.5505638413952,
+        "alt": 807.7534315334466,
+        "senPos": [
+            270.9529972990657,
+            -804.8220374530187,
+            -7122.114591110843
+        ],
+        "obSetId": "REACH_Z",
+        "particleType": "ELECTRONS",
+        "obTime": "2025-12-01T00:00:10.000Z",
+        "seoList": [
+            {
+                "obType": "Energetic Charged Particle",
+                "obUoM": "rad/second",
+                "obValue": 1.699819168173615e-06,
+                "obQuality": "0",
+                "obDescription": "DOSE2 (Flavor Z) in rad/second"
+            }
+        ],
+        "descriptor": "QUICKLOOK",
+        "createdAt": "2025-12-05T08:10:38.535Z",
+        "createdBy": "system.reach",
+        "source": "Aerospace",
+        "dataMode": "REAL",
+        "origNetwork": "OPS1"
+    },
+    {
+        "id": "b76b4ffa-99b7-4b1a-b4c7-758f00ac3b6e",
+        "classificationMarking": "U",
+        "dataType": "ECP",
+        "genTime": "2025-12-01T01:30:10.286Z",
+        "idOnOrbit": "43079",
+        "satNo": 43079,
+        "idSensor": "REACH-148",
+        "origSensorId": "2",
+        "observatoryType": "ONORBIT",
+        "observatoryName": "Iridium-131",
+        "instrumentType": "DOSIMETER",
+        "lat": 61.63906392149758,
+        "lon": 148.18535336612777,
+        "alt": 786.9182035486149,
+        "senPos": [
+            -2678.567171856302,
+            -2118.620788597381,
+            6288.789497136315
+        ],
+        "obSetId": "REACH_V",
+        "particleType": "PROTONS+ELECTRONS",
+        "obTime": "2025-12-01T00:00:10.000Z",
+        "seoList": [
+            {
+                "obType": "Energetic Charged Particle",
+                "obUoM": "rad/second",
+                "obValue": 1.0186092066601347e-07,
+                "obQuality": "0",
+                "obDescription": "DOSE2 (Flavor V) in rad/second"
+            }
+        ],
+        "descriptor": "QUICKLOOK",
+        "createdAt": "2025-12-01T01:30:30.447Z",
+        "createdBy": "system.reach",
+        "source": "Aerospace",
+        "dataMode": "REAL",
+        "origNetwork": "OPS1"
+    },
+    {
+        "id": "fb24e94b-fa38-4fe3-947b-ce6c2aa98b48",
+        "classificationMarking": "U",
+        "dataType": "ECP",
+        "genTime": "2025-12-05T06:05:17.706Z",
+        "idOnOrbit": "42960",
+        "satNo": 42960,
+        "idSensor": "REACH-115",
+        "origSensorId": "1",
+        "observatoryType": "ONORBIT",
+        "observatoryName": "Iridium-107",
+        "instrumentType": "DOSIMETER",
+        "lat": -15.467800135963806,
+        "lon": 36.990847186807805,
+        "alt": 784.5651404956652,
+        "senPos": [
+            -2037.9847793118392,
+            6604.947053130871,
+            -1901.3416121944115
+        ],
+        "obSetId": "REACH_W",
+        "particleType": "PROTONS",
+        "obTime": "2025-12-01T00:00:10.000Z",
+        "seoList": [
+            {
+                "obType": "Energetic Charged Particle",
+                "obUoM": "rad/second",
+                "obValue": 0.0,
+                "obQuality": "0",
+                "obDescription": "DOSE2 (Flavor W) in rad/second"
+            }
+        ],
+        "descriptor": "QUICKLOOK",
+        "createdAt": "2025-12-05T11:32:35.231Z",
+        "createdBy": "system.reach",
+        "source": "Aerospace",
+        "dataMode": "REAL",
+        "origNetwork": "OPS1"
+    },
+    {
+        "id": "8a86a63f-318d-4e27-83c5-bbdf559972ca",
+        "classificationMarking": "U",
+        "dataType": "ECP",
+        "genTime": "2025-12-05T06:05:17.706Z",
+        "idOnOrbit": "43578",
+        "satNo": 43578,
+        "idSensor": "REACH-172",
+        "origSensorId": "0",
+        "observatoryType": "ONORBIT",
+        "observatoryName": "Iridium-159",
+        "instrumentType": "DOSIMETER",
+        "lat": 32.476584803659314,
+        "lon": 71.69979776515181,
+        "alt": 781.0405503151945,
+        "senPos": [
+            -4759.168052487113,
+            3737.464289442576,
+            3828.658553478916
+        ],
+        "obSetId": "REACH_X",
+        "particleType": "PROTONS",
+        "obTime": "2025-12-01T00:00:10.000Z",
+        "seoList": [
+            {
+                "obType": "Energetic Charged Particle",
+                "obUoM": "rad/second",
+                "obValue": 0.0,
+                "obQuality": "0",
+                "obDescription": "DOSE1 (Flavor X) in rad/second"
+            }
+        ],
+        "descriptor": "QUICKLOOK",
+        "createdAt": "2025-12-05T09:07:09.745Z",
+        "createdBy": "system.reach",
+        "source": "Aerospace",
+        "dataMode": "REAL",
+        "origNetwork": "OPS1"
+    },
+    {
+        "id": "8698c02a-9c4f-4dee-a5bd-d9c174df06cd",
+        "classificationMarking": "U",
+        "dataType": "ECP",
+        "genTime": "2025-12-01T01:30:10.286Z",
+        "idOnOrbit": "43924",
+        "satNo": 43924,
+        "idSensor": "REACH-175",
+        "origSensorId": "3",
+        "observatoryType": "ONORBIT",
+        "observatoryName": "Iridium-168",
+        "instrumentType": "DOSIMETER",
+        "lat": 67.63200391476346,
+        "lon": 15.11852482262616,
+        "alt": 788.1766372706971,
+        "senPos": [
+            225.4403495402898,
+            2727.8074458767255,
+            6611.621501502481
+        ],
+        "obSetId": "REACH_Y",
+        "particleType": "PROTONS",
+        "obTime": "2025-12-01T00:00:10.000Z",
+        "seoList": [
+            {
+                "obType": "Energetic Charged Particle",
+                "obUoM": "rad/second",
+                "obValue": 3.3755274261603295e-08,
+                "obQuality": "0",
+                "obDescription": "DOSE1 (Flavor Y) in rad/second"
+            }
+        ],
+        "descriptor": "QUICKLOOK",
+        "createdAt": "2025-12-01T01:31:20.195Z",
+        "createdBy": "system.reach",
+        "source": "Aerospace",
+        "dataMode": "REAL",
+        "origNetwork": "OPS1"
+    },
+    {
+        "id": "78ee558d-1e0e-49a4-bf80-942a72628919",
+        "classificationMarking": "U",
+        "dataType": "ECP",
+        "genTime": "2025-12-05T06:05:17.706Z",
+        "idOnOrbit": "43078",
+        "satNo": 43078,
+        "idSensor": "REACH-169",
+        "origSensorId": "0",
+        "observatoryType": "ONORBIT",
+        "observatoryName": "Iridium-153",
+        "instrumentType": "DOSIMETER",
+        "lat": -60.548339288819655,
+        "lon": -63.201132803754575,
+        "alt": 802.3329810879991,
+        "senPos": [
+            3516.307842068413,
+            428.998490349353,
+            -6236.165234219619
+        ],
+        "obSetId": "REACH_X",
+        "particleType": "ELECTRONS",
+        "obTime": "2025-12-01T00:00:10.000Z",
+        "seoList": [
+            {
+                "obType": "Energetic Charged Particle",
+                "obUoM": "rad/second",
+                "obValue": 1.0206084396467102e-07,
+                "obQuality": "0",
+                "obDescription": "DOSE1 (Flavor X) in rad/second"
+            }
+        ],
+        "descriptor": "QUICKLOOK",
+        "createdAt": "2025-12-05T07:08:27.645Z",
+        "createdBy": "system.reach",
+        "source": "Aerospace",
+        "dataMode": "REAL",
+        "origNetwork": "OPS1"
+    },
+    {
+        "id": "fc51921a-5d3d-420f-8c1f-17a29a339dde",
+        "classificationMarking": "U",
+        "dataType": "ECP",
+        "genTime": "2025-12-05T06:05:17.706Z",
+        "idOnOrbit": "42955",
+        "satNo": 42955,
+        "idSensor": "REACH-108",
+        "origSensorId": "1",
+        "observatoryType": "ONORBIT",
+        "observatoryName": "Iridium-133",
+        "instrumentType": "DOSIMETER",
+        "lat": -34.03006493881067,
+        "lon": -139.5924743436047,
+        "alt": 791.3061984792139,
+        "senPos": [
+            2091.2807677220144,
+            -5574.242696570901,
+            -3996.371366089321
+        ],
+        "obSetId": "REACH_X",
+        "particleType": "PROTONS",
+        "obTime": "2025-12-01T00:00:10.000Z",
+        "seoList": [
+            {
+                "obType": "Energetic Charged Particle",
+                "obUoM": "rad/second",
+                "obValue": -1e+31,
+                "obQuality": "0",
+                "obDescription": "DOSE1 (Flavor X) in rad/second"
+            }
+        ],
+        "descriptor": "QUICKLOOK",
+        "createdAt": "2025-12-05T09:33:29.469Z",
+        "createdBy": "system.reach",
+        "source": "Aerospace",
+        "dataMode": "REAL",
+        "origNetwork": "OPS1"
+    },
+    {
+        "id": "45aab571-14a7-4c6f-bb8b-94f0f725c2ae",
+        "classificationMarking": "U",
+        "dataType": "ECP",
+        "genTime": "2025-12-01T01:30:10.286Z",
+        "idOnOrbit": "43250",
+        "satNo": 43250,
+        "idSensor": "REACH-163",
+        "origSensorId": "2",
+        "observatoryType": "ONORBIT",
+        "observatoryName": "Iridium-149",
+        "instrumentType": "DOSIMETER",
+        "lat": -54.48565598167014,
+        "lon": 128.07778479544868,
+        "alt": 800.1085559054869,
+        "senPos": [
+            -3972.1394090331405,
+            -1310.2504310572936,
+            -5825.899737153602
+        ],
+        "obSetId": "REACH_V",
+        "particleType": "PROTONS",
+        "obTime": "2025-12-01T00:00:15.000Z",
+        "seoList": [
+            {
+                "obType": "Energetic Charged Particle",
+                "obUoM": "rad/second",
+                "obValue": 1.0307234886025866e-07,
+                "obQuality": "16",
+                "obDescription": "DOSE2 (Flavor V) in rad/second"
+            }
+        ],
+        "descriptor": "QUICKLOOK",
+        "createdAt": "2025-12-01T01:30:49.716Z",
+        "createdBy": "system.reach",
+        "source": "Aerospace",
+        "dataMode": "REAL",
+        "origNetwork": "OPS1"
+    },
+    {
+        "id": "f25247ae-9ee3-4d5e-9ca5-41962331baf4",
+        "classificationMarking": "U",
+        "dataType": "ECP",
+        "genTime": "2025-12-01T01:30:07.591Z",
+        "idOnOrbit": "42809",
+        "satNo": 42809,
+        "idSensor": "REACH-135",
+        "origSensorId": "1",
+        "observatoryType": "ONORBIT",
+        "observatoryName": "Iridium-126",
+        "instrumentType": "DOSIMETER",
+        "lat": -30.211546442687045,
+        "lon": 4.224270521331056,
+        "alt": 789.8240607065618,
+        "senPos": [
+            1668.6256457586367,
+            5977.210852378104,
+            -3591.98189550848
+        ],
+        "obSetId": "REACH_W",
+        "particleType": "PROTONS",
+        "obTime": "2025-12-01T00:00:15.000Z",
+        "seoList": [
+            {
+                "obType": "Energetic Charged Particle",
+                "obUoM": "rad/second",
+                "obValue": 2.349783549783572e-06,
+                "obQuality": "0",
+                "obDescription": "DOSE2 (Flavor W) in rad/second"
+            }
+        ],
+        "descriptor": "QUICKLOOK",
+        "createdAt": "2025-12-01T01:30:26.988Z",
+        "createdBy": "system.reach",
+        "source": "Aerospace",
+        "dataMode": "REAL",
+        "origNetwork": "OPS1"
+    },
+    {
+        "id": "0e14b264-275b-4dd3-981a-f24607868321",
+        "classificationMarking": "U",
+        "dataType": "ECP",
+        "genTime": "2025-12-01T01:30:10.286Z",
+        "idOnOrbit": "43250",
+        "satNo": 43250,
+        "idSensor": "REACH-163",
+        "origSensorId": "2",
+        "observatoryType": "ONORBIT",
+        "observatoryName": "Iridium-149",
+        "instrumentType": "DOSIMETER",
+        "lat": -54.48565598167014,
+        "lon": 128.07778479544868,
+        "alt": 800.1085559054869,
+        "senPos": [
+            -3972.1394090331405,
+            -1310.2504310572936,
+            -5825.899737153602
+        ],
+        "obSetId": "REACH_Y",
+        "particleType": "PROTONS",
+        "obTime": "2025-12-01T00:00:15.000Z",
+        "seoList": [
+            {
+                "obType": "Energetic Charged Particle",
+                "obUoM": "rad/second",
+                "obValue": 7.619047619047691e-08,
+                "obQuality": "16",
+                "obDescription": "DOSE1 (Flavor Y) in rad/second"
+            }
+        ],
+        "descriptor": "QUICKLOOK",
+        "createdAt": "2025-12-01T01:30:49.716Z",
+        "createdBy": "system.reach",
+        "source": "Aerospace",
+        "dataMode": "REAL",
+        "origNetwork": "OPS1"
+    },
+    {
+        "id": "382e3af5-b011-4c2b-862e-2c76ebe9ae49",
+        "classificationMarking": "U",
+        "dataType": "ECP",
+        "genTime": "2025-12-01T01:30:07.591Z",
+        "idOnOrbit": "42809",
+        "satNo": 42809,
+        "idSensor": "REACH-135",
+        "origSensorId": "1",
+        "observatoryType": "ONORBIT",
+        "observatoryName": "Iridium-126",
+        "instrumentType": "DOSIMETER",
+        "lat": -30.211546442687045,
+        "lon": 4.224270521331056,
+        "alt": 789.8240607065618,
+        "senPos": [
+            1668.6256457586367,
+            5977.210852378104,
+            -3591.98189550848
+        ],
+        "obSetId": "REACH_X",
+        "particleType": "PROTONS",
+        "obTime": "2025-12-01T00:00:15.000Z",
+        "seoList": [
+            {
+                "obType": "Energetic Charged Particle",
+                "obUoM": "rad/second",
+                "obValue": 3.9520000000000374e-05,
+                "obQuality": "0",
+                "obDescription": "DOSE1 (Flavor X) in rad/second"
+            }
+        ],
+        "descriptor": "QUICKLOOK",
+        "createdAt": "2025-12-01T01:30:26.988Z",
+        "createdBy": "system.reach",
+        "source": "Aerospace",
+        "dataMode": "REAL",
+        "origNetwork": "OPS1"
+    },
+    {
+        "id": "8b09567a-5228-45d2-80fa-e4f34d51f3c7",
+        "classificationMarking": "U",
+        "dataType": "ECP",
+        "genTime": "2025-12-01T01:30:10.286Z",
+        "idOnOrbit": "43079",
+        "satNo": 43079,
+        "idSensor": "REACH-148",
+        "origSensorId": "2",
+        "observatoryType": "ONORBIT",
+        "observatoryName": "Iridium-131",
+        "instrumentType": "DOSIMETER",
+        "lat": 61.343370427117165,
+        "lon": 148.24624154468918,
+        "alt": 786.8604282398624,
+        "senPos": [
+            -2701.0270449239915,
+            -2142.6596018238984,
+            6271.053848232042
+        ],
+        "obSetId": "REACH_Y",
+        "particleType": "PROTONS",
+        "obTime": "2025-12-01T00:00:15.000Z",
+        "seoList": [
+            {
+                "obType": "Energetic Charged Particle",
+                "obUoM": "rad/second",
+                "obValue": 0.0,
+                "obQuality": "0",
+                "obDescription": "DOSE1 (Flavor Y) in rad/second"
+            }
+        ],
+        "descriptor": "QUICKLOOK",
+        "createdAt": "2025-12-01T01:30:30.447Z",
+        "createdBy": "system.reach",
+        "source": "Aerospace",
+        "dataMode": "REAL",
+        "origNetwork": "OPS1"
+    },
+    {
+        "id": "d74205a2-d5da-4e3e-a236-b42eacc02e65",
+        "classificationMarking": "U",
+        "dataType": "ECP",
+        "genTime": "2025-12-05T06:05:17.706Z",
+        "idOnOrbit": "42808",
+        "satNo": 42808,
+        "idSensor": "REACH-133",
+        "origSensorId": "1",
+        "observatoryType": "ONORBIT",
+        "observatoryName": "Iridium-117",
+        "instrumentType": "DOSIMETER",
+        "lat": 78.60282071274378,
+        "lon": 168.16268419362186,
+        "alt": 789.5987227528993,
+        "senPos": [
+            -746.3753807639389,
+            -1210.4005541447402,
+            7012.1976307076875
+        ],
+        "obSetId": "REACH_X",
+        "particleType": "PROTONS+ELECTRONS",
+        "obTime": "2025-12-01T00:00:15.000Z",
+        "seoList": [
+            {
+                "obType": "Energetic Charged Particle",
+                "obUoM": "rad/second",
+                "obValue": 1.3048933500627476e-07,
+                "obQuality": "0",
+                "obDescription": "DOSE1 (Flavor X) in rad/second"
+            }
+        ],
+        "descriptor": "QUICKLOOK",
+        "createdAt": "2025-12-05T11:02:18.757Z",
+        "createdBy": "system.reach",
+        "source": "Aerospace",
+        "dataMode": "REAL",
+        "origNetwork": "OPS1"
+    },
+    {
+        "id": "47c86641-57a3-4ac8-9833-a2babef420ce",
+        "classificationMarking": "U",
+        "dataType": "ECP",
+        "genTime": "2025-12-01T01:30:10.286Z",
+        "idOnOrbit": "41924",
+        "satNo": 41924,
+        "idSensor": "REACH-116",
+        "origSensorId": "2",
+        "observatoryType": "ONORBIT",
+        "observatoryName": "Iridium-108",
+        "instrumentType": "DOSIMETER",
+        "lat": -16.655527574201745,
+        "lon": -109.47771423575928,
+        "alt": 784.7726698111427,
+        "senPos": [
+            5317.46029975656,
+            -4352.265441658842,
+            -2043.4838934938455
+        ],
+        "obSetId": "REACH_V",
+        "particleType": "PROTONS",
+        "obTime": "2025-12-01T00:00:15.000Z",
+        "seoList": [
+            {
+                "obType": "Energetic Charged Particle",
+                "obUoM": "rad/second",
+                "obValue": 0.0,
+                "obQuality": "0",
+                "obDescription": "DOSE2 (Flavor V) in rad/second"
+            }
+        ],
+        "descriptor": "QUICKLOOK",
+        "createdAt": "2025-12-01T01:30:19.643Z",
+        "createdBy": "system.reach",
+        "source": "Aerospace",
+        "dataMode": "REAL",
+        "origNetwork": "OPS1"
+    },
+    {
+        "id": "9610448b-9dc1-4ddd-bc6e-1f0c0709dbe2",
+        "classificationMarking": "U",
+        "dataType": "ECP",
+        "genTime": "2025-12-05T06:05:17.706Z",
+        "idOnOrbit": "42960",
+        "satNo": 42960,
+        "idSensor": "REACH-115",
+        "origSensorId": "1",
+        "observatoryType": "ONORBIT",
+        "observatoryName": "Iridium-107",
+        "instrumentType": "DOSIMETER",
+        "lat": -15.168447552849367,
+        "lon": 36.99010553899508,
+        "alt": 784.4737381675803,
+        "senPos": [
+            -2043.1870295450076,
+            6613.551110196762,
+            -1865.3782036303746
+        ],
+        "obSetId": "REACH_W",
+        "particleType": "PROTONS",
+        "obTime": "2025-12-01T00:00:15.000Z",
+        "seoList": [
+            {
+                "obType": "Energetic Charged Particle",
+                "obUoM": "rad/second",
+                "obValue": 0.0,
+                "obQuality": "0",
+                "obDescription": "DOSE2 (Flavor W) in rad/second"
+            }
+        ],
+        "descriptor": "QUICKLOOK",
+        "createdAt": "2025-12-05T11:32:35.231Z",
+        "createdBy": "system.reach",
+        "source": "Aerospace",
+        "dataMode": "REAL",
+        "origNetwork": "OPS1"
+    },
+    {
+        "id": "adf93afc-b20f-4ed0-b198-449565ad9e4d",
+        "classificationMarking": "U",
+        "dataType": "ECP",
+        "genTime": "2025-12-01T01:30:07.591Z",
+        "idOnOrbit": "42959",
+        "satNo": 42959,
+        "idSensor": "REACH-137",
+        "origSensorId": "1",
+        "observatoryType": "ONORBIT",
+        "observatoryName": "Iridium-119",
+        "instrumentType": "DOSIMETER",
+        "lat": 82.32947496078467,
+        "lon": 65.67594449792948,
+        "alt": 789.9093603518415,
+        "senPos": [
+            -689.3051181817696,
+            669.0612251579256,
+            7090.005290615737
+        ],
+        "obSetId": "REACH_X",
+        "particleType": "PROTONS+ELECTRONS",
+        "obTime": "2025-12-01T00:00:15.000Z",
+        "seoList": [
+            {
+                "obType": "Energetic Charged Particle",
+                "obUoM": "rad/second",
+                "obValue": 0.0,
+                "obQuality": "0",
+                "obDescription": "DOSE1 (Flavor X) in rad/second"
+            }
+        ],
+        "descriptor": "QUICKLOOK",
+        "createdAt": "2025-12-01T01:30:37.247Z",
+        "createdBy": "system.reach",
+        "source": "Aerospace",
+        "dataMode": "REAL",
+        "origNetwork": "OPS1"
+    },
+    {
+        "id": "18e53f2d-e742-4834-90b9-90551fe26665",
+        "classificationMarking": "U",
+        "dataType": "ECP",
+        "genTime": "2025-12-01T01:30:10.286Z",
+        "idOnOrbit": "43075",
+        "satNo": 43075,
+        "idSensor": "REACH-138",
+        "origSensorId": "3",
+        "observatoryType": "ONORBIT",
+        "observatoryName": "Iridium-134",
+        "instrumentType": "DOSIMETER",
+        "lat": 84.49140737368838,
+        "lon": 15.198180668889231,
+        "alt": 789.9477758636975,
+        "senPos": [
+            55.69627832423795,
+            688.639944461158,
+            7121.202728026773
+        ],
+        "obSetId": "REACH_U",
+        "particleType": "PROTONS",
+        "obTime": "2025-12-01T00:00:15.000Z",
+        "seoList": [
+            {
+                "obType": "Energetic Charged Particle",
+                "obUoM": "rad/second",
+                "obValue": 5.6986301369863545e-08,
+                "obQuality": "0",
+                "obDescription": "DOSE2 (Flavor U) in rad/second"
+            }
+        ],
+        "descriptor": "QUICKLOOK",
+        "createdAt": "2025-12-01T01:31:29.729Z",
+        "createdBy": "system.reach",
+        "source": "Aerospace",
+        "dataMode": "REAL",
+        "origNetwork": "OPS1"
+    },
+    {
+        "id": "458f9bc7-6bcb-438f-9955-fc21803a9662",
+        "classificationMarking": "U",
+        "dataType": "ECP",
+        "genTime": "2025-12-01T01:30:10.286Z",
+        "idOnOrbit": "43079",
+        "satNo": 43079,
+        "idSensor": "REACH-148",
+        "origSensorId": "2",
+        "observatoryType": "ONORBIT",
+        "observatoryName": "Iridium-131",
+        "instrumentType": "DOSIMETER",
+        "lat": 61.343370427117165,
+        "lon": 148.24624154468918,
+        "alt": 786.8604282398624,
+        "senPos": [
+            -2701.0270449239915,
+            -2142.6596018238984,
+            6271.053848232042
+        ],
+        "obSetId": "REACH_V",
+        "particleType": "PROTONS",
+        "obTime": "2025-12-01T00:00:15.000Z",
+        "seoList": [
+            {
+                "obType": "Energetic Charged Particle",
+                "obUoM": "rad/second",
+                "obValue": 1.0186092066601468e-07,
+                "obQuality": "0",
+                "obDescription": "DOSE2 (Flavor V) in rad/second"
+            }
+        ],
+        "descriptor": "QUICKLOOK",
+        "createdAt": "2025-12-01T01:30:30.447Z",
+        "createdBy": "system.reach",
+        "source": "Aerospace",
+        "dataMode": "REAL",
+        "origNetwork": "OPS1"
+    },
+    {
+        "id": "bdba10b1-2dd8-44d7-b080-d57246949024",
+        "classificationMarking": "U",
+        "dataType": "ECP",
+        "genTime": "2025-12-01T01:30:07.591Z",
+        "idOnOrbit": "43577",
+        "satNo": 43577,
+        "idSensor": "REACH-149",
+        "origSensorId": "1",
+        "observatoryType": "ONORBIT",
+        "observatoryName": "Iridium-164",
+        "instrumentType": "DOSIMETER",
+        "lat": -49.23804104473987,
+        "lon": -106.38006808727631,
+        "alt": 797.9945213134037,
+        "senPos": [
+            3791.4190116127866,
+            -2775.1217982842654,
+            -5418.170555755401
+        ],
+        "obSetId": "REACH_W",
+        "particleType": "PROTONS",
+        "obTime": "2025-12-01T00:00:15.000Z",
+        "seoList": [
+            {
+                "obType": "Energetic Charged Particle",
+                "obUoM": "rad/second",
+                "obValue": 0.0,
+                "obQuality": "0",
+                "obDescription": "DOSE2 (Flavor W) in rad/second"
+            }
+        ],
+        "descriptor": "QUICKLOOK",
+        "createdAt": "2025-12-01T01:30:49.438Z",
+        "createdBy": "system.reach",
+        "source": "Aerospace",
+        "dataMode": "REAL",
+        "origNetwork": "OPS1"
+    },
+    {
+        "id": "90b9404e-3054-4555-8c34-1326c4265c8e",
+        "classificationMarking": "U",
+        "dataType": "ECP",
+        "genTime": "2025-12-01T01:30:10.286Z",
+        "idOnOrbit": "41924",
+        "satNo": 41924,
+        "idSensor": "REACH-116",
+        "origSensorId": "2",
+        "observatoryType": "ONORBIT",
+        "observatoryName": "Iridium-108",
+        "instrumentType": "DOSIMETER",
+        "lat": -16.655527574201745,
+        "lon": -109.47771423575928,
+        "alt": 784.7726698111427,
+        "senPos": [
+            5317.46029975656,
+            -4352.265441658842,
+            -2043.4838934938455
+        ],
+        "obSetId": "REACH_Y",
+        "particleType": "PROTONS",
+        "obTime": "2025-12-01T00:00:15.000Z",
+        "seoList": [
+            {
+                "obType": "Energetic Charged Particle",
+                "obUoM": "rad/second",
+                "obValue": 5.31969309462908e-08,
+                "obQuality": "0",
+                "obDescription": "DOSE1 (Flavor Y) in rad/second"
+            }
+        ],
+        "descriptor": "QUICKLOOK",
+        "createdAt": "2025-12-01T01:30:19.643Z",
+        "createdBy": "system.reach",
+        "source": "Aerospace",
+        "dataMode": "REAL",
+        "origNetwork": "OPS1"
+    },
+    {
+        "id": "336f3125-e240-4632-afe2-8a0bea6b5e72",
+        "classificationMarking": "U",
+        "dataType": "ECP",
+        "genTime": "2025-12-05T06:05:17.706Z",
+        "idOnOrbit": "43078",
+        "satNo": 43078,
+        "idSensor": "REACH-169",
+        "origSensorId": "0",
+        "observatoryType": "ONORBIT",
+        "observatoryName": "Iridium-153",
+        "instrumentType": "DOSIMETER",
+        "lat": -60.25370874312782,
+        "lon": -63.145982937004874,
+        "alt": 802.2290403392773,
+        "senPos": [
+            3547.6079911075935,
+            437.5962616556578,
+            -6217.802948665154
+        ],
+        "obSetId": "REACH_Z",
+        "particleType": "PROTONS+ELECTRONS",
+        "obTime": "2025-12-01T00:00:15.000Z",
+        "seoList": [
+            {
+                "obType": "Energetic Charged Particle",
+                "obUoM": "rad/second",
+                "obValue": 3.604055299539205e-05,
+                "obQuality": "0",
+                "obDescription": "DOSE2 (Flavor Z) in rad/second"
+            }
+        ],
+        "descriptor": "QUICKLOOK",
+        "createdAt": "2025-12-05T07:08:27.645Z",
+        "createdBy": "system.reach",
+        "source": "Aerospace",
+        "dataMode": "REAL",
+        "origNetwork": "OPS1"
+    },
+    {
+        "id": "84f38c49-f3c0-41f3-a617-70d852ff71e5",
+        "classificationMarking": "U",
+        "dataType": "ECP",
+        "genTime": "2025-12-05T06:05:17.706Z",
+        "idOnOrbit": "43929",
+        "satNo": 43929,
+        "idSensor": "REACH-180",
+        "origSensorId": "0",
+        "observatoryType": "ONORBIT",
+        "observatoryName": "Iridium-171",
+        "instrumentType": "DOSIMETER",
+        "lat": -83.48943855457749,
+        "lon": -140.1846768871624,
+        "alt": 807.7782600217474,
+        "senPos": [
+            279.70561811208955,
+            -768.768696646737,
+            -7125.7615518055445
+        ],
+        "obSetId": "REACH_X",
+        "particleType": "PROTONS+ELECTRONS",
+        "obTime": "2025-12-01T00:00:15.000Z",
+        "seoList": [
+            {
+                "obType": "Energetic Charged Particle",
+                "obUoM": "rad/second",
+                "obValue": 5.1080550098232305e-08,
+                "obQuality": "0",
+                "obDescription": "DOSE1 (Flavor X) in rad/second"
+            }
+        ],
+        "descriptor": "QUICKLOOK",
+        "createdAt": "2025-12-05T08:10:38.535Z",
+        "createdBy": "system.reach",
+        "source": "Aerospace",
+        "dataMode": "REAL",
+        "origNetwork": "OPS1"
+    },
+    {
+        "id": "44a94ee2-0279-4910-9991-e3c52379195d",
+        "classificationMarking": "U",
+        "dataType": "ECP",
+        "genTime": "2025-12-01T01:30:07.591Z",
+        "idOnOrbit": "42812",
+        "satNo": 42812,
+        "idSensor": "REACH-113",
+        "origSensorId": "2",
+        "observatoryType": "ONORBIT",
+        "observatoryName": "Iridium-121",
+        "instrumentType": "DOSIMETER",
+        "lat": -51.90542247587632,
+        "lon": -169.07562717637666,
+        "alt": 799.0858312213996,
+        "senPos": [
+            -686.905303430294,
+            -4387.613222847988,
+            -5631.2850705859755
+        ],
+        "obSetId": "REACH_Y",
+        "particleType": "PROTONS",
+        "obTime": "2025-12-01T00:00:15.000Z",
+        "seoList": [
+            {
+                "obType": "Energetic Charged Particle",
+                "obUoM": "rad/second",
+                "obValue": 1.7333333333333498e-05,
+                "obQuality": "0",
+                "obDescription": "DOSE1 (Flavor Y) in rad/second"
+            }
+        ],
+        "descriptor": "QUICKLOOK",
+        "createdAt": "2025-12-01T01:32:06.952Z",
+        "createdBy": "system.reach",
+        "source": "Aerospace",
+        "dataMode": "REAL",
+        "origNetwork": "OPS1"
+    },
+    {
+        "id": "c700d82a-4f7f-42bd-a277-80d85dbe8708",
+        "classificationMarking": "U",
+        "dataType": "ECP",
+        "genTime": "2025-12-05T06:05:17.706Z",
+        "idOnOrbit": "42955",
+        "satNo": 42955,
+        "idSensor": "REACH-108",
+        "origSensorId": "1",
+        "observatoryType": "ONORBIT",
+        "observatoryName": "Iridium-133",
+        "instrumentType": "DOSIMETER",
+        "lat": -34.328085201178375,
+        "lon": -139.58607243205526,
+        "alt": 791.4337098273484,
+        "senPos": [
+            2086.6199487569756,
+            -5553.7740304495455,
+            -4027.230158367847
+        ],
+        "obSetId": "REACH_X",
+        "particleType": "PROTONS",
+        "obTime": "2025-12-01T00:00:15.000Z",
+        "seoList": [
+            {
+                "obType": "Energetic Charged Particle",
+                "obUoM": "rad/second",
+                "obValue": 4.084838963079281e-08,
+                "obQuality": "0",
+                "obDescription": "DOSE1 (Flavor X) in rad/second"
+            }
+        ],
+        "descriptor": "QUICKLOOK",
+        "createdAt": "2025-12-05T09:33:29.469Z",
+        "createdBy": "system.reach",
+        "source": "Aerospace",
+        "dataMode": "REAL",
+        "origNetwork": "OPS1"
+    }
+]

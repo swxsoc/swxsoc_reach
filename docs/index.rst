@@ -11,6 +11,4 @@ A Python package to process and analyze data from the REACH dosimeters.
    user-guide/index
    dev-guide/index
    api
-   changelog
-
 

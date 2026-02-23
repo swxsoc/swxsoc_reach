@@ -1,36 +1,19 @@
-from pathlib import Path
-
-from astropy.time import Time
-from astropy.timeseries import TimeSeries
 from swxsoc.util import create_science_filename, parse_science_filename
 
-from swxsoc_reach import log
-
 __all__ = [
-    "filename_to_datatype",
     "create_reach_filename",
     "parse_science_filename",
 ]
 
-def filename_to_datatype(filename: Path) -> str:
-    """Given a filename path, return the data type"""
-    if not isinstance(filename, Path):
-        filename = Path(filename)
-    token = filename.name.split("get_")[1].split("_Data")[0]
-    for this_str, datatype in TOKEN_TO_DATATYPE.items():
-        if this_str in token:
-            return datatype
-    log.warning(f"Could not determine data type for file {filename.name}")
-    return token
 
 def create_reach_filename(
-    time: Time,
+    time: str,
     level: str,
-    descriptor: str,
     version: str,
+    mode: str = "",
+    descriptor: str = "",
     test: bool = False,
-    overwrite: bool = False,
-) -> str:
+):
     """
     Generate the REACH filename based on the provided parameters.
 
@@ -65,9 +48,9 @@ def create_reach_filename(
         instrument="reach",
         time=time,
         level=level,
+        version=version_str,
+        mode=mode,
         descriptor=descriptor,
         test=test,
-        version=version_str,
     )
-    base_filename = base_filename.replace("reach", "craft")
     return base_filename

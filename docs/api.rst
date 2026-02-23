@@ -9,7 +9,8 @@ API Reference
    :recursive:
 
    swxsoc_reach
-   swxsoc_reach.util.util
-   swxsoc_reach.io.file_tools
-   swxsoc_reach.io.fits_tools
+   swxsoc_reach.calibration.calibration
+   swxsoc_reach.calibration.transform
    swxsoc_reach.io.aws_db
+   swxsoc_reach.io.file_tools
+   swxsoc_reach.util.util
