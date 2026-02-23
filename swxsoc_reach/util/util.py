@@ -1,4 +1,3 @@
-from astropy.time import Time
 from swxsoc.util import create_science_filename, parse_science_filename
 
 __all__ = [
@@ -8,13 +7,13 @@ __all__ = [
 
 
 def create_reach_filename(
-    time: Time,
+    time: str,
     level: str,
-    descriptor: str,
     version: str,
+    mode: str = "",
+    descriptor: str = "",
     test: bool = False,
-    overwrite: bool = False,
-) -> str:
+):
     """
     Generate the REACH filename based on the provided parameters.
 
@@ -49,8 +48,9 @@ def create_reach_filename(
         instrument="reach",
         time=time,
         level=level,
+        version=version_str,
+        mode=mode,
         descriptor=descriptor,
         test=test,
-        version=version_str,
     )
     return base_filename

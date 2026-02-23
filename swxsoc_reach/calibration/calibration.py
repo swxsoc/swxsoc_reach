@@ -9,6 +9,7 @@ from swxsoc.util.validation import validate
 from swxsoc_reach import log
 from swxsoc_reach.calibration.transform import build_swxdata
 from swxsoc_reach.io.file_tools import read_file
+from swxsoc_reach.util.schema import REACHDataSchema
 
 __all__ = [
     "process_file",
@@ -54,8 +55,9 @@ def process_file(
     output_files.append(cdf_path)
 
     # Validate (warn only, do not raise)
+    schema = REACHDataSchema()
     try:
-        validation_errors = validate(cdf_path)
+        validation_errors = validate(cdf_path, schema=schema)
         if validation_errors:
             for err in validation_errors:
                 log.warning(f"Validation issue: {err}")

@@ -1,0 +1,284 @@
+# =============================================================================
+# REACH Global CDF Attribute Schema
+# =============================================================================
+# This file layers on top of the SWxSOC / SAMMI defaults.  Attributes defined
+# here override or extend the base schema.  Static mission-level values are
+# provided as ``default:`` so they populate automatically.
+#
+# Derivation functions that are overridden in REACHDataSchema (schema.py):
+#   - _get_logical_source
+#   - _get_logical_file_id
+#   - _get_reach_version
+# =============================================================================
+
+# --------------- Derived attributes (custom REACH derivations) ---------------
+
+Logical_file_id:
+  description: >
+    CDF filename without the file extension.  Derived by the REACH-specific
+    ``_get_logical_file_id`` in ``REACHDataSchema``.
+  default: null
+  derived: true
+  derivation_fn: _get_logical_file_id
+  required: true
+  overwrite: true
+
+Logical_source:
+  description: >
+    Identifies the source/instrument/data-type combination for CDAWeb.
+    Derived by the REACH-specific ``_get_logical_source`` in ``REACHDataSchema``.
+  default: null
+  derived: true
+  derivation_fn: _get_logical_source
+  required: true
+  overwrite: true
+
+Logical_source_description:
+  description: >
+    Full-text description corresponding to the Logical_source.
+  default: "Preliminary Dosimeter measurements from the Responsive Environmental Assessment Commercially Hosted"
+  derived: false
+  required: true
+  overwrite: false
+
+REACH_version:
+  description: >
+    Version of ``swxsoc_reach`` used to generate this CDF file.
+  default: null
+  derived: true
+  derivation_fn: _get_reach_version
+  required: false
+  overwrite: false
+
+# --------------- Static mission-level attributes (defaults) ------------------
+
+Acknowledgment:
+  description: >
+    Text acknowledging the people and organisations behind the REACH mission.
+  default: >
+    The development of the netCDF files was supported by the SPI Goddard HISFM 2022.
+    The success of the REACH project is owed to a long line of people who have contributed
+    to it over the many years of development. The REACH hardware team in The Aerospace
+    Corporation's xLab organization included Paul Carranza, Sue Crain, Bill Crain, Andrew
+    Hsu, Brian McCarthy, John McHale, Can Nguyen, Mario Perez, Deb Salvaggio, and Gerrit
+    Sorensen, all critical to designing and fabricating the first 18 of the 32 REACH pods.
+    Millennium Engineering and Integration (MEI) manufactured the remaining 14 pods. Doug
+    Holker was instrumental in nearly all facets of REACH development, outreach, support,
+    endorsement and project management for the entirety of the project lifetime. The REACH
+    project was led in chronological order by the following USAF Program Managers: Capt Dan
+    Kimmich, Lt Garrett Ellis, Lt Justin Shimasaki, Capt Sean Quintana, Capt Felix Abeyta,
+    Lt Kurt Mann, Maj James Crane, Capt Omar Manning, Lt Zach Morley, Capt Scott Day,
+    Lt Zeesha Braslawsce, and Lt Ryan Francies. This list reflects their ranks at the time
+    of involvement. Recent management is possible through the SMC/Development Corp program
+    office support Pete Cunningham. Data transport is provided by Iridium, L3Harris, and
+    data processing of the Level 0 files is performed by Robin Barnes and supported by Tom
+    Sotirelis and Mike Kelly at the Johns Hopkins Applied Physics Laboratory. Alexa Halford,
+    now of NASA Goddard Space Flight Center, prototyped many higher-level REACH data products
+    and performed intra-calibration of the dosimeters.
+  derived: false
+  required: false
+  overwrite: false
+
+DOI:
+  description: >
+    Persistent DOI pointing to the landing page for the REACH data set.
+  default: "https://doi.org/10.5281/zenodo.5988170"
+  derived: false
+  required: false
+  overwrite: false
+
+Data_curator:
+  description: >
+    Name and contact information for the data curator.
+  default: "Timothy B. Guild (Timothy.B.Guild@aero.org)"
+  derived: false
+  required: false
+  overwrite: false
+
+Data_level:
+  description: >
+    Processing level of the data, e.g. "L1>Level 1".
+  default: "L1>Level 1"
+  derived: false
+  required: true
+  overwrite: false
+
+Data_product_descriptor:
+  description: >
+    Short descriptor identifying the data product, e.g. "dosimeter".
+  default: "dosimeter"
+  derived: false
+  required: false
+  overwrite: false
+
+Data_type:
+  description: >
+    Combination of mode, data level and optional data product descriptor.
+  default: "prelim>Preliminary"
+  derived: false
+  required: true
+  overwrite: false
+
+DC_affiliation:
+  description: >
+    Affiliation of the data curator.
+  default: "The Aerospace Corporation"
+  derived: false
+  required: false
+  overwrite: false
+
+Descriptor:
+  description: >
+    Identifies the instrument or sensor.  Both short and long name.
+  default: "REACH>Responsive Environmental Assessment Commercially Hosted"
+  derived: false
+  required: true
+  overwrite: false
+
+Discipline:
+  description: >
+    Science discipline and sub-discipline.
+  default: "Space Physics>Magnetospheric Science, Space Weather"
+  derived: false
+  required: true
+  overwrite: false
+
+Generated_by:
+  description: >
+    Organisation(s) that generated the data file.
+  default: "CSV files generated at The Aerospace Corporation, CDF files generated by the Space Weather Science Operations Center (SWxSOC) at NASA Goddard Space Flight Center"
+  derived: false
+  required: false
+  overwrite: false
+
+HTTP_LINK:
+  description: >
+    URL(s) where the data or documentation can be found.
+  default:
+    - "https://zenodo.org/record/6423507#.YmMwUfPMLCV"
+  derived: false
+  required: false
+  overwrite: false
+
+Instrument_mode:
+  description: >
+    Operating mode of the instrument.
+  default: "all"
+  derived: false
+  required: true
+  overwrite: false
+
+Instrument_type:
+  description: >
+    Instrument type for CDAWeb classification.
+  default: "Particle Flux (space)"
+  derived: false
+  required: true
+  overwrite: false
+
+LINK_TEXT:
+  description: >
+    Descriptive text for each HTTP_LINK entry.
+  default:
+    - "REACH csv files are available at"
+  derived: false
+  required: false
+  overwrite: false
+
+LINK_TITLE:
+  description: >
+    Title text for each HTTP_LINK entry.
+  default:
+    - "REACH data"
+  derived: false
+  required: false
+  overwrite: false
+
+Mission_group:
+  description: >
+    Mission group for CDAWeb.
+  default: "REACH"
+  derived: false
+  required: true
+  overwrite: false
+
+MODS:
+  description: >
+    History of modifications / release notes.
+  default:
+    - "v1.0.0 - Original version."
+  derived: false
+  required: false
+  overwrite: false
+
+PI_affiliation:
+  description: >
+    Affiliation of the Principal Investigator.
+  default: "The Aerospace Corporation"
+  derived: false
+  required: true
+  overwrite: false
+
+PI_name:
+  description: >
+    Name and contact information for the PI.
+  default: "Joe Mazur (joseph.e.mazur@aero.org)"
+  derived: false
+  required: true
+  overwrite: false
+
+Project:
+  description: >
+    Project that owns the data.
+  default: "The Aerospace Corporation"
+  derived: false
+  required: true
+  overwrite: false
+
+Rules_of_use:
+  description: >
+    Usage guidelines URL or text.
+  default: "See Usage Guidelines at: https://zenodo.org/record/6423507#.YmMqcfPMLCU"
+  derived: false
+  required: false
+  overwrite: false
+
+Source_name:
+  description: >
+    Observatory from which the data originates.
+  default: "REACH>Responsive Environmental Assessment Commercially Hosted"
+  derived: false
+  required: true
+  overwrite: false
+
+TEXT:
+  description: >
+    Free-text description of the experiment and data set.
+  default: >
+    The Responsive Environmental Assessment Commercially Hosted (REACH) constellation
+    is collection of 32 small sensors hosted on six orbital planes of the Iridium-Next
+    space vehicles in low earth orbit. Each sensor contains two micro-dosimeters sensitive
+    to the passage of charged particles from the Earth's radiation belts. There are six
+    distinct dosimeter types spread among the 64 individual sensors, which are unique in
+    shielding and electronic threshold. When taken together, this effectively enables a
+    high time-cadence measurement of protons and electrons in six integral energy channels
+    over the entire globe.
+  derived: false
+  required: true
+  overwrite: false
+
+Time_resolution:
+  description: >
+    Nominal time cadence of the measurements.
+  default: "5 seconds"
+  derived: false
+  required: false
+  overwrite: false
+
+TITLE:
+  description: >
+    Short title for the data set.
+  default: "Responsive Environmental Assessment Commercially Hosted"
+  derived: false
+  required: false
+  overwrite: false
