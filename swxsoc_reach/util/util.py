@@ -1,3 +1,6 @@
+import os
+from pathlib import Path
+import tempfile
 from swxsoc.util import create_science_filename, parse_science_filename
 
 __all__ = [
@@ -53,4 +56,13 @@ def create_reach_filename(
         descriptor=descriptor,
         test=test,
     )
-    return base_filename
+
+    # Check if the LAMBDA_ENVIRONMENT environment variable is set
+    lambda_environment = os.getenv("LAMBDA_ENVIRONMENT")
+    if lambda_environment:
+        temp_dir = Path(tempfile.gettempdir())  # Set to temp directory
+        output_path = temp_dir / base_filename
+    else:
+        output_path = Path(base_filename)
+
+    return output_path
