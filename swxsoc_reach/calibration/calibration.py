@@ -2,7 +2,9 @@
 Pipeline entry point for processing REACH UDL files into CDF.
 """
 
+import os
 from pathlib import Path
+import tempfile
 
 from swxsoc.util.validation import validate
 
@@ -42,13 +44,16 @@ def process_file(
     # Stub Output Files
     output_files = []
 
-    # Save to the working directory
-    output_path = Path.cwd()
-
     # Read and transform
     data = read_file(file_path)
     reach_data = build_swxdata(data)
 
+    # Check if the LAMBDA_ENVIRONMENT environment variable is set
+    lambda_environment = os.getenv("LAMBDA_ENVIRONMENT")
+    if lambda_environment:
+        output_path = Path(tempfile.gettempdir())
+    else:
+        output_path = Path.cwd()  # Default to current working directory
     # Write CDF
     cdf_path = reach_data.save(output_path=output_path, overwrite=True)
     log.info(f"Saved CDF to {cdf_path}")
