@@ -1,9 +1,12 @@
-from swxsoc.util import create_science_filename, parse_science_filename
+from astropy.time import Time
+from swxsoc.util import parse_science_filename
 
 __all__ = [
     "create_reach_filename",
     "parse_science_filename",
 ]
+
+TIME_FORMAT = "%Y%m%d"  # YYYYMMDD
 
 
 def create_reach_filename(
@@ -12,45 +15,40 @@ def create_reach_filename(
     version: str,
     mode: str = "",
     descriptor: str = "",
-    test: bool = False,
 ):
     """
     Generate the REACH filename based on the provided parameters.
 
     Parameters
     ----------
-    time : Time
+    time : str
         The time associated with the data.
     level : str
         The data level (e.g., "L1", "L2").
+    version : str
+        The version string (e.g., "0.0.1"). This should be in the format major.minor.patch.
+        This should come from the global attribute `Data_version`.
+    mode : str
+        The instrument mode (e.g., "all"). This should come from the global attribute `Instrument_mode`.
     descriptor : str
-        The data descriptor (e.g., "SCI", "CAL").
-    test : str
-        The test identifier (e.g., "TEST1", "TEST2").
-    overwrite : bool
-        Whether to overwrite existing files.
+        The dataset descriptor (e.g., "prelim"). This should come from the global attribute `Data_type`.
 
     Returns
     -------
     str
         The generated REACH filename.
     """
-    # Filename Version X.Y.Z comes from two parts:
-    #   1. Files Version Base: X.Y comes from the Software Version -> Data Version Mapping
-    #   2. File Version Incrementor: Z starts at 0 and iterates for each new version based on what already exists in the filesystem.
-    # version_base = "1.0"
-    # version_increment = 0
-    # version_str = f"{version_base}.{version_increment}"
-    version_str = version
+    # Define Static Parts
+    instrument_shortname = "reach"
 
-    # The Base Filename is used for searching to see if we need to increase our version increment.
-    base_filename = create_science_filename(
-        instrument="reach",
-        time=time,
-        level=level,
-        version=version_str,
-        mode=mode,
-        descriptor=descriptor,
-        test=test,
+    # Format Time String
+    start_time = Time(time, format="isot")
+    time_str = start_time.strftime("%Y%m%d")
+
+    # Combine Parts into Filename
+    filename = (
+        f"{instrument_shortname}_{mode}_{level}_{descriptor}_{time_str}_v{version}.cdf"
     )
-    return base_filename
+    filename = filename.replace("__", "_")  # reformat if mode or descriptor not given
+
+    return filename

@@ -289,7 +289,11 @@ def build_swxdata(
     sensor_ids, _obs_names, observation_flavors = extract_sensor_metadata(data)
 
     # --- 3. Build common time axis -------------------------------------
-    times = Time(sorted(data["obTime"].unique())).sort()
+    # Strip trailing 'Z' and pass explicit scale/format to avoid a stack
+    # overflow in astropy's recursive ISO-8601 parser for large arrays.
+    unique_times_raw = sorted(data["obTime"].unique())
+    unique_times = [t[:-1] if t.endswith("Z") else t for t in unique_times_raw]
+    times = Time(unique_times, scale="utc", format="isot").sort()
     times_pd = pd.DatetimeIndex([t.datetime for t in times]).tz_localize("UTC")
 
     ts = TimeSeries(time=times)
@@ -338,7 +342,7 @@ def build_swxdata(
                 "VAR_TYPE": "data",
                 "UNITS": (u.J / u.kg * 0.01).to_string(),
                 "DEPEND_0": "Epoch",
-                "DEPEND_2": "sensor_ids",
+                "DEPEND_1": "sensor_ids",
                 "LABL_PTR_1": "Epoch_label",
                 "LABL_PTR_2": "sensor_ids",
                 "LABL_PTR_3": "Flavor_label",
@@ -353,7 +357,7 @@ def build_swxdata(
                 "VAR_TYPE": "data",
                 "UNITS": u.degree.to_string(),
                 "DEPEND_0": "Epoch",
-                "DEPEND_2": "sensor_ids",
+                "DEPEND_1": "sensor_ids",
                 "LABL_PTR_1": "Epoch_label",
                 "LABL_PTR_2": "sensor_ids",
             },
@@ -367,7 +371,7 @@ def build_swxdata(
                 "VAR_TYPE": "data",
                 "UNITS": u.degree.to_string(),
                 "DEPEND_0": "Epoch",
-                "DEPEND_2": "sensor_ids",
+                "DEPEND_1": "sensor_ids",
                 "LABL_PTR_1": "Epoch_label",
                 "LABL_PTR_2": "sensor_ids",
             },
@@ -381,7 +385,7 @@ def build_swxdata(
                 "VAR_TYPE": "data",
                 "UNITS": u.km.to_string(),
                 "DEPEND_0": "Epoch",
-                "DEPEND_2": "sensor_ids",
+                "DEPEND_1": "sensor_ids",
                 "LABL_PTR_1": "Epoch_label",
                 "LABL_PTR_2": "sensor_ids",
             },
@@ -392,10 +396,10 @@ def build_swxdata(
             ),
             meta={
                 "CATDESC": "Observation Quality",
-                "VAR_TYPE": "data",
-                "UNITS": u.dimensionless_unscaled.to_string(),
+                "VAR_TYPE": "support_data",
+                "UNITS": "unitless",
                 "DEPEND_0": "Epoch",
-                "DEPEND_2": "sensor_ids",
+                "DEPEND_1": "sensor_ids",
                 "LABL_PTR_1": "Epoch_label",
                 "LABL_PTR_2": "sensor_ids",
             },
@@ -406,10 +410,10 @@ def build_swxdata(
             ),
             meta={
                 "CATDESC": "Sensor Position 0",
-                "VAR_TYPE": "data",
-                "UNITS": u.dimensionless_unscaled.to_string(),
+                "VAR_TYPE": "support_data",
+                "UNITS": "unitless",
                 "DEPEND_0": "Epoch",
-                "DEPEND_2": "sensor_ids",
+                "DEPEND_1": "sensor_ids",
                 "LABL_PTR_1": "Epoch_label",
                 "LABL_PTR_2": "sensor_ids",
             },
@@ -420,10 +424,10 @@ def build_swxdata(
             ),
             meta={
                 "CATDESC": "Sensor Position 1",
-                "VAR_TYPE": "data",
-                "UNITS": u.dimensionless_unscaled.to_string(),
+                "VAR_TYPE": "support_data",
+                "UNITS": "unitless",
                 "DEPEND_0": "Epoch",
-                "DEPEND_2": "sensor_ids",
+                "DEPEND_1": "sensor_ids",
                 "LABL_PTR_1": "Epoch_label",
                 "LABL_PTR_2": "sensor_ids",
             },
@@ -434,10 +438,10 @@ def build_swxdata(
             ),
             meta={
                 "CATDESC": "Sensor Position 2",
-                "VAR_TYPE": "data",
-                "UNITS": u.dimensionless_unscaled.to_string(),
+                "VAR_TYPE": "support_data",
+                "UNITS": "unitless",
                 "DEPEND_0": "Epoch",
-                "DEPEND_2": "sensor_ids",
+                "DEPEND_1": "sensor_ids",
                 "LABL_PTR_1": "Epoch_label",
                 "LABL_PTR_2": "sensor_ids",
             },

@@ -143,6 +143,15 @@ Discipline:
   required: true
   overwrite: false
 
+File_naming_convention:
+  description: >
+    If File_naming_convention was not set, it uses default setting:
+      instrument_instrument-mode_data-level_data-type_start-time_vX.Y.Z.ext
+  default: instrument_instrument-mode_data-level_data-type_start-time_vX.Y.Z.ext
+  derived: false
+  required: false
+  overwrite: false
+
 Generated_by:
   description: >
     Organisation(s) that generated the data file.
