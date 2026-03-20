@@ -336,10 +336,6 @@ def build_swxdata(
                 "VAR_TYPE": "metadata",
             },
         ),
-        # "Epoch_label": NDData(
-        #     data=np.array([t.isot for t in times]),
-        #     meta={"CATDESC": "Label for Epoch dimension", "VAR_TYPE": "metadata"},
-        # ),
         "Flavor_label": NDData(
             data=np.array(
                 [f"flavor_{i}" for i in range(len(observation_flavors[0]))]
@@ -358,10 +354,8 @@ def build_swxdata(
                 "VAR_TYPE": "data",
                 "UNITS": (u.J / u.kg * 0.01).to_string(),
                 "DEPEND_0": "Epoch",
-                "DEPEND_1": "sensor_ids",
-                "LABL_PTR_1": "Epoch",
-                "LABL_PTR_2": "sensor_ids",
-                "LABL_PTR_3": "Flavor_label",
+                "LABL_PTR_1": "sensor_ids",
+                "LABL_PTR_2": "Flavor_label",
             },
         ),
         "lat": NDData(
@@ -373,9 +367,7 @@ def build_swxdata(
                 "VAR_TYPE": "data",
                 "UNITS": u.degree.to_string(),
                 "DEPEND_0": "Epoch",
-                "DEPEND_1": "sensor_ids",
-                "LABL_PTR_1": "Epoch",
-                "LABL_PTR_2": "sensor_ids",
+                "LABL_PTR_1": "sensor_ids",
             },
         ),
         "lon": NDData(
@@ -387,9 +379,7 @@ def build_swxdata(
                 "VAR_TYPE": "data",
                 "UNITS": u.degree.to_string(),
                 "DEPEND_0": "Epoch",
-                "DEPEND_1": "sensor_ids",
-                "LABL_PTR_1": "Epoch",
-                "LABL_PTR_2": "sensor_ids",
+                "LABL_PTR_1": "sensor_ids",
             },
         ),
         "alt": NDData(
@@ -401,9 +391,7 @@ def build_swxdata(
                 "VAR_TYPE": "data",
                 "UNITS": u.km.to_string(),
                 "DEPEND_0": "Epoch",
-                "DEPEND_1": "sensor_ids",
-                "LABL_PTR_1": "Epoch",
-                "LABL_PTR_2": "sensor_ids",
+                "LABL_PTR_1": "sensor_ids",
             },
         ),
         "obQuality": NDData(
@@ -412,54 +400,46 @@ def build_swxdata(
             ),
             meta={
                 "CATDESC": "Observation Quality",
-                "VAR_TYPE": "support_data",
+                "VAR_TYPE": "data",
                 "UNITS": "unitless",
                 "DEPEND_0": "Epoch",
-                "DEPEND_1": "sensor_ids",
-                "LABL_PTR_1": "Epoch",
-                "LABL_PTR_2": "sensor_ids",
+                "LABL_PTR_1": "sensor_ids",
             },
         ),
-        "senPos0": NDData(
+        "senssor_position_x": NDData(
             data=create_sensor_array(
                 sensor_grouped, sensor_deduped_dt, sensor_ids, times_pd, "senPos0"
             ),
             meta={
-                "CATDESC": "Sensor Position 0",
-                "VAR_TYPE": "support_data",
-                "UNITS": "unitless",
+                "CATDESC": "GEI Coordinate Position X in KM",
+                "VAR_TYPE": "data",
+                "UNITS": u.km.to_string(),
                 "DEPEND_0": "Epoch",
-                "DEPEND_1": "sensor_ids",
-                "LABL_PTR_1": "Epoch",
-                "LABL_PTR_2": "sensor_ids",
+                "LABL_PTR_1": "sensor_ids",
             },
         ),
-        "senPos1": NDData(
+        "sensor_position_y": NDData(
             data=create_sensor_array(
                 sensor_grouped, sensor_deduped_dt, sensor_ids, times_pd, "senPos1"
             ),
             meta={
-                "CATDESC": "Sensor Position 1",
-                "VAR_TYPE": "support_data",
-                "UNITS": "unitless",
+                "CATDESC": "GEI Coordinate Position Y in KM",
+                "VAR_TYPE": "data",
+                "UNITS": u.km.to_string(),
                 "DEPEND_0": "Epoch",
-                "DEPEND_1": "sensor_ids",
-                "LABL_PTR_1": "Epoch",
-                "LABL_PTR_2": "sensor_ids",
+                "LABL_PTR_1": "sensor_ids",
             },
         ),
-        "senPos2": NDData(
+        "sensor_position_z": NDData(
             data=create_sensor_array(
                 sensor_grouped, sensor_deduped_dt, sensor_ids, times_pd, "senPos2"
             ),
             meta={
-                "CATDESC": "Sensor Position 2",
-                "VAR_TYPE": "support_data",
-                "UNITS": "unitless",
+                "CATDESC": "GEI Coordinate Position Z in KM",
+                "VAR_TYPE": "data",
+                "UNITS": u.km.to_string(),
                 "DEPEND_0": "Epoch",
-                "DEPEND_1": "sensor_ids",
-                "LABL_PTR_1": "Epoch",
-                "LABL_PTR_2": "sensor_ids",
+                "LABL_PTR_1": "sensor_ids",
             },
         ),
     }
