@@ -2,6 +2,7 @@
 Provides generic file readers.
 """
 
+import ast
 import json
 from pathlib import Path
 
@@ -116,8 +117,9 @@ def read_udl_csv(file_path: Path) -> pd.DataFrame:
     # Read the CSV file into a DataFrame
     data = pd.read_csv(file_path)
 
-    # Convert the string representation of lists/dicts to actual lists/dicts
-    data["seoList"] = data["seoList"].apply(json.loads)
-    data["senPos"] = data["senPos"].apply(json.loads)
+    # Convert the string representation of lists/dicts to actual lists/dicts.
+    # ast.literal_eval handles both single-quoted (Python repr) and double-quoted (JSON) formats.
+    data["seoList"] = data["seoList"].apply(ast.literal_eval)
+    data["senPos"] = data["senPos"].apply(ast.literal_eval)
 
     return _unpack_nested_columns(data)
