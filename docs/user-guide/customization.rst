@@ -41,8 +41,9 @@ If you do not use our developer environment, you can run the following code to s
 .. doctest::
 
   >>> from swxsoc import util
-  >>> print(util.config._get_user_configdir())
-  /home/vscode/.config/swxsoc
+  >>> from pathlib import Path
+  >>> Path(util.config._get_user_configdir()).name
+  'swxsoc'
 
 .. note:: 
   For more information on where to place your configuration file depending on your operating system, you can refer to the `AppDirs module docstrings <https://github.com/sunpy/sunpy/blob/1459206e11dc0c7bfeeeec6aede701ca60a8630c/sunpy/extern/appdirs.py#L165>`_.
