@@ -110,6 +110,9 @@ def download_UDL_reach_to_file(
 
     if output_format not in {"json", "csv"}:
         raise ValueError("REACH_FILE_FORMAT must be either 'json' or 'csv'.")
+    
+    # Convert Output directory to Path object
+    output_dir = Path(output_dir)
 
     # Set Start and End times for REACH data query
     end_time = Time.now() - TimeDelta(delay_seconds, format="sec")
