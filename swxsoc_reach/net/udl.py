@@ -127,8 +127,8 @@ def download_UDL_reach_to_file(
 
     # Build chunked query windows and aggregate all records into one output artifact.
     dtlist = get_reach_datetimelist(
-        start_dt=start_time,
-        end_dt=end_time,
+        start_time=start_time,
+        end_time=end_time,
         sensor_id=sensor_id,
     )
     urls = get_reach_urllist(dtlist, sensor_id, descriptor)
