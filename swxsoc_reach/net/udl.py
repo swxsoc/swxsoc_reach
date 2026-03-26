@@ -243,8 +243,8 @@ def download_UDL_reach_to_file(
     urls = get_reach_urllist(dtlist, sensor_id, descriptor)
 
     combined_obs: list[dict[str, Any]] = []
-    for dt, url in urls.items():
-        log.info(f"Requesting REACH file chunk from UDL at {url}")
+    for i, (dt, url) in enumerate(urls.items()):
+        log.info(f"Requesting REACH file chunk {i + 1}/{len(urls)} from UDL at {url}")
 
         # Curl the UDL endpoint for this chunk
         response = requests.get(
