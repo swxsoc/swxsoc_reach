@@ -301,23 +301,19 @@ def download_UDL_reach_to_file(
     if urls:
         max_workers = min(max_concurrent_requests, len(urls))
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
-            future_to_dt = {}
-            for i, (dt, url) in enumerate(urls.items()):
-                log.info(
-                    f"Queueing REACH file chunk {i + 1}/{len(urls)} from UDL at {url}"
-                )
+            future_to_chunk = {}
+            total_chunks = len(urls)
+            for request_index, (dt, url) in enumerate(urls.items(), start=1):
+                log.info(f"Queueing Chunk {request_index} of {total_chunks}")
                 future = executor.submit(fetch_reach_chunk, dt, url, auth_token)
-                future_to_dt[future] = dt
+                future_to_chunk[future] = (request_index, dt)
 
-            for future in as_completed(future_to_dt):
+            for future in as_completed(future_to_chunk):
+                request_index, _ = future_to_chunk[future]
                 dt, records = future.result()
                 chunk_results[dt] = records
                 log.info(
-                    "Received REACH chunk",
-                    extra={
-                        "chunk_window": dt,
-                        "chunk_record_count": len(records),
-                    },
+                    f"Received Chunk {request_index} of {total_chunks}. Chunk window: {dt} with {len(records)} records."
                 )
 
     # Preserve chunk ordering in output regardless of completion order.
