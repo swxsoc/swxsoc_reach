@@ -13,6 +13,7 @@ Note that this package is still in active development.
    :maxdepth: 2
 
    overview
+   udl_download
    logger
    customization
    changelog
