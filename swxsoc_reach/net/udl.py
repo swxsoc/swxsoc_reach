@@ -1,5 +1,6 @@
 import json
 import csv
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Any, Literal
 from pathlib import Path
 import requests
@@ -172,6 +173,54 @@ def write_reach_output(
         writer.writerows(obs)
 
 
+def fetch_reach_chunk(
+    dt: str,
+    url: str,
+    auth_token: str,
+    timeout_seconds: int = 120,
+) -> tuple[str, list[dict[str, Any]]]:
+    """Fetch one UDL chunk and normalize the payload into a list of records.
+
+    Parameters
+    ----------
+    dt : str
+        Chunk window identifier (``<start>..<end>``) used for logging/order.
+    url : str
+        UDL request URL for the chunk.
+    auth_token : str
+        Authorization header value for UDL.
+    timeout_seconds : int, optional
+        Request timeout in seconds.
+        Default is 120 seconds to allow for large chunks or slow responses.
+
+    Returns
+    -------
+    tuple[str, list[dict[str, Any]]]
+        The chunk window string and its records.
+
+    Raises
+    ------
+    requests.HTTPError
+        If UDL responds with an unsuccessful status code.
+    """
+    response = requests.get(
+        url,
+        headers={"Authorization": auth_token},
+        timeout=timeout_seconds,
+    )
+    response.raise_for_status()
+
+    obs_chunk = response.json()
+    if isinstance(obs_chunk, list):
+        normalized = obs_chunk
+    elif obs_chunk:
+        normalized = [obs_chunk]
+    else:
+        normalized = []
+
+    return dt, normalized
+
+
 def download_UDL_reach_to_file(
     auth_token: str,
     sensor_id: str,
@@ -180,6 +229,7 @@ def download_UDL_reach_to_file(
     delay_seconds: int,
     window_seconds: int,
     output_dir: Path | str,
+    max_concurrent_requests: int = 4,
 ) -> Path:
     """Download REACH data from UDL and write one combined output file.
 
@@ -200,6 +250,9 @@ def download_UDL_reach_to_file(
         Duration of the query window in seconds.
     output_dir : pathlib.Path or str
         Directory where the combined output file is written.
+    max_concurrent_requests : int, optional
+        Maximum number of chunk requests to run concurrently. Lower values are
+        safer for unknown API limits; higher values can improve throughput.
 
     Returns
     -------
@@ -243,32 +296,33 @@ def download_UDL_reach_to_file(
     urls = get_reach_urllist(dtlist, sensor_id, descriptor)
 
     combined_obs: list[dict[str, Any]] = []
-    for i, (dt, url) in enumerate(urls.items()):
-        log.info(f"Requesting REACH file chunk {i + 1}/{len(urls)} from UDL at {url}")
+    chunk_results: dict[str, list[dict[str, Any]]] = {}
 
-        # Curl the UDL endpoint for this chunk
-        response = requests.get(
-            url,
-            headers={"Authorization": auth_token},
-            timeout=60,
-        )
-        response.raise_for_status()
+    if urls:
+        max_workers = min(max_concurrent_requests, len(urls))
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            future_to_dt = {}
+            for i, (dt, url) in enumerate(urls.items()):
+                log.info(
+                    f"Queueing REACH file chunk {i + 1}/{len(urls)} from UDL at {url}"
+                )
+                future = executor.submit(fetch_reach_chunk, dt, url, auth_token)
+                future_to_dt[future] = dt
 
-        # Add chunk data to combined list
-        obs_chunk = response.json()
-        if isinstance(obs_chunk, list):
-            combined_obs.extend(obs_chunk)
-        elif obs_chunk:
-            combined_obs.append(obs_chunk)
-        log.info(
-            "Received REACH chunk",
-            extra={
-                "chunk_window": dt,
-                "chunk_record_count": len(obs_chunk)
-                if isinstance(obs_chunk, list)
-                else 1,
-            },
-        )
+            for future in as_completed(future_to_dt):
+                dt, records = future.result()
+                chunk_results[dt] = records
+                log.info(
+                    "Received REACH chunk",
+                    extra={
+                        "chunk_window": dt,
+                        "chunk_record_count": len(records),
+                    },
+                )
+
+    # Preserve chunk ordering in output regardless of completion order.
+    for dt in dtlist:
+        combined_obs.extend(chunk_results.get(dt, []))
 
     filename = build_reach_output_filename(
         sensor_id=sensor_id,
