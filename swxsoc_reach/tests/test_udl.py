@@ -1,6 +1,7 @@
 import csv
 import json
 import tempfile
+import time
 from pathlib import Path
 
 import pytest
@@ -344,3 +345,73 @@ def test_download_udl_reach_to_file_rejects_invalid_output_format(monkeypatch):
                 window_seconds=600,
                 output_dir=tmpdir,
             )
+
+
+def test_download_udl_reach_to_file_preserves_window_order(monkeypatch):
+    fixed_now = Time("2026-01-01T01:00:00", format="isot", scale="utc")
+    monkeypatch.setattr(udl.Time, "now", staticmethod(lambda: fixed_now))
+
+    monkeypatch.setattr(
+        udl,
+        "get_reach_datetimelist",
+        lambda start_time, end_time, sensor_id: ["window-1", "window-2"],
+    )
+    monkeypatch.setattr(
+        udl,
+        "get_reach_urllist",
+        lambda dtlist, sensor_id, descriptor: {
+            "window-1": "https://example.test/chunk1",
+            "window-2": "https://example.test/chunk2",
+        },
+    )
+
+    class FakeResponse:
+        def __init__(self, payload):
+            self._payload = payload
+
+        def raise_for_status(self):
+            return None
+
+        def json(self):
+            return self._payload
+
+    def fake_get(url, headers, timeout):
+        if url.endswith("chunk1"):
+            time.sleep(0.05)
+            return FakeResponse(
+                [
+                    {
+                        "idSensor": "REACH-1",
+                        "obTime": "2026-01-01T00:00:00.000Z",
+                        "flux": 1,
+                    }
+                ]
+            )
+        time.sleep(0.01)
+        return FakeResponse(
+            [
+                {
+                    "idSensor": "REACH-1",
+                    "obTime": "2026-01-01T00:01:00.000Z",
+                    "flux": 2,
+                }
+            ]
+        )
+
+    monkeypatch.setattr(udl.requests, "get", fake_get)
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        output_path = udl.download_UDL_reach_to_file(
+            auth_token="Bearer test-token",
+            sensor_id="REACH-1",
+            descriptor="electron",
+            output_format="json",
+            delay_seconds=60,
+            window_seconds=600,
+            output_dir=tmpdir,
+        )
+
+        with open(output_path, "r", encoding="utf-8") as infile:
+            payload = json.load(infile)
+
+        assert [record["flux"] for record in payload] == [1, 2]

@@ -1,7 +1,9 @@
-import json
+import asyncio
 import csv
-from typing import Any, Literal
+import json
 from pathlib import Path
+from typing import Any, Literal
+
 import requests
 from astropy.time import Time, TimeDelta
 
@@ -172,6 +174,30 @@ def write_reach_output(
         writer.writerows(obs)
 
 
+def _fetch_udl_chunk_sync(
+    url: str, auth_token: str
+) -> list[dict[str, Any]] | dict[str, Any]:
+    """Fetch one UDL chunk and return the parsed JSON payload."""
+    response = requests.get(
+        url,
+        headers={"Authorization": auth_token},
+        timeout=60,
+    )
+    response.raise_for_status()
+    return response.json()
+
+
+async def _fetch_udl_chunks_async(
+    windows_and_urls: list[tuple[str, str]], auth_token: str
+) -> list[list[dict[str, Any]] | dict[str, Any]]:
+    """Fetch all UDL chunks concurrently and return payloads in URL order."""
+    tasks = [
+        asyncio.to_thread(_fetch_udl_chunk_sync, url, auth_token)
+        for _, url in windows_and_urls
+    ]
+    return await asyncio.gather(*tasks)
+
+
 def download_UDL_reach_to_file(
     auth_token: str,
     sensor_id: str,
@@ -212,6 +238,15 @@ def download_UDL_reach_to_file(
         If ``output_format`` is not one of ``'json'`` or ``'csv'``.
     requests.HTTPError
         If any UDL request returns an unsuccessful HTTP status code.
+
+    Notes
+    -----
+    This function is synchronous. It uses internal async concurrency for chunk
+    fetches.
+
+    Constraint: this function cannot be called from a thread that already has
+    a running asyncio event loop.
+
     """
 
     if output_format not in {"json", "csv"}:
@@ -243,19 +278,16 @@ def download_UDL_reach_to_file(
     urls = get_reach_urllist(dtlist, sensor_id, descriptor)
 
     combined_obs: list[dict[str, Any]] = []
-    for i, (dt, url) in enumerate(urls.items()):
-        log.info(f"Requesting REACH file chunk {i + 1}/{len(urls)} from UDL at {url}")
+    windows_and_urls = list(urls.items())
 
-        # Curl the UDL endpoint for this chunk
-        response = requests.get(
-            url,
-            headers={"Authorization": auth_token},
-            timeout=60,
+    for i, (_, url) in enumerate(windows_and_urls):
+        log.info(
+            f"Requesting REACH file chunk {i + 1}/{len(windows_and_urls)} from UDL at {url}"
         )
-        response.raise_for_status()
 
-        # Add chunk data to combined list
-        obs_chunk = response.json()
+    chunk_payloads = asyncio.run(_fetch_udl_chunks_async(windows_and_urls, auth_token))
+
+    for (dt, _), obs_chunk in zip(windows_and_urls, chunk_payloads):
         if isinstance(obs_chunk, list):
             combined_obs.extend(obs_chunk)
         elif obs_chunk:
