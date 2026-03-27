@@ -257,7 +257,7 @@ def test_download_udl_reach_to_file_json_with_monkeypatched_udl(monkeypatch):
 
     assert len(calls) == 2
     assert calls[0]["headers"] == {"Authorization": "Bearer test-token"}
-    assert calls[0]["timeout"] == 60
+    assert calls[0]["timeout"] == 120
 
 
 def test_download_udl_reach_to_file_csv_with_monkeypatched_udl(monkeypatch):
