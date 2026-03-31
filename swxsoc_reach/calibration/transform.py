@@ -406,7 +406,7 @@ def build_swxdata(
                 "LABL_PTR_1": "sensor_ids",
             },
         ),
-        "senssor_position_x": NDData(
+        "sensor_position_x": NDData(
             data=create_sensor_array(
                 sensor_grouped, sensor_deduped_dt, sensor_ids, times_pd, "senPos0"
             ),
