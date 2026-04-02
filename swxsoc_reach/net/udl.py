@@ -7,6 +7,7 @@ import requests
 from astropy.time import Time, TimeDelta
 
 from swxsoc_reach import log
+from swxsoc_reach.util.util import TIME_FORMAT
 
 
 def format_udl_timestamp(value: Time) -> str:
@@ -129,9 +130,7 @@ def build_reach_output_filename(
         Filename with sensor prefix and query time range.
     """
     sensor_prefix = "REACH-ALL" if sensor_id.upper() == "ALL" else sensor_id
-    time_range = (
-        f"{start_time.strftime('%Y%m%dT%H%M%S')}_{end_time.strftime('%Y%m%dT%H%M%S')}"
-    )
+    time_range = f"{start_time.strftime(TIME_FORMAT)}_{end_time.strftime(TIME_FORMAT)}"
     return f"{sensor_prefix}_{time_range}.{output_format}"
 
 
