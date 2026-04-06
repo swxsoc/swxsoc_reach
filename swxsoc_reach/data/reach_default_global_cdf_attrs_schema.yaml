@@ -98,7 +98,7 @@ Data_curator:
 Data_level:
   description: >
     Processing level of the data, e.g. "L1>Level 1".
-  default: "L1>Level 1"
+  default: "L1C>Level 1 C"
   derived: false
   required: true
   overwrite: false
