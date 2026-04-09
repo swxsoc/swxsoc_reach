@@ -51,11 +51,8 @@ Coding Style/Conventions
 Private code
 ============
 
-It is often useful to designate code as private, which means it is not part of the user facing API, only used internally by HERMES, and can be modified without a deprecation period.
+It is often useful to designate code as private, which means it is not part of the user facing API, only used internally by swxsoc_reach, and can be modified without a deprecation period.
 Any classes, functions, or variables that are private should either:
-
-- Have an underscore as the first character of their name, e.g., ``_my_private_function``.
-- If you want to do that to entire set of functions in a file, name the file with a underscore as the first character, e.g., ``_my_private_file.py``.
 
 Documentation and Testing
 =========================
@@ -102,8 +99,8 @@ Including C Code
 
 * The use of `Cython`_ is strongly recommended for C extensions.
 
-* If a C extension has a dependency on an external C library, the source code for the library should be bundled with the HERMES repository, provided the license for the C library is compatible with the HERMES license.
-  Additionally, the package must be compatible with using a system-installed library in place of the library included in HERMES.
+* If a C extension has a dependency on an external C library, the source code for the library should be bundled with the swxsoc_reach repository, provided the license for the C library is compatible with the swxsoc_reach license.
+  Additionally, the package must be compatible with using a system-installed library in place of the library included in swxsoc_reach.
 
 * In cases where C extensions are needed but `Cython`_ cannot be used, the `PEP 7 Style Guide for C Code <https://www.python.org/dev/peps/pep-0007/>`_ is recommended.
 

@@ -122,6 +122,9 @@ intersphinx_mapping = {
 # a list of builtin themes.
 html_theme = "pydata_sphinx_theme"
 html_static_path = ["_static"]
+# Keep the browser/tab and header title stable and short so long version
+# strings do not crowd the top bar layout.
+html_title = "swxsoc_reach"
 
 html_theme_options = {
    "announcement": "This package is under active development.  If you'd like to contribute, check out our <a href='https://github.com/swxsoc/swxsoc_reach/'>GitHub repository</a>.",

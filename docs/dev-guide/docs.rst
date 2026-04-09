@@ -72,14 +72,27 @@ To build the html documentation locally use the following command, in the docs d
 
     $ make html
 
+If you use conda and have multiple Sphinx installations (for example Homebrew and a conda environment), build docs from the project environment so the correct Sphinx is used::
+
+    $ conda run -n reach make -C docs html
+
+Or activate the environment first and then run ``make html`` from ``docs/``.
+
 This will generate HTML documentation in the "docs/_build/html" directory.
 You can open the "index.html" file to browse the final product.
 
-If you'd like to rebuild the documentation from scratch.
-This is normally not necessary since Sphinx will detect and only build the required changes.
-But if you are running into strange errors you may want to try this.
-The following command will wipe all generated files.
+Rebuilding from scratch
+^^^^^^^^^^^^^^^^^^^^^^^
 
-    $ make clean
+Sphinx builds incrementally, so a full rebuild is rarely needed.
+If you encounter stale output or unexplained errors, wipe all generated files and rebuild in one step::
+
+    $ conda run -n reach make -C docs clean html
+
+Or, if the environment is already active, from the ``docs/`` directory::
+
+    $ make clean html
+
+This deletes ``_build/`` and the ``_autosummary/`` directory before regenerating everything from source.
 
 Sphinx can also build documentation as a PDF but this requires latex to be installed.
