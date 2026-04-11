@@ -1,9 +1,28 @@
+import csv
+
+import numpy as np
 from swxsoc.util import create_science_filename, parse_science_filename
+
+from swxsoc_reach import _data_directory
 
 __all__ = [
     "create_reach_filename",
     "parse_science_filename",
 ]
+
+
+def load_regions() -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Load region data from the CSV file and return the longitude, latitude, and region code arrays."""
+    REGION_FILE = _data_directory / "region_file.csv"
+    lookuplon, lookuplat, glook = [], [], []
+    with open(REGION_FILE, "r") as f:
+        reader = csv.reader(f)
+        next(reader)  # skip header
+        for row in reader:
+            lookuplon.append(float(row[2]))  # lon deg
+            lookuplat.append(float(row[1]))  # lat deg
+            glook.append(int(row[10]))  # Region Code
+    return np.array(lookuplon), np.array(lookuplat), np.array(glook)
 
 
 def create_reach_filename(
