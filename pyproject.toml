@@ -27,6 +27,7 @@ classifiers = [
 ]
 dependencies = [
   'astropy==6.1.*',
+  'cartopy',
   'numpy<2.4',
   'matplotlib==3.10.*',
   'pandas==2.3.*',
