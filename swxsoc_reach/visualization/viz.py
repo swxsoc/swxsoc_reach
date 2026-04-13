@@ -85,12 +85,6 @@ def plot_mapdata(
     if newv["dataToPlot"] == 1:
         # Here we start defining the map we'll be plotting to.
 
-        # ****
-        # NOTE: (Aaron) the CartoPy projection messes up the ability to place the colorbar labels
-        # inside of the colorbar.
-        # See: https://stackoverflow.com/questions/77130818/colorbar-labels-are-not-appearing-when-plotted-in-subplots-as-cartopy-projection
-        # ****
-
         fig = plt.figure(figsize=(11.69, 8.27))
         ax = plt.subplot(1, 1, 1, projection=ccrs.PlateCarree(central_longitude=0))
 
@@ -161,8 +155,6 @@ def plot_mapdata(
             pltname = " " + flav + r"$\geq$ 5.0 MeV $e^{-}$, $\geq$ 57 MeV $p^{+}$"
         else:
             pltname = flav + " " + pltdos
-        # plt.title(np.min(Epoch).strftime('%d %b %Y %H:%M') + ' - '+ np.max(Epoch).strftime('%d %b %Y %H:%M') + pltname , fontdict = {'fontsize' : 15})
-        # ax.set_title(np.min(Epoch).strftime('%d %b %Y %H:%M') + ' - '+ np.max(Epoch).strftime('%d %b %Y %H:%M') + pltname , fontdict = {'fontsize' : 15})
         ax.set_title(newv["plotTitlePre"] + pltname, fontdict={"fontsize": 15})
 
         # Here we are putting together the color bars for each of the regions.
@@ -181,16 +173,8 @@ def plot_mapdata(
         cbarSAA = fig.colorbar(mapSAA, cax=cax_saa, orientation="horizontal")
         cbarSAA.ax.set_xticklabels(tickemptylabels)
         cbarSAA.ax.tick_params(direction="in")
-        cbarSAA.ax.text(
-            0.05,
-            0.5,
-            "SAA and Inner Zone",
-            transform=ax.transAxes,
-            ha="left",
-            va="center",
-            color="black",
-            fontsize=10,
-        )  # , bbox=dict(boxstyle="round,pad=0.5", facecolor="black", edgecolor="white", alpha=1.0))
+        cbarSAA.ax.text(0.01, 0.5, "SAA and Inner Zone", transform=cbarSAA.ax.transAxes, 
+                        ha="left", va="center", color="black", fontsize=9, weight="bold")
 
         # Outer Zone colorbar
         cbar_y -= cbar_height
@@ -198,22 +182,8 @@ def plot_mapdata(
         cbarout = fig.colorbar(mapout, cax=cax_out, orientation="horizontal")
         cbarout.ax.set_xticklabels(tickemptylabels)
         cbarout.ax.tick_params(direction="in")
-        cbarout.ax.text(
-            0.05,
-            0.5,
-            "Outer Zone",
-            transform=ax.transAxes,
-            ha="left",
-            va="center",
-            color="white",
-            fontsize=10,
-            bbox=dict(
-                boxstyle="round,pad=0.5",
-                facecolor="black",
-                edgecolor="white",
-                alpha=1.0,
-            ),
-        )
+        cbarout.ax.text(0.01, 0.5, "Outer Zone", transform=cbarout.ax.transAxes, 
+                       ha="left", va="center", color="black", fontsize=9, weight="bold")
 
         # Slot colorbar
         cbar_y -= cbar_height
@@ -221,45 +191,18 @@ def plot_mapdata(
         cbarslot = fig.colorbar(mapslot, cax=cax_slot, orientation="horizontal")
         cbarslot.ax.set_xticklabels(tickemptylabels)
         cbarslot.ax.tick_params(direction="in")
-        cbarslot.ax.text(
-            0.05,
-            0.5,
-            "Slot",
-            transform=ax.transAxes,
-            ha="left",
-            va="center",
-            color="white",
-            fontsize=10,
-            bbox=dict(
-                boxstyle="round,pad=0.5",
-                facecolor="black",
-                edgecolor="white",
-                alpha=1.0,
-            ),
-        )
+        cbarslot.ax.text(0.01, 0.5, "Slot", transform=cbarslot.ax.transAxes, 
+                        ha="left", va="center", color="black", fontsize=9, weight="bold")
 
         # Polar Cap colorbar
         cbar_y -= cbar_height
         cax_pc = fig.add_axes([cbar_x, cbar_y, cbar_width, cbar_height])
         cbarPC = fig.colorbar(mapPC, cax=cax_pc, orientation="horizontal")
         cbarPC.ax.tick_params(direction="in")
-        cbarPC.ax.text(
-            0.05,
-            0.5,
-            "Polar Cap",
-            transform=ax.transAxes,
-            ha="left",
-            va="center",
-            color="white",
-            fontsize=10,
-            bbox=dict(
-                boxstyle="round,pad=0.5",
-                facecolor="black",
-                edgecolor="white",
-                alpha=1.0,
-            ),
-        )
-        cbarPC.ax.set_xlabel("log (rads/sec)")
+        cbarPC.ax.text(0.01, 0.5, "Polar Cap", transform=cbarPC.ax.transAxes, 
+                      ha="left", va="center", color="black", fontsize=9, weight="bold")
+        cbarPC.set_label("log (rads/sec)", fontsize=10, labelpad=5)
+        cbarPC.ax.xaxis.set_label_position("bottom")
         fig.savefig(fileout, orientation="landscape")
 
         if show:
