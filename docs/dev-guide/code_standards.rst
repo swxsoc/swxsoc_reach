@@ -54,6 +54,10 @@ Private code
 It is often useful to designate code as private, which means it is not part of the user facing API, only used internally by swxsoc_reach, and can be modified without a deprecation period.
 Any classes, functions, or variables that are private should either:
 
+* Have an underscore as the first character of their name, e.g., ``_my_private_function``.
+
+* If you want to do that to entire set of functions in a file, name the file with a underscore as the first character, e.g., ``_my_private_file.py``.
+
 Documentation and Testing
 =========================
 
