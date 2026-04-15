@@ -270,7 +270,8 @@ def fetch_reach_chunk(
         Shared rate controller for AIMD throttling. If ``None``, no
         throttling or adaptive feedback is applied.
     max_retries : int, optional
-        Maximum number of retry attempts after a 429 response.
+        Maximum number of retry attempts after a 429 response or
+        transient connection error.
 
     Returns
     -------
@@ -281,6 +282,8 @@ def fetch_reach_chunk(
     ------
     requests.HTTPError
         If UDL responds with an unsuccessful status code after all retries.
+    requests.ConnectionError
+        If the connection fails on every retry attempt.
     """
     for attempt in range(max_retries + 1):
         # Wait for the rate controller to permit the next request.
@@ -289,11 +292,32 @@ def fetch_reach_chunk(
         if rate_controller is not None:
             rate_controller.acquire()
 
-        response = requests.get(
-            url,
-            headers={"Authorization": auth_token},
-            timeout=timeout_seconds,
-        )
+        try:
+            response = requests.get(
+                url,
+                headers={"Authorization": auth_token},
+                timeout=timeout_seconds,
+            )
+        except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as e:
+            # Signal the rate controller to halve the request rate on connection errors
+            # (similar to a 429 response) since these may indicate transient server issues.
+            if rate_controller is not None:
+                rate_controller.record_rate_limit()
+
+            if attempt < max_retries:
+                backoff = (2**attempt) + random.uniform(0, 1)
+                log.warning(
+                    f"Chunk {dt} connection error: {e!r}, retrying in "
+                    f"{backoff:.1f}s (attempt {attempt + 1}/{max_retries})"
+                )
+                time.sleep(backoff)
+                continue
+            else:
+                log.error(
+                    f"Chunk {dt} failed after {max_retries} retries "
+                    f"with connection error: {e!r}"
+                )
+                raise
 
         if response.status_code == 429:
             # Signal the rate controller to halve the request rate
@@ -358,6 +382,60 @@ def _write_chunk_file(
             writer = csv.DictWriter(chunk_f, fieldnames=fieldnames)
             writer.writeheader()
             writer.writerows(records)
+
+
+def _fetch_and_spool_chunk(
+    dt: str,
+    url: str,
+    auth_token: str,
+    chunk_path: Path,
+    output_format: Literal["json", "csv"],
+    rate_controller: AdaptiveRateController | None = None,
+    max_retries: int = 5,
+) -> tuple[str, int, Path | None]:
+    """Fetch one UDL chunk and spool records to a temp file.
+
+    Wraps :func:`fetch_reach_chunk` so that the heavy record data is
+    written to disk inside the worker thread and never stored in the
+    :class:`~concurrent.futures.Future` result.  This keeps peak memory
+    proportional to one chunk regardless of how many futures are in
+    flight.
+
+    Parameters
+    ----------
+    dt : str
+        Chunk window identifier.
+    url : str
+        UDL request URL.
+    auth_token : str
+        Authorization header value.
+    chunk_path : pathlib.Path
+        Temp file path to write records into.
+    output_format : {'json', 'csv'}
+        Serialization format for the temp file.
+    rate_controller : AdaptiveRateController or None, optional
+        Shared AIMD rate controller.
+    max_retries : int, optional
+        Maximum retry attempts on HTTP 429.
+
+    Returns
+    -------
+    tuple[str, int, pathlib.Path or None]
+        ``(dt, record_count, chunk_path)`` where *chunk_path* is
+        ``None`` when the chunk contained no records.
+    """
+    dt, records = fetch_reach_chunk(
+        dt,
+        url,
+        auth_token,
+        rate_controller=rate_controller,
+        max_retries=max_retries,
+    )
+    record_count = len(records)
+    if records:
+        _write_chunk_file(chunk_path, records, output_format)
+        return dt, record_count, chunk_path
+    return dt, 0, None
 
 
 def _concatenate_chunk_files(
@@ -547,31 +625,28 @@ def download_UDL_reach_to_file(
             total_chunks = len(urls)
             for request_index, (dt, url) in enumerate(urls.items(), start=1):
                 log.info(f"Queueing Chunk {request_index} of {total_chunks}")
+                chunk_path = tmp_dir_path / f"chunk_{request_index}.tmp"
                 future = executor.submit(
-                    fetch_reach_chunk,
+                    _fetch_and_spool_chunk,
                     dt,
                     url,
                     auth_token,
+                    chunk_path,
+                    output_format,
                     rate_controller=rate_controller,
                 )
-                future_to_chunk[future] = (request_index, dt)
+                future_to_chunk[future] = request_index
 
             for future in as_completed(future_to_chunk):
-                request_index, _ = future_to_chunk[future]
-                dt, records = future.result()
-                record_count = len(records)
+                request_index = future_to_chunk[future]
+                dt, record_count, written_path = future.result()
                 total_record_count += record_count
+                if written_path is not None:
+                    chunk_files[dt] = written_path
                 log.info(
                     f"Received Chunk {request_index} of {total_chunks}. "
                     f"Chunk window: {dt} with {record_count} records."
                 )
-
-                if records:
-                    # Write chunk to a temp file and release the list
-                    # from memory immediately.
-                    chunk_path = tmp_dir_path / f"chunk_{request_index}.tmp"
-                    _write_chunk_file(chunk_path, records, output_format)
-                    chunk_files[dt] = chunk_path
 
         if total_record_count == 0:
             raise ValueError(

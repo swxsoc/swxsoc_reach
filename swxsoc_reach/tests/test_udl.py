@@ -524,6 +524,61 @@ def test_fetch_reach_chunk_works_without_rate_controller(monkeypatch):
     assert records == [{"flux": 2.5}]
 
 
+def test_fetch_reach_chunk_retries_on_connection_error_then_succeeds(monkeypatch):
+    """ConnectionError → ConnectionError → 200 should succeed after 2 retries."""
+    call_count = {"n": 0}
+
+    def fake_get(url, headers, timeout):
+        call_count["n"] += 1
+        if call_count["n"] <= 2:
+            raise udl.requests.exceptions.ConnectionError(
+                "Remote end closed connection"
+            )
+        return _make_fake_response(200, [{"flux": 3.0}])
+
+    monkeypatch.setattr(udl.requests, "get", fake_get)
+    monkeypatch.setattr(udl.time, "sleep", lambda s: None)
+
+    rc = AdaptiveRateController(initial_rate=10.0, min_rate=1.0)
+
+    dt, records = udl.fetch_reach_chunk(
+        "window-1",
+        "https://example.test/chunk1",
+        "Bearer token",
+        rate_controller=rc,
+        max_retries=5,
+    )
+
+    assert dt == "window-1"
+    assert records == [{"flux": 3.0}]
+    assert call_count["n"] == 3
+    # Rate should have decreased twice then increased once
+    assert rc.rate < 10.0
+
+
+def test_fetch_reach_chunk_raises_after_max_connection_errors(monkeypatch):
+    """Persistent ConnectionErrors should raise after max_retries."""
+    call_count = {"n": 0}
+
+    def fake_get(url, headers, timeout):
+        call_count["n"] += 1
+        raise udl.requests.exceptions.ConnectionError("Remote end closed connection")
+
+    monkeypatch.setattr(udl.requests, "get", fake_get)
+    monkeypatch.setattr(udl.time, "sleep", lambda s: None)
+
+    with pytest.raises(udl.requests.exceptions.ConnectionError):
+        udl.fetch_reach_chunk(
+            "window-1",
+            "https://example.test/chunk1",
+            "Bearer token",
+            rate_controller=None,
+            max_retries=3,
+        )
+
+    assert call_count["n"] == 4  # 1 initial + 3 retries
+
+
 # --- Integration test: download with intermittent 429s ---
 
 
