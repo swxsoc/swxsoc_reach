@@ -341,6 +341,11 @@ def download_UDL_reach_to_file(
     window_seconds: int,
     output_dir: Path | str,
     max_concurrent_requests: int = 4,
+    initial_rate: float = 5.0,
+    additive_increase: float = 1.0,
+    multiplicative_decrease: float = 0.5,
+    min_rate: float = 5.0,
+    max_rate: float = 25.0,
 ) -> Path:
     """Download REACH data from UDL and write one combined output file.
 
@@ -364,6 +369,17 @@ def download_UDL_reach_to_file(
     max_concurrent_requests : int, optional
         Maximum number of chunk requests to run concurrently. Lower values are
         safer for unknown API limits; higher values can improve throughput.
+    initial_rate : float, optional
+        Starting request rate in requests per second for the AIMD rate
+        controller. Default is 5.0.
+    additive_increase : float, optional
+        Amount added to the rate after each successful request. Default is 1.0.
+    multiplicative_decrease : float, optional
+        Factor to multiply the rate by after a 429 response. Default is 0.5.
+    min_rate : float, optional
+        Minimum permitted request rate. Default is 5.0.
+    max_rate : float, optional
+        Maximum permitted request rate. Default is 25.0.
 
     Returns
     -------
@@ -406,7 +422,13 @@ def download_UDL_reach_to_file(
     )
     urls = get_reach_urllist(dtlist, sensor_id, descriptor)
 
-    rate_controller = AdaptiveRateController()
+    rate_controller = AdaptiveRateController(
+        initial_rate=initial_rate,
+        additive_increase=additive_increase,
+        multiplicative_decrease=multiplicative_decrease,
+        min_rate=min_rate,
+        max_rate=max_rate,
+    )
 
     combined_obs: list[dict[str, Any]] = []
     chunk_results: dict[str, list[dict[str, Any]]] = {}
