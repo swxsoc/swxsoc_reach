@@ -1,5 +1,8 @@
 import json
 import csv
+import random
+import threading
+import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Any, Literal
 from pathlib import Path
@@ -8,6 +11,71 @@ from astropy.time import Time, TimeDelta
 
 from swxsoc_reach import log
 from swxsoc_reach.util.util import TIME_FORMAT
+
+
+class AdaptiveRateController:
+    """Thread-safe AIMD rate controller for throttling HTTP requests.
+
+    Uses Additive Increase / Multiplicative Decrease to dynamically
+    adjust the permitted request rate based on server feedback.
+
+    Parameters
+    ----------
+    initial_rate : float, optional
+        Starting request rate in requests per second.
+    additive_increase : float, optional
+        Amount to add to the rate after each successful request.
+    multiplicative_decrease : float, optional
+        Factor to multiply the rate by after a rate-limit response.
+    min_rate : float, optional
+        Minimum permitted request rate.
+    max_rate : float, optional
+        Maximum permitted request rate.
+    """
+
+    def __init__(
+        self,
+        initial_rate: float = 5.0,
+        additive_increase: float = 1.0,
+        multiplicative_decrease: float = 0.5,
+        min_rate: float = 5.0,
+        max_rate: float = 25.0,
+    ):
+        self.rate = initial_rate
+        self.additive_increase = additive_increase
+        self.multiplicative_decrease = multiplicative_decrease
+        self.min_rate = min_rate
+        self.max_rate = max_rate
+        self._lock = threading.Lock()
+        self._last_request_time = 0.0
+
+    def acquire(self) -> None:
+        """Block until the next request is permitted under the current rate."""
+        with self._lock:
+            now = time.monotonic()
+            delay = 1.0 / self.rate
+            wait = self._last_request_time + delay - now
+            if wait > 0:
+                self._last_request_time = self._last_request_time + delay
+            else:
+                self._last_request_time = now
+
+        if wait > 0:
+            time.sleep(wait)
+
+    def record_success(self) -> None:
+        """Record a successful request and increase the rate additively."""
+        with self._lock:
+            self.rate = min(self.rate + self.additive_increase, self.max_rate)
+
+    def record_rate_limit(self) -> None:
+        """Record a rate-limit (429) response and decrease the rate."""
+        with self._lock:
+            self.rate = max(self.rate * self.multiplicative_decrease, self.min_rate)
+            log.warning(
+                "Rate limit hit, reducing request rate",
+                extra={"new_rate": self.rate},
+            )
 
 
 def format_udl_timestamp(value: Time) -> str:
@@ -177,8 +245,14 @@ def fetch_reach_chunk(
     url: str,
     auth_token: str,
     timeout_seconds: int = 120,
+    rate_controller: AdaptiveRateController | None = None,
+    max_retries: int = 5,
 ) -> tuple[str, list[dict[str, Any]]]:
     """Fetch one UDL chunk and normalize the payload into a list of records.
+
+    Includes retry logic with exponential back-off and jitter for HTTP 429
+    responses. When a ``rate_controller`` is provided, it is used to
+    throttle requests and receives success/failure feedback.
 
     Parameters
     ----------
@@ -191,6 +265,11 @@ def fetch_reach_chunk(
     timeout_seconds : int, optional
         Request timeout in seconds.
         Default is 120 seconds to allow for large chunks or slow responses.
+    rate_controller : AdaptiveRateController or None, optional
+        Shared rate controller for AIMD throttling. If ``None``, no
+        throttling or adaptive feedback is applied.
+    max_retries : int, optional
+        Maximum number of retry attempts after a 429 response.
 
     Returns
     -------
@@ -200,24 +279,57 @@ def fetch_reach_chunk(
     Raises
     ------
     requests.HTTPError
-        If UDL responds with an unsuccessful status code.
+        If UDL responds with an unsuccessful status code after all retries.
     """
-    response = requests.get(
-        url,
-        headers={"Authorization": auth_token},
-        timeout=timeout_seconds,
-    )
-    response.raise_for_status()
+    for attempt in range(max_retries + 1):
+        # Wait for the rate controller to permit the next request.
+        # This enforces a delay of 1/rate seconds between requests
+        # across all threads sharing this controller.
+        if rate_controller is not None:
+            rate_controller.acquire()
 
-    obs_chunk = response.json()
-    if isinstance(obs_chunk, list):
-        normalized = obs_chunk
-    elif obs_chunk:
-        normalized = [obs_chunk]
-    else:
-        normalized = []
+        response = requests.get(
+            url,
+            headers={"Authorization": auth_token},
+            timeout=timeout_seconds,
+        )
 
-    return dt, normalized
+        if response.status_code == 429:
+            # Signal the rate controller to halve the request rate
+            # (multiplicative decrease) so other threads also slow down.
+            if rate_controller is not None:
+                rate_controller.record_rate_limit()
+
+            if attempt < max_retries:
+                # Exponential back-off with random jitter to prevent
+                # multiple threads from retrying in lockstep.
+                backoff = (2**attempt) + random.uniform(0, 1)
+                log.warning(
+                    f"Chunk {dt} got 429, retrying in {backoff:.1f}s "
+                    f"(attempt {attempt + 1}/{max_retries})"
+                )
+                time.sleep(backoff)
+                continue
+            else:
+                log.error(f"Chunk {dt} failed after {max_retries} retries with 429")
+                response.raise_for_status()
+
+        response.raise_for_status()
+
+        # Signal the rate controller to nudge the request rate upward
+        # (additive increase) so throughput gradually recovers.
+        if rate_controller is not None:
+            rate_controller.record_success()
+
+        obs_chunk = response.json()
+        if isinstance(obs_chunk, list):
+            normalized = obs_chunk
+        elif obs_chunk:
+            normalized = [obs_chunk]
+        else:
+            normalized = []
+
+        return dt, normalized
 
 
 def download_UDL_reach_to_file(
@@ -229,6 +341,11 @@ def download_UDL_reach_to_file(
     window_seconds: int,
     output_dir: Path | str,
     max_concurrent_requests: int = 4,
+    initial_rate: float = 5.0,
+    additive_increase: float = 1.0,
+    multiplicative_decrease: float = 0.5,
+    min_rate: float = 5.0,
+    max_rate: float = 25.0,
 ) -> Path:
     """Download REACH data from UDL and write one combined output file.
 
@@ -252,6 +369,17 @@ def download_UDL_reach_to_file(
     max_concurrent_requests : int, optional
         Maximum number of chunk requests to run concurrently. Lower values are
         safer for unknown API limits; higher values can improve throughput.
+    initial_rate : float, optional
+        Starting request rate in requests per second for the AIMD rate
+        controller. Default is 5.0.
+    additive_increase : float, optional
+        Amount added to the rate after each successful request. Default is 1.0.
+    multiplicative_decrease : float, optional
+        Factor to multiply the rate by after a 429 response. Default is 0.5.
+    min_rate : float, optional
+        Minimum permitted request rate. Default is 5.0.
+    max_rate : float, optional
+        Maximum permitted request rate. Default is 25.0.
 
     Returns
     -------
@@ -294,6 +422,14 @@ def download_UDL_reach_to_file(
     )
     urls = get_reach_urllist(dtlist, sensor_id, descriptor)
 
+    rate_controller = AdaptiveRateController(
+        initial_rate=initial_rate,
+        additive_increase=additive_increase,
+        multiplicative_decrease=multiplicative_decrease,
+        min_rate=min_rate,
+        max_rate=max_rate,
+    )
+
     combined_obs: list[dict[str, Any]] = []
     chunk_results: dict[str, list[dict[str, Any]]] = {}
 
@@ -304,7 +440,13 @@ def download_UDL_reach_to_file(
             total_chunks = len(urls)
             for request_index, (dt, url) in enumerate(urls.items(), start=1):
                 log.info(f"Queueing Chunk {request_index} of {total_chunks}")
-                future = executor.submit(fetch_reach_chunk, dt, url, auth_token)
+                future = executor.submit(
+                    fetch_reach_chunk,
+                    dt,
+                    url,
+                    auth_token,
+                    rate_controller=rate_controller,
+                )
                 future_to_chunk[future] = (request_index, dt)
 
             for future in as_completed(future_to_chunk):
@@ -318,6 +460,13 @@ def download_UDL_reach_to_file(
     # Preserve chunk ordering in output regardless of completion order.
     for dt in dtlist:
         combined_obs.extend(chunk_results.get(dt, []))
+
+    if not combined_obs:
+        raise ValueError(
+            f"No records returned for sensor '{sensor_id}' between "
+            f"{format_udl_timestamp(start_time)} and "
+            f"{format_udl_timestamp(end_time)}."
+        )
 
     filename = build_reach_output_filename(
         sensor_id=sensor_id,
