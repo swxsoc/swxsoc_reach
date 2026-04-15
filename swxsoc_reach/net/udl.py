@@ -1,6 +1,7 @@
 import json
 import csv
 import random
+import tempfile
 import threading
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -332,6 +333,94 @@ def fetch_reach_chunk(
         return dt, normalized
 
 
+def _write_chunk_file(
+    chunk_path: Path,
+    records: list[dict[str, Any]],
+    output_format: Literal["json", "csv"],
+) -> None:
+    """Write a single chunk's records to a temporary file.
+
+    Parameters
+    ----------
+    chunk_path : pathlib.Path
+        Destination path for the chunk file.
+    records : list[dict[str, Any]]
+        Non-empty list of observation records to serialize.
+    output_format : {'json', 'csv'}
+        Serialization format.
+    """
+    if output_format == "json":
+        with open(chunk_path, "w", encoding="utf-8") as chunk_f:
+            json.dump(records, chunk_f)
+    else:
+        fieldnames = records[0].keys()
+        with open(chunk_path, "w", newline="", encoding="utf-8") as chunk_f:
+            writer = csv.DictWriter(chunk_f, fieldnames=fieldnames)
+            writer.writeheader()
+            writer.writerows(records)
+
+
+def _concatenate_chunk_files(
+    filepath: Path,
+    dtlist: list[str],
+    chunk_files: dict[str, Path],
+    output_format: Literal["json", "csv"],
+) -> None:
+    """
+    Stream-concatenate per-chunk temp files into one combined output file.
+
+    Reads one temp file at a time so peak memory stays proportional to a
+    single chunk rather than the full dataset.
+
+    Parameters
+    ----------
+    filepath : pathlib.Path
+        Destination path for the combined output file.
+    dtlist : list[str]
+        Chunk window identifiers in the desired output order.
+    chunk_files : dict[str, pathlib.Path]
+        Mapping of chunk window identifiers to their temp file paths.
+        Only chunks that produced records are present.
+    output_format : {'json', 'csv'}
+        Serialization format of the output file.
+    """
+    if output_format == "json":
+        with open(filepath, "w", encoding="utf-8") as out:
+            out.write("[\n")
+            first = True
+            for dt in dtlist:
+                if dt not in chunk_files:
+                    continue
+                # Each temp file is a JSON array like [{...}, {...}].
+                # Strip the outer [] and splice the raw text directly
+                # so we never parse records back into Python dicts.
+                content = chunk_files[dt].read_text(encoding="utf-8").strip()
+                inner = content[1:-1].strip()
+                if not inner:
+                    continue
+                if not first:
+                    out.write(",\n")
+                out.write(inner)
+                first = False
+            out.write("\n]")
+    else:
+        header_written = False
+        with open(filepath, "w", newline="", encoding="utf-8") as out:
+            for dt in dtlist:
+                if dt not in chunk_files:
+                    continue
+                with open(
+                    chunk_files[dt], "r", newline="", encoding="utf-8"
+                ) as chunk_f:
+                    for line_num, line in enumerate(chunk_f):
+                        if line_num == 0:
+                            if not header_written:
+                                out.write(line)
+                                header_written = True
+                            continue
+                        out.write(line)
+
+
 def download_UDL_reach_to_file(
     auth_token: str,
     sensor_id: str,
@@ -348,6 +437,11 @@ def download_UDL_reach_to_file(
     max_rate: float = 25.0,
 ) -> Path:
     """Download REACH data from UDL and write one combined output file.
+
+    Each chunk is written to a temporary file as it arrives, keeping peak
+    memory proportional to one chunk instead of the full dataset.  Temp
+    files are concatenated in time order into the final output file and
+    cleaned up automatically.
 
     Parameters
     ----------
@@ -390,6 +484,8 @@ def download_UDL_reach_to_file(
     ------
     ValueError
         If ``output_format`` is not one of ``'json'`` or ``'csv'``.
+    ValueError
+        If no records are returned for the requested time window.
     requests.HTTPError
         If any UDL request returns an unsuccessful HTTP status code.
     """
@@ -430,10 +526,21 @@ def download_UDL_reach_to_file(
         max_rate=max_rate,
     )
 
-    combined_obs: list[dict[str, Any]] = []
-    chunk_results: dict[str, list[dict[str, Any]]] = {}
+    # Each chunk is spooled to a temp file to avoid accumulating all records
+    # in memory.  chunk_files maps dt -> Path for non-empty chunks.
+    total_record_count = 0
+    chunk_files: dict[str, Path] = {}
 
-    if urls:
+    if not urls:
+        raise ValueError(
+            f"No records returned for sensor '{sensor_id}' between "
+            f"{format_udl_timestamp(start_time)} and "
+            f"{format_udl_timestamp(end_time)}."
+        )
+
+    with tempfile.TemporaryDirectory(dir=output_dir) as tmp_dir:
+        tmp_dir_path = Path(tmp_dir)
+
         max_workers = min(max_concurrent_requests, len(urls))
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
             future_to_chunk = {}
@@ -452,36 +559,43 @@ def download_UDL_reach_to_file(
             for future in as_completed(future_to_chunk):
                 request_index, _ = future_to_chunk[future]
                 dt, records = future.result()
-                chunk_results[dt] = records
+                record_count = len(records)
+                total_record_count += record_count
                 log.info(
-                    f"Received Chunk {request_index} of {total_chunks}. Chunk window: {dt} with {len(records)} records."
+                    f"Received Chunk {request_index} of {total_chunks}. "
+                    f"Chunk window: {dt} with {record_count} records."
                 )
 
-    # Preserve chunk ordering in output regardless of completion order.
-    for dt in dtlist:
-        combined_obs.extend(chunk_results.get(dt, []))
+                if records:
+                    # Write chunk to a temp file and release the list
+                    # from memory immediately.
+                    chunk_path = tmp_dir_path / f"chunk_{request_index}.tmp"
+                    _write_chunk_file(chunk_path, records, output_format)
+                    chunk_files[dt] = chunk_path
 
-    if not combined_obs:
-        raise ValueError(
-            f"No records returned for sensor '{sensor_id}' between "
-            f"{format_udl_timestamp(start_time)} and "
-            f"{format_udl_timestamp(end_time)}."
+        if total_record_count == 0:
+            raise ValueError(
+                f"No records returned for sensor '{sensor_id}' between "
+                f"{format_udl_timestamp(start_time)} and "
+                f"{format_udl_timestamp(end_time)}."
+            )
+
+        filename = build_reach_output_filename(
+            sensor_id=sensor_id,
+            start_time=start_time,
+            end_time=end_time,
+            output_format=output_format,
         )
+        filepath = output_dir / filename
+        _concatenate_chunk_files(filepath, dtlist, chunk_files, output_format)
 
-    filename = build_reach_output_filename(
-        sensor_id=sensor_id,
-        start_time=start_time,
-        end_time=end_time,
-        output_format=output_format,
-    )
-    filepath = output_dir / filename
-    write_reach_output(filepath, combined_obs, output_format)
+    # TemporaryDirectory cleaned up here; final output is in output_dir.
     log.info(
         "REACH combined file written",
         extra={
             "filepath": filepath,
             "output_format": output_format,
-            "total_record_count": len(combined_obs),
+            "total_record_count": total_record_count,
         },
     )
     return filepath
