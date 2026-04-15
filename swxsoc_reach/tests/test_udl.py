@@ -583,3 +583,40 @@ def test_download_udl_reach_to_file_with_intermittent_429s(monkeypatch):
         assert len(payload) == 2
         assert payload[0]["flux"] == 1.0
         assert payload[1]["flux"] == 2.0
+
+
+def test_download_udl_reach_to_file_raises_on_empty_results(monkeypatch):
+    """Verify that an empty combined result raises ValueError."""
+    fixed_now = Time("2026-01-01T00:30:00", format="isot", scale="utc")
+    monkeypatch.setattr(udl.Time, "now", staticmethod(lambda: fixed_now))
+
+    monkeypatch.setattr(
+        udl,
+        "get_reach_datetimelist",
+        lambda start_time, end_time, sensor_id: ["window-1"],
+    )
+    monkeypatch.setattr(
+        udl,
+        "get_reach_urllist",
+        lambda dtlist, sensor_id, descriptor: {
+            "window-1": "https://example.test/chunk1",
+        },
+    )
+
+    monkeypatch.setattr(
+        udl.requests,
+        "get",
+        lambda url, headers, timeout: _make_fake_response(200, []),
+    )
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        with pytest.raises(ValueError, match="No records returned"):
+            udl.download_UDL_reach_to_file(
+                auth_token="Bearer test-token",
+                sensor_id="ALL",
+                descriptor="electron",
+                output_format="json",
+                delay_seconds=300,
+                window_seconds=1500,
+                output_dir=tmpdir,
+            )

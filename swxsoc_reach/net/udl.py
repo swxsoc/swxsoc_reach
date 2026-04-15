@@ -461,6 +461,13 @@ def download_UDL_reach_to_file(
     for dt in dtlist:
         combined_obs.extend(chunk_results.get(dt, []))
 
+    if not combined_obs:
+        raise ValueError(
+            f"No records returned for sensor '{sensor_id}' between "
+            f"{format_udl_timestamp(start_time)} and "
+            f"{format_udl_timestamp(end_time)}."
+        )
+
     filename = build_reach_output_filename(
         sensor_id=sensor_id,
         start_time=start_time,
