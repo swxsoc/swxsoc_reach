@@ -3,7 +3,7 @@ import pytest
 import swxsoc_reach.util.util as util
 
 TIME = "2024-04-06T00:00:00"
-TIME_FORMATTED = "20240406"
+TIME_FORMATTED = "20240406T000000"
 
 
 # fmt: off

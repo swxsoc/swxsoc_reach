@@ -1,12 +1,11 @@
 from astropy.time import Time
-from swxsoc.util import parse_science_filename
+from swxsoc.util.util import parse_science_filename, TIME_FORMAT
 
 __all__ = [
     "create_reach_filename",
     "parse_science_filename",
+    "TIME_FORMAT",
 ]
-
-TIME_FORMAT = "%Y%m%d"  # YYYYMMDD
 
 
 def create_reach_filename(
@@ -43,7 +42,7 @@ def create_reach_filename(
 
     # Format Time String
     start_time = Time(time, format="isot")
-    time_str = start_time.strftime("%Y%m%d")
+    time_str = start_time.strftime(TIME_FORMAT)
 
     # Combine Parts into Filename
     filename = (

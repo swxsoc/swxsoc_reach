@@ -1,5 +1,9 @@
 import json
 import csv
+import random
+import tempfile
+import threading
+import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Any, Literal
 from pathlib import Path
@@ -7,6 +11,72 @@ import requests
 from astropy.time import Time, TimeDelta
 
 from swxsoc_reach import log
+from swxsoc_reach.util.util import TIME_FORMAT
+
+
+class AdaptiveRateController:
+    """Thread-safe AIMD rate controller for throttling HTTP requests.
+
+    Uses Additive Increase / Multiplicative Decrease to dynamically
+    adjust the permitted request rate based on server feedback.
+
+    Parameters
+    ----------
+    initial_rate : float, optional
+        Starting request rate in requests per second.
+    additive_increase : float, optional
+        Amount to add to the rate after each successful request.
+    multiplicative_decrease : float, optional
+        Factor to multiply the rate by after a rate-limit response.
+    min_rate : float, optional
+        Minimum permitted request rate.
+    max_rate : float, optional
+        Maximum permitted request rate.
+    """
+
+    def __init__(
+        self,
+        initial_rate: float = 5.0,
+        additive_increase: float = 1.0,
+        multiplicative_decrease: float = 0.5,
+        min_rate: float = 5.0,
+        max_rate: float = 25.0,
+    ):
+        self.rate = initial_rate
+        self.additive_increase = additive_increase
+        self.multiplicative_decrease = multiplicative_decrease
+        self.min_rate = min_rate
+        self.max_rate = max_rate
+        self._lock = threading.Lock()
+        self._last_request_time = 0.0
+
+    def acquire(self) -> None:
+        """Block until the next request is permitted under the current rate."""
+        with self._lock:
+            now = time.monotonic()
+            delay = 1.0 / self.rate
+            wait = self._last_request_time + delay - now
+            if wait > 0:
+                self._last_request_time = self._last_request_time + delay
+            else:
+                self._last_request_time = now
+
+        if wait > 0:
+            time.sleep(wait)
+
+    def record_success(self) -> None:
+        """Record a successful request and increase the rate additively."""
+        with self._lock:
+            self.rate = min(self.rate + self.additive_increase, self.max_rate)
+
+    def record_rate_limit(self) -> None:
+        """Record a rate-limit (429) response and decrease the rate."""
+        with self._lock:
+            self.rate = max(self.rate * self.multiplicative_decrease, self.min_rate)
+            log.warning(
+                "Rate limit hit, reducing request rate",
+                extra={"new_rate": self.rate},
+            )
 
 
 def format_udl_timestamp(value: Time) -> str:
@@ -129,9 +199,7 @@ def build_reach_output_filename(
         Filename with sensor prefix and query time range.
     """
     sensor_prefix = "REACH-ALL" if sensor_id.upper() == "ALL" else sensor_id
-    time_range = (
-        f"{start_time.strftime('%Y%m%dT%H%M%S')}_{end_time.strftime('%Y%m%dT%H%M%S')}"
-    )
+    time_range = f"{start_time.strftime(TIME_FORMAT)}_{end_time.strftime(TIME_FORMAT)}"
     return f"{sensor_prefix}_{time_range}.{output_format}"
 
 
@@ -178,8 +246,14 @@ def fetch_reach_chunk(
     url: str,
     auth_token: str,
     timeout_seconds: int = 120,
+    rate_controller: AdaptiveRateController | None = None,
+    max_retries: int = 5,
 ) -> tuple[str, list[dict[str, Any]]]:
     """Fetch one UDL chunk and normalize the payload into a list of records.
+
+    Includes retry logic with exponential back-off and jitter for HTTP 429
+    responses. When a ``rate_controller`` is provided, it is used to
+    throttle requests and receives success/failure feedback.
 
     Parameters
     ----------
@@ -192,6 +266,12 @@ def fetch_reach_chunk(
     timeout_seconds : int, optional
         Request timeout in seconds.
         Default is 120 seconds to allow for large chunks or slow responses.
+    rate_controller : AdaptiveRateController or None, optional
+        Shared rate controller for AIMD throttling. If ``None``, no
+        throttling or adaptive feedback is applied.
+    max_retries : int, optional
+        Maximum number of retry attempts after a 429 response or
+        transient connection error.
 
     Returns
     -------
@@ -201,24 +281,222 @@ def fetch_reach_chunk(
     Raises
     ------
     requests.HTTPError
-        If UDL responds with an unsuccessful status code.
+        If UDL responds with an unsuccessful status code after all retries.
+    requests.ConnectionError
+        If the connection fails on every retry attempt.
     """
-    response = requests.get(
-        url,
-        headers={"Authorization": auth_token},
-        timeout=timeout_seconds,
-    )
-    response.raise_for_status()
+    for attempt in range(max_retries + 1):
+        # Wait for the rate controller to permit the next request.
+        # This enforces a delay of 1/rate seconds between requests
+        # across all threads sharing this controller.
+        if rate_controller is not None:
+            rate_controller.acquire()
 
-    obs_chunk = response.json()
-    if isinstance(obs_chunk, list):
-        normalized = obs_chunk
-    elif obs_chunk:
-        normalized = [obs_chunk]
+        try:
+            response = requests.get(
+                url,
+                headers={"Authorization": auth_token},
+                timeout=timeout_seconds,
+            )
+        except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as e:
+            # Signal the rate controller to halve the request rate on connection errors
+            # (similar to a 429 response) since these may indicate transient server issues.
+            if rate_controller is not None:
+                rate_controller.record_rate_limit()
+
+            if attempt < max_retries:
+                backoff = (2**attempt) + random.uniform(0, 1)
+                log.warning(
+                    f"Chunk {dt} connection error: {e!r}, retrying in "
+                    f"{backoff:.1f}s (attempt {attempt + 1}/{max_retries})"
+                )
+                time.sleep(backoff)
+                continue
+            else:
+                log.error(
+                    f"Chunk {dt} failed after {max_retries} retries "
+                    f"with connection error: {e!r}"
+                )
+                raise
+
+        if response.status_code == 429:
+            # Signal the rate controller to halve the request rate
+            # (multiplicative decrease) so other threads also slow down.
+            if rate_controller is not None:
+                rate_controller.record_rate_limit()
+
+            if attempt < max_retries:
+                # Exponential back-off with random jitter to prevent
+                # multiple threads from retrying in lockstep.
+                backoff = (2**attempt) + random.uniform(0, 1)
+                log.warning(
+                    f"Chunk {dt} got 429, retrying in {backoff:.1f}s "
+                    f"(attempt {attempt + 1}/{max_retries})"
+                )
+                time.sleep(backoff)
+                continue
+            else:
+                log.error(f"Chunk {dt} failed after {max_retries} retries with 429")
+                response.raise_for_status()
+
+        response.raise_for_status()
+
+        # Signal the rate controller to nudge the request rate upward
+        # (additive increase) so throughput gradually recovers.
+        if rate_controller is not None:
+            rate_controller.record_success()
+
+        obs_chunk = response.json()
+        if isinstance(obs_chunk, list):
+            normalized = obs_chunk
+        elif obs_chunk:
+            normalized = [obs_chunk]
+        else:
+            normalized = []
+
+        return dt, normalized
+
+
+def _write_chunk_file(
+    chunk_path: Path,
+    records: list[dict[str, Any]],
+    output_format: Literal["json", "csv"],
+) -> None:
+    """Write a single chunk's records to a temporary file.
+
+    Parameters
+    ----------
+    chunk_path : pathlib.Path
+        Destination path for the chunk file.
+    records : list[dict[str, Any]]
+        Non-empty list of observation records to serialize.
+    output_format : {'json', 'csv'}
+        Serialization format.
+    """
+    if output_format == "json":
+        with open(chunk_path, "w", encoding="utf-8") as chunk_f:
+            json.dump(records, chunk_f)
     else:
-        normalized = []
+        fieldnames = records[0].keys()
+        with open(chunk_path, "w", newline="", encoding="utf-8") as chunk_f:
+            writer = csv.DictWriter(chunk_f, fieldnames=fieldnames)
+            writer.writeheader()
+            writer.writerows(records)
 
-    return dt, normalized
+
+def _fetch_and_spool_chunk(
+    dt: str,
+    url: str,
+    auth_token: str,
+    chunk_path: Path,
+    output_format: Literal["json", "csv"],
+    rate_controller: AdaptiveRateController | None = None,
+    max_retries: int = 5,
+) -> tuple[str, int, Path | None]:
+    """Fetch one UDL chunk and spool records to a temp file.
+
+    Wraps :func:`fetch_reach_chunk` so that the heavy record data is
+    written to disk inside the worker thread and never stored in the
+    :class:`~concurrent.futures.Future` result.  This keeps peak memory
+    proportional to one chunk regardless of how many futures are in
+    flight.
+
+    Parameters
+    ----------
+    dt : str
+        Chunk window identifier.
+    url : str
+        UDL request URL.
+    auth_token : str
+        Authorization header value.
+    chunk_path : pathlib.Path
+        Temp file path to write records into.
+    output_format : {'json', 'csv'}
+        Serialization format for the temp file.
+    rate_controller : AdaptiveRateController or None, optional
+        Shared AIMD rate controller.
+    max_retries : int, optional
+        Maximum retry attempts on HTTP 429.
+
+    Returns
+    -------
+    tuple[str, int, pathlib.Path or None]
+        ``(dt, record_count, chunk_path)`` where *chunk_path* is
+        ``None`` when the chunk contained no records.
+    """
+    dt, records = fetch_reach_chunk(
+        dt,
+        url,
+        auth_token,
+        rate_controller=rate_controller,
+        max_retries=max_retries,
+    )
+    record_count = len(records)
+    if records:
+        _write_chunk_file(chunk_path, records, output_format)
+        return dt, record_count, chunk_path
+    return dt, 0, None
+
+
+def _concatenate_chunk_files(
+    filepath: Path,
+    dtlist: list[str],
+    chunk_files: dict[str, Path],
+    output_format: Literal["json", "csv"],
+) -> None:
+    """
+    Stream-concatenate per-chunk temp files into one combined output file.
+
+    Reads one temp file at a time so peak memory stays proportional to a
+    single chunk rather than the full dataset.
+
+    Parameters
+    ----------
+    filepath : pathlib.Path
+        Destination path for the combined output file.
+    dtlist : list[str]
+        Chunk window identifiers in the desired output order.
+    chunk_files : dict[str, pathlib.Path]
+        Mapping of chunk window identifiers to their temp file paths.
+        Only chunks that produced records are present.
+    output_format : {'json', 'csv'}
+        Serialization format of the output file.
+    """
+    if output_format == "json":
+        with open(filepath, "w", encoding="utf-8") as out:
+            out.write("[\n")
+            first = True
+            for dt in dtlist:
+                if dt not in chunk_files:
+                    continue
+                # Each temp file is a JSON array like [{...}, {...}].
+                # Strip the outer [] and splice the raw text directly
+                # so we never parse records back into Python dicts.
+                content = chunk_files[dt].read_text(encoding="utf-8").strip()
+                inner = content[1:-1].strip()
+                if not inner:
+                    continue
+                if not first:
+                    out.write(",\n")
+                out.write(inner)
+                first = False
+            out.write("\n]")
+    else:
+        header_written = False
+        with open(filepath, "w", newline="", encoding="utf-8") as out:
+            for dt in dtlist:
+                if dt not in chunk_files:
+                    continue
+                with open(
+                    chunk_files[dt], "r", newline="", encoding="utf-8"
+                ) as chunk_f:
+                    for line_num, line in enumerate(chunk_f):
+                        if line_num == 0:
+                            if not header_written:
+                                out.write(line)
+                                header_written = True
+                            continue
+                        out.write(line)
 
 
 def download_UDL_reach_to_file(
@@ -230,8 +508,18 @@ def download_UDL_reach_to_file(
     window_seconds: int,
     output_dir: Path | str,
     max_concurrent_requests: int = 4,
+    initial_rate: float = 5.0,
+    additive_increase: float = 1.0,
+    multiplicative_decrease: float = 0.5,
+    min_rate: float = 5.0,
+    max_rate: float = 25.0,
 ) -> Path:
     """Download REACH data from UDL and write one combined output file.
+
+    Each chunk is written to a temporary file as it arrives, keeping peak
+    memory proportional to one chunk instead of the full dataset.  Temp
+    files are concatenated in time order into the final output file and
+    cleaned up automatically.
 
     Parameters
     ----------
@@ -253,6 +541,17 @@ def download_UDL_reach_to_file(
     max_concurrent_requests : int, optional
         Maximum number of chunk requests to run concurrently. Lower values are
         safer for unknown API limits; higher values can improve throughput.
+    initial_rate : float, optional
+        Starting request rate in requests per second for the AIMD rate
+        controller. Default is 5.0.
+    additive_increase : float, optional
+        Amount added to the rate after each successful request. Default is 1.0.
+    multiplicative_decrease : float, optional
+        Factor to multiply the rate by after a 429 response. Default is 0.5.
+    min_rate : float, optional
+        Minimum permitted request rate. Default is 5.0.
+    max_rate : float, optional
+        Maximum permitted request rate. Default is 25.0.
 
     Returns
     -------
@@ -263,6 +562,8 @@ def download_UDL_reach_to_file(
     ------
     ValueError
         If ``output_format`` is not one of ``'json'`` or ``'csv'``.
+    ValueError
+        If no records are returned for the requested time window.
     requests.HTTPError
         If any UDL request returns an unsuccessful HTTP status code.
     """
@@ -295,45 +596,81 @@ def download_UDL_reach_to_file(
     )
     urls = get_reach_urllist(dtlist, sensor_id, descriptor)
 
-    combined_obs: list[dict[str, Any]] = []
-    chunk_results: dict[str, list[dict[str, Any]]] = {}
+    rate_controller = AdaptiveRateController(
+        initial_rate=initial_rate,
+        additive_increase=additive_increase,
+        multiplicative_decrease=multiplicative_decrease,
+        min_rate=min_rate,
+        max_rate=max_rate,
+    )
 
-    if urls:
+    # Each chunk is spooled to a temp file to avoid accumulating all records
+    # in memory.  chunk_files maps dt -> Path for non-empty chunks.
+    total_record_count = 0
+    chunk_files: dict[str, Path] = {}
+
+    if not urls:
+        raise ValueError(
+            f"No records returned for sensor '{sensor_id}' between "
+            f"{format_udl_timestamp(start_time)} and "
+            f"{format_udl_timestamp(end_time)}."
+        )
+
+    with tempfile.TemporaryDirectory(dir=output_dir) as tmp_dir:
+        tmp_dir_path = Path(tmp_dir)
+
         max_workers = min(max_concurrent_requests, len(urls))
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
             future_to_chunk = {}
             total_chunks = len(urls)
             for request_index, (dt, url) in enumerate(urls.items(), start=1):
                 log.info(f"Queueing Chunk {request_index} of {total_chunks}")
-                future = executor.submit(fetch_reach_chunk, dt, url, auth_token)
-                future_to_chunk[future] = (request_index, dt)
+                chunk_path = tmp_dir_path / f"chunk_{request_index}.tmp"
+                future = executor.submit(
+                    _fetch_and_spool_chunk,
+                    dt,
+                    url,
+                    auth_token,
+                    chunk_path,
+                    output_format,
+                    rate_controller=rate_controller,
+                )
+                future_to_chunk[future] = request_index
 
             for future in as_completed(future_to_chunk):
-                request_index, _ = future_to_chunk[future]
-                dt, records = future.result()
-                chunk_results[dt] = records
+                request_index = future_to_chunk[future]
+                dt, record_count, written_path = future.result()
+                total_record_count += record_count
+                if written_path is not None:
+                    chunk_files[dt] = written_path
                 log.info(
-                    f"Received Chunk {request_index} of {total_chunks}. Chunk window: {dt} with {len(records)} records."
+                    f"Received Chunk {request_index} of {total_chunks}. "
+                    f"Chunk window: {dt} with {record_count} records."
                 )
 
-    # Preserve chunk ordering in output regardless of completion order.
-    for dt in dtlist:
-        combined_obs.extend(chunk_results.get(dt, []))
+        if total_record_count == 0:
+            raise ValueError(
+                f"No records returned for sensor '{sensor_id}' between "
+                f"{format_udl_timestamp(start_time)} and "
+                f"{format_udl_timestamp(end_time)}."
+            )
 
-    filename = build_reach_output_filename(
-        sensor_id=sensor_id,
-        start_time=start_time,
-        end_time=end_time,
-        output_format=output_format,
-    )
-    filepath = output_dir / filename
-    write_reach_output(filepath, combined_obs, output_format)
+        filename = build_reach_output_filename(
+            sensor_id=sensor_id,
+            start_time=start_time,
+            end_time=end_time,
+            output_format=output_format,
+        )
+        filepath = output_dir / filename
+        _concatenate_chunk_files(filepath, dtlist, chunk_files, output_format)
+
+    # TemporaryDirectory cleaned up here; final output is in output_dir.
     log.info(
         "REACH combined file written",
         extra={
             "filepath": filepath,
             "output_format": output_format,
-            "total_record_count": len(combined_obs),
+            "total_record_count": total_record_count,
         },
     )
     return filepath

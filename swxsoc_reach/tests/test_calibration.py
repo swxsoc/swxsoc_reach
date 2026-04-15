@@ -20,7 +20,7 @@ def test_process_file(this_path, tmpdir, monkeypatch):
     # Make sure the filename is correctly parsed and the output filename is correct
     parsed_result = parse_science_filename(files[0])
     assert parsed_result["instrument"] == "reach"
-    assert parsed_result["level"] == "l1"
+    assert parsed_result["level"] == "l1c"
     assert parsed_result["mode"] == "all"
     assert parsed_result["version"] == "1.0.0"
 
