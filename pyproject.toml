@@ -35,7 +35,7 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = [
-  "swxsoc_reach[docs, test, style]"
+  "swxsoc_reach[docs, test, style, other]"
 ]
 
 docs = [
@@ -55,6 +55,8 @@ test = [
 ]
 
 style = ['ruff']
+
+other = ['pre-commit']
 
 [tool.setuptools.package-data]
 "swxsoc_reach.data" = ["**"]
