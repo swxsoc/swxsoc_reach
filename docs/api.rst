@@ -13,4 +13,5 @@ API Reference
    swxsoc_reach.calibration.transform
    swxsoc_reach.io.aws_db
    swxsoc_reach.io.file_tools
+   swxsoc_reach.util.geom
    swxsoc_reach.util.util
