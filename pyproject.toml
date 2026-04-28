@@ -35,7 +35,11 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = [
-  "swxsoc_reach[docs, test, style]"
+  "swxsoc_reach[docs, test, style, net]"
+]
+
+net = [
+  'boto3',
 ]
 
 docs = [

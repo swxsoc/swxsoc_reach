@@ -13,3 +13,4 @@ For more details checkout the :ref:`reference`.
    overview
    logger
    customization
+   historical-download
