@@ -6,13 +6,14 @@ import json
 from pathlib import Path
 
 import pandas as pd
+from swxsoc.swxdata import SWXData
 
 __all__ = ["read_file", "read_udl_json", "read_udl_csv"]
 
 
-def read_file(file_path: Path) -> pd.DataFrame:
+def read_file(file_path: Path) -> [pd.DataFrame, SWXData]:
     """
-    Reads a file and returns a pandas DataFrame.
+    Reads a file and returns a pandas DataFrame or SWXData object.
 
     Parameters
     ----------
@@ -21,8 +22,8 @@ def read_file(file_path: Path) -> pd.DataFrame:
 
     Returns
     -------
-    pd.DataFrame
-        A DataFrame containing the data from the file.
+    pd.DataFrame or SWXData
+        A DataFrame or SWXData object containing the data from the file.
     """
     if not isinstance(file_path, Path):
         file_path = Path(file_path)
@@ -31,6 +32,8 @@ def read_file(file_path: Path) -> pd.DataFrame:
         return read_udl_json(file_path)
     elif file_path.suffix.lower() == ".csv":
         return read_udl_csv(file_path)
+    elif file_path.suffix.lower() in ".cdf":
+        return SWXData.load(file_path)
     else:
         raise ValueError(f"Unsupported file type: {file_path.suffix}")
 

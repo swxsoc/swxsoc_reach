@@ -12,7 +12,7 @@ authors = [
   {name = "Andrew Robbertz", email="a.robbertz@gmail.com"},
 ]
 license = {file = "LICENSE.rst"}
-requires-python = ">=3.10"
+requires-python = ">=3.12"
 keywords = ["nasa mission", "space weather"]
 classifiers = [
   "Development Status :: 3 - Alpha",
@@ -20,7 +20,8 @@ classifiers = [
   "Natural Language :: English",
   "Operating System :: OS Independent",
   "Programming Language :: Python",
-  "Programming Language :: Python :: 3.8",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
   "Intended Audience :: Science/Research",
   "Topic :: Scientific/Engineering",
   "Topic :: Scientific/Engineering :: Physics",
@@ -130,8 +131,8 @@ exclude = [
 line-length = 88
 indent-width = 4
 
-# Assume Python 3.10
-target-version = "py310"
+# Assume Python 3.12
+target-version = "py312"
 
 [tool.ruff.lint]
 # Enable Pyflakes (`F`) and a subset of the pycodestyle (`E`)  codes by default.
