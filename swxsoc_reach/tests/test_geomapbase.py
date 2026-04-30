@@ -1,7 +1,12 @@
+import datetime as dt
+from types import SimpleNamespace
+
 import numpy as np
+import pytest
 from astropy import units as u
 from astropy.coordinates import EarthLocation
 
+import swxsoc_reach.geomap.geomapbase as geomapbase
 from swxsoc_reach.geomap import GenericGeoMap
 
 
@@ -56,3 +61,35 @@ def test_geomap_plot_smoke():
     ax, artist = m.plot(use_world_coordinates=False, add_colorbar=False)
     assert ax is not None
     assert artist is not None
+
+
+def test_geomap_plot_uses_region_contour_utility(monkeypatch):
+    pytest.importorskip("cartopy")
+
+    data = np.arange(20).reshape(4, 5)
+    m = GenericGeoMap(
+        data,
+        meta={"title": "Smoke", "map_fields": {"plotTitlePre": "", "pltdos": ""}},
+    )
+
+    calls = {"count": 0}
+
+    def _mock_contours(**kwargs):
+        calls["count"] += 1
+        return kwargs["ax"], None
+
+    monkeypatch.setattr(
+        geomapbase,
+        "load_regions",
+        lambda: (
+            np.array([-180.0, -179.0, -180.0, -179.0]),
+            np.array([-90.0, -90.0, -89.0, -89.0]),
+            np.array([1, 2, 3, 4]),
+        ),
+    )
+    monkeypatch.setattr(
+        geomapbase, "plot_region_code_contours_on_geomap", _mock_contours
+    )
+
+    m.plot(use_world_coordinates=False, add_colorbar=False)
+    assert calls["count"] == 1

@@ -1,3 +1,3 @@
-from .flavors import Flavor
+from .enums import Flavor, SensorId
 
-__all__ = ["Flavor"]
+__all__ = ["Flavor", "SensorId"]

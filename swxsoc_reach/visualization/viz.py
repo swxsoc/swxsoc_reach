@@ -1,6 +1,7 @@
 """A module for visualizing REACH data, including plotting functions and utilities."""
 
 from pathlib import Path
+from typing import Any, Sequence
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -11,6 +12,86 @@ from scipy import stats
 from swxsoc.swxdata import SWXData
 
 from swxsoc_reach import log
+
+
+def plot_region_code_contours_on_geomap(
+    ax: Any | None = None,
+    *,
+    draw_coastlines: bool = False,
+    draw_gridlines: bool = False,
+    contour_levels: Sequence[float] | None = None,
+    contour_colors: Sequence[str] | None = None,
+    linewidths: float = 1.2,
+    label_contours: bool = False,
+):
+    """Draw region-code contours on a global PlateCarree map axis."""
+    from swxsoc_reach.util.util import load_regions
+
+    lookuplon, lookuplat, glook = load_regions()
+
+    if contour_levels is None:
+        contour_levels = [-4, -3, -2, -1, 1, 2, 3, 4]
+    if contour_colors is None:
+        contour_colors = [
+            "#6b7280",
+            "#093145",
+            "#efd469",
+            "#cd594a",
+            "#cd594a",
+            "#efd469",
+            "#093145",
+            "#b5c689",
+        ]
+
+    if ax is None:
+        fig = plt.figure(figsize=(11.69, 8.27))
+        ax = plt.subplot(1, 1, 1, projection=ccrs.PlateCarree())
+    else:
+        fig = ax.figure
+
+    ax.set_global()
+    if draw_coastlines:
+        ax.coastlines()
+    if draw_gridlines:
+        ax.gridlines(
+            draw_labels=True,
+            xlocs=np.arange(-180, 181, 30),
+            ylocs=np.arange(-90, 91, 10),
+            color="gray",
+            linestyle="--",
+        )
+
+    if lookuplon.size == 0:
+        return ax, None
+
+    lon_values = np.unique(lookuplon)
+    lat_values = np.unique(lookuplat)
+    region_grid = np.full((lat_values.size, lon_values.size), np.nan)
+
+    lon_index = {value: index for index, value in enumerate(lon_values)}
+    lat_index = {value: index for index, value in enumerate(lat_values)}
+    for lon_value, lat_value, region_code in zip(
+        lookuplon,
+        lookuplat,
+        glook,
+        strict=False,
+    ):
+        region_grid[lat_index[lat_value], lon_index[lon_value]] = region_code
+
+    contour = ax.contour(
+        lon_values,
+        lat_values,
+        region_grid,
+        levels=contour_levels,
+        colors=contour_colors,
+        linewidths=linewidths,
+        transform=ccrs.PlateCarree(),
+    )
+
+    if label_contours:
+        ax.clabel(contour, contour.levels, inline=True, fmt="%d", fontsize=8)
+
+    return ax, contour
 
 
 def plot_mapdata(
@@ -173,8 +254,17 @@ def plot_mapdata(
         cbarSAA = fig.colorbar(mapSAA, cax=cax_saa, orientation="horizontal")
         cbarSAA.ax.set_xticklabels(tickemptylabels)
         cbarSAA.ax.tick_params(direction="in")
-        cbarSAA.ax.text(0.01, 0.5, "SAA and Inner Zone", transform=cbarSAA.ax.transAxes, 
-                        ha="left", va="center", color="black", fontsize=9, weight="bold")
+        cbarSAA.ax.text(
+            0.01,
+            0.5,
+            "SAA and Inner Zone",
+            transform=cbarSAA.ax.transAxes,
+            ha="left",
+            va="center",
+            color="black",
+            fontsize=9,
+            weight="bold",
+        )
 
         # Outer Zone colorbar
         cbar_y -= cbar_height
@@ -182,8 +272,17 @@ def plot_mapdata(
         cbarout = fig.colorbar(mapout, cax=cax_out, orientation="horizontal")
         cbarout.ax.set_xticklabels(tickemptylabels)
         cbarout.ax.tick_params(direction="in")
-        cbarout.ax.text(0.01, 0.5, "Outer Zone", transform=cbarout.ax.transAxes, 
-                       ha="left", va="center", color="black", fontsize=9, weight="bold")
+        cbarout.ax.text(
+            0.01,
+            0.5,
+            "Outer Zone",
+            transform=cbarout.ax.transAxes,
+            ha="left",
+            va="center",
+            color="black",
+            fontsize=9,
+            weight="bold",
+        )
 
         # Slot colorbar
         cbar_y -= cbar_height
@@ -191,16 +290,34 @@ def plot_mapdata(
         cbarslot = fig.colorbar(mapslot, cax=cax_slot, orientation="horizontal")
         cbarslot.ax.set_xticklabels(tickemptylabels)
         cbarslot.ax.tick_params(direction="in")
-        cbarslot.ax.text(0.01, 0.5, "Slot", transform=cbarslot.ax.transAxes, 
-                        ha="left", va="center", color="black", fontsize=9, weight="bold")
+        cbarslot.ax.text(
+            0.01,
+            0.5,
+            "Slot",
+            transform=cbarslot.ax.transAxes,
+            ha="left",
+            va="center",
+            color="black",
+            fontsize=9,
+            weight="bold",
+        )
 
         # Polar Cap colorbar
         cbar_y -= cbar_height
         cax_pc = fig.add_axes([cbar_x, cbar_y, cbar_width, cbar_height])
         cbarPC = fig.colorbar(mapPC, cax=cax_pc, orientation="horizontal")
         cbarPC.ax.tick_params(direction="in")
-        cbarPC.ax.text(0.01, 0.5, "Polar Cap", transform=cbarPC.ax.transAxes, 
-                      ha="left", va="center", color="black", fontsize=9, weight="bold")
+        cbarPC.ax.text(
+            0.01,
+            0.5,
+            "Polar Cap",
+            transform=cbarPC.ax.transAxes,
+            ha="left",
+            va="center",
+            color="black",
+            fontsize=9,
+            weight="bold",
+        )
         cbarPC.set_label("log (rads/sec)", fontsize=10, labelpad=5)
         cbarPC.ax.xaxis.set_label_position("bottom")
         fig.savefig(fileout, orientation="landscape")

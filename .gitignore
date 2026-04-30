@@ -194,3 +194,7 @@ _version.py
 
 junit.xml
 .github/copilot-instructions.md
+
+# do not commit local vscode settings
+.vscode/settings.json
+/.vscode

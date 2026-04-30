@@ -8,6 +8,7 @@ import pytest
 from scipy.interpolate import splprep
 
 import swxsoc_reach.util.util as util
+import swxsoc_reach.visualization.viz as viz
 from swxsoc_reach import _test_files_directory
 
 TIME = "2024-04-06T12:06:21"
@@ -119,6 +120,71 @@ def test_plot_region_contours_writes_file(tmp_path, monkeypatch):
 
     assert result == output
     assert output.exists()
+
+
+def test_plot_region_code_contours_on_geomap_returns_contour(monkeypatch):
+    """Shared contour helper should return an axis and contour set."""
+    pytest.importorskip("cartopy")
+    import matplotlib.pyplot as plt
+
+    monkeypatch.setattr(
+        util,
+        "load_regions",
+        lambda: (
+            np.array([-1.0, 0.0, -1.0, 0.0]),
+            np.array([-1.0, -1.0, 0.0, 0.0]),
+            np.array([1, 2, 3, 4]),
+        ),
+    )
+
+    fig = plt.figure()
+    ax = plt.subplot(1, 1, 1, projection=util.ccrs.PlateCarree())
+    out_ax, contour = viz.plot_region_code_contours_on_geomap(
+        ax=ax,
+        draw_coastlines=False,
+        draw_gridlines=False,
+        label_contours=False,
+    )
+
+    assert out_ax is ax
+    assert contour is not None
+
+
+def test_generate_region_contour_data_returns_mpath_object(monkeypatch):
+    """Contour utility should return a matplotlib Path object."""
+
+    monkeypatch.setattr(
+        util,
+        "load_regions",
+        lambda: (
+            np.array([0.0, 1.0, 2.0, 0.0, 1.0, 2.0, 0.0, 1.0, 2.0]),
+            np.array([0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 2.0, 2.0, 2.0]),
+            np.array([0, 0, 0, 0, 1, 0, 0, 0, 0]),
+        ),
+    )
+
+    path = util.generate_region_contour_data(contour_levels=(0.5,))
+
+    assert isinstance(path, mpath.Path)
+    assert path.vertices.ndim == 2
+    assert path.vertices.shape[1] == 2
+
+
+def test_contour_image_to_path_returns_mpath_object():
+    """Low-level contour extraction should return a matplotlib Path."""
+    image = np.array(
+        [
+            [0.0, 0.0, 0.0],
+            [0.0, 1.0, 0.0],
+            [0.0, 0.0, 0.0],
+        ]
+    )
+
+    path = util.contour_image_to_path(image=image, contour_level=0.5)
+
+    assert isinstance(path, mpath.Path)
+    assert path.vertices.ndim == 2
+    assert path.vertices.shape[1] == 2
 
 
 def test_read_spline_fit_polygons_returns_geometry(tmp_path):
