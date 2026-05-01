@@ -302,7 +302,13 @@ def build_swxdata(
     data = deduplicate_records(data)
 
     # --- 2. Sensor metadata --------------------------------------------
-    sensor_ids, _obs_names, observation_flavors = extract_sensor_metadata(data)
+    sensor_labels, _obs_names, observation_flavors = extract_sensor_metadata(data)
+
+    # Convert Sensor Labels to pure numeric IDs if they follow the "REACH-XXX" pattern
+    sensor_ids = np.asanyarray(
+        [int(sensor.replace("REACH-", "").strip()) for sensor in sensor_labels],
+        dtype=np.int32,
+    )
 
     # --- 3. Build common time axis -------------------------------------
     # Strip trailing 'Z' and pass explicit scale/format to avoid a stack
@@ -325,121 +331,145 @@ def build_swxdata(
 
     # --- 5. Build variable dict ----------------------------------------
     variables: dict[str, NDData] = {
+        "sensor_labels": NDData(
+            data=sensor_labels,
+            meta={"CATDESC": "REACH Sensor Labels", "VAR_TYPE": "metadata"},
+        ),
         "sensor_ids": NDData(
-            data=np.array(sensor_ids),
+            data=sensor_ids,
             meta={"CATDESC": "REACH Sensor IDs", "VAR_TYPE": "metadata"},
         ),
-        "observation_flavors": NDData(
+        "dosimeter_flavor_labels": NDData(
+            data=np.array(
+                [f"flavor_{i}" for i in range(len(observation_flavors[0]))]
+            ),  # Assuming all sensors have the same max flavor count due to padding
+            meta={
+                "CATDESC": "Label for dosimeter flavors dimension",
+                "VAR_TYPE": "metadata",
+                "VAR_NOTES": "Variable is just used for Label Pointer. For actual flavor strings, see 'dosimeter_flavors' variable.",
+            },
+        ),
+        "dosimeter_flavor_ids": NDData(
+            data=np.array(
+                [i for i in range(len(observation_flavors[0]))], dtype=np.int32
+            ),  # Assuming all sensors have the same max flavor count due to padding
+            meta={
+                "CATDESC": "ID for dosimeter flavors dimension",
+                "VAR_TYPE": "metadata",
+                "VAR_NOTES": "Variable is just used for DEPENDS. For actual flavor strings, see 'dosimeter_flavors' variable.",
+            },
+        ),
+        "dosimeter_flavors": NDData(
             data=np.array(observation_flavors),
             meta={
                 "CATDESC": "Observation Flavors per Sensor",
                 "VAR_TYPE": "metadata",
             },
         ),
-        "Flavor_label": NDData(
-            data=np.array(
-                [f"flavor_{i}" for i in range(len(observation_flavors[0]))]
-            ),  # Assuming all sensors have the same max flavor count due to padding
-            meta={
-                "CATDESC": "Label for observation_flavors dimension",
-                "VAR_TYPE": "metadata",
-            },
-        ),
-        "observations": NDData(
+        "dose_rate": NDData(
             data=create_observation_array(
-                data, sensor_ids, times_pd, observation_flavors
+                data, sensor_labels, times_pd, observation_flavors
             ),
             meta={
-                "CATDESC": "Observation Values",
+                "CATDESC": "Dose rate for combined sensors and dosimeter flavors",
                 "VAR_TYPE": "data",
                 "UNITS": (u.J / u.kg * 0.01).to_string(),
                 "DEPEND_0": "Epoch",
-                "LABL_PTR_1": "sensor_ids",
-                "LABL_PTR_2": "Flavor_label",
+                "DEPEND_1": "sensor_ids",
+                "DEPEND_2": "dosimeter_flavor_ids",
+                "LABL_PTR_1": "sensor_labels",
+                "LABL_PTR_2": "dosimeter_flavor_labels",
             },
         ),
         "lat": NDData(
             data=create_sensor_array(
-                sensor_grouped, sensor_deduped_dt, sensor_ids, times_pd, "lat"
+                sensor_grouped, sensor_deduped_dt, sensor_labels, times_pd, "lat"
             ),
             meta={
                 "CATDESC": "Latitude",
                 "VAR_TYPE": "data",
                 "UNITS": u.degree.to_string(),
                 "DEPEND_0": "Epoch",
-                "LABL_PTR_1": "sensor_ids",
+                "DEPEND_1": "sensor_ids",
+                "LABL_PTR_1": "sensor_labels",
             },
         ),
         "lon": NDData(
             data=create_sensor_array(
-                sensor_grouped, sensor_deduped_dt, sensor_ids, times_pd, "lon"
+                sensor_grouped, sensor_deduped_dt, sensor_labels, times_pd, "lon"
             ),
             meta={
                 "CATDESC": "Longitude",
                 "VAR_TYPE": "data",
                 "UNITS": u.degree.to_string(),
                 "DEPEND_0": "Epoch",
-                "LABL_PTR_1": "sensor_ids",
+                "DEPEND_1": "sensor_ids",
+                "LABL_PTR_1": "sensor_labels",
             },
         ),
         "alt": NDData(
             data=create_sensor_array(
-                sensor_grouped, sensor_deduped_dt, sensor_ids, times_pd, "alt"
+                sensor_grouped, sensor_deduped_dt, sensor_labels, times_pd, "alt"
             ),
             meta={
                 "CATDESC": "Altitude",
                 "VAR_TYPE": "data",
                 "UNITS": u.km.to_string(),
                 "DEPEND_0": "Epoch",
-                "LABL_PTR_1": "sensor_ids",
+                "DEPEND_1": "sensor_ids",
+                "LABL_PTR_1": "sensor_labels",
             },
         ),
         "obQuality": NDData(
             data=create_sensor_array(
-                sensor_grouped, sensor_deduped_dt, sensor_ids, times_pd, "obQuality"
+                sensor_grouped, sensor_deduped_dt, sensor_labels, times_pd, "obQuality"
             ),
             meta={
                 "CATDESC": "Observation Quality",
                 "VAR_TYPE": "data",
                 "UNITS": "unitless",
                 "DEPEND_0": "Epoch",
-                "LABL_PTR_1": "sensor_ids",
+                "DEPEND_1": "sensor_ids",
+                "LABL_PTR_1": "sensor_labels",
             },
         ),
         "sensor_position_x": NDData(
             data=create_sensor_array(
-                sensor_grouped, sensor_deduped_dt, sensor_ids, times_pd, "senPos0"
+                sensor_grouped, sensor_deduped_dt, sensor_labels, times_pd, "senPos0"
             ),
             meta={
                 "CATDESC": "GEI Coordinate Position X in KM",
                 "VAR_TYPE": "data",
                 "UNITS": u.km.to_string(),
                 "DEPEND_0": "Epoch",
-                "LABL_PTR_1": "sensor_ids",
+                "DEPEND_1": "sensor_ids",
+                "LABL_PTR_1": "sensor_labels",
             },
         ),
         "sensor_position_y": NDData(
             data=create_sensor_array(
-                sensor_grouped, sensor_deduped_dt, sensor_ids, times_pd, "senPos1"
+                sensor_grouped, sensor_deduped_dt, sensor_labels, times_pd, "senPos1"
             ),
             meta={
                 "CATDESC": "GEI Coordinate Position Y in KM",
                 "VAR_TYPE": "data",
                 "UNITS": u.km.to_string(),
                 "DEPEND_0": "Epoch",
-                "LABL_PTR_1": "sensor_ids",
+                "DEPEND_1": "sensor_ids",
+                "LABL_PTR_1": "sensor_labels",
             },
         ),
         "sensor_position_z": NDData(
             data=create_sensor_array(
-                sensor_grouped, sensor_deduped_dt, sensor_ids, times_pd, "senPos2"
+                sensor_grouped, sensor_deduped_dt, sensor_labels, times_pd, "senPos2"
             ),
             meta={
                 "CATDESC": "GEI Coordinate Position Z in KM",
                 "VAR_TYPE": "data",
                 "UNITS": u.km.to_string(),
                 "DEPEND_0": "Epoch",
-                "LABL_PTR_1": "sensor_ids",
+                "DEPEND_1": "sensor_ids",
+                "LABL_PTR_1": "sensor_labels",
             },
         ),
     }
@@ -459,7 +489,7 @@ def build_swxdata(
     log.info(
         "Built SWXData: %d time steps, %d sensors, %d support variables",
         len(ts),
-        len(sensor_ids),
+        len(sensor_labels),
         len(variables),
     )
     return reach_data
