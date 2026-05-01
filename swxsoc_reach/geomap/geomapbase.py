@@ -5,7 +5,6 @@ import numpy as np
 from astropy.coordinates import EarthLocation
 from astropy.nddata import NDData
 from astropy.timeseries import TimeSeries
-from scipy.stats import binned_statistic_2d
 from swxsoc import log
 from swxsoc.swxdata import SWXData
 
@@ -637,7 +636,7 @@ class GenericGeoMap(SWXData):
             )
             cbarPC.set_label("log (rad/sec)", fontsize=10, labelpad=5)
             cbarPC.ax.xaxis.set_label_position("bottom")
-
+        plt.show()
         return ax, mapPC
 
     def _validate_coordinates(self) -> None:
@@ -672,106 +671,3 @@ class GenericGeoMap(SWXData):
                 raise ValueError(
                     "For 2D coordinates, lon and lat must match map shape."
                 )
-
-    @classmethod
-    def from_track(
-        cls,
-        data: SWXData,
-        flavor: Flavor,
-        lon_resolution: float = 1.0,
-        lat_resolution: float = 1.0,
-        map_statistic: str = "sum",
-    ) -> "GenericGeoMap":
-        """Create a GenericGeoMap from raw track data in a SWXData object.
-
-        Parameters
-        ----------
-        data : SWXData
-            Input track data.
-        flavor : Flavor
-            Observation flavor(s) to include.
-        lon_resolution : float, optional
-            Longitude bin resolution in degrees.
-        lat_resolution : float, optional
-            Latitude bin resolution in degrees.
-        map_statistic : str, optional
-            Statistic used when binning observations into map cells.
-            Supported values are ``sum``, ``mean``, ``median``, ``count``,
-            ``min``, ``max``, and ``std``.
-        """
-
-        valid_statistics = {"sum", "mean", "median", "count", "min", "max", "std"}
-        if map_statistic not in valid_statistics:
-            raise ValueError(
-                "map_statistic must be one of "
-                f"{sorted(valid_statistics)}; got '{map_statistic}'."
-            )
-
-        flavor_mask = np.zeros(shape=(32, 2), dtype=np.bool_)
-
-        for this_dosimeter in [0, 1]:  # check each dosimeter
-            for this_id in np.arange(32):
-                this_flavor = Flavor.from_str(
-                    data["observation_flavors"].data[this_id, this_dosimeter]
-                )
-                if this_flavor in flavor:
-                    flavor_mask[this_id, this_dosimeter] = True
-        if not np.any(flavor_mask):
-            raise ValueError(f"Flavor {flavor} not found in data observation_flavors.")
-
-        lat = data["lat"].data * u.deg
-        lon = data["lon"].data * u.deg
-        time = data["time"]
-
-        # Histogram bins are defined by edges, while the map stores center coordinates.
-        lon_edges = np.arange(-180.0, 180.0 + lon_resolution, lon_resolution)
-        lat_edges = np.arange(-90.0, 90.0 + lat_resolution, lat_resolution)
-        lon_bins = 0.5 * (lon_edges[:-1] + lon_edges[1:])
-        lat_bins = 0.5 * (lat_edges[:-1] + lat_edges[1:])
-
-        flavor_data = (
-            data["observations"].data * flavor_mask[None, :, :]
-        )  # [ntimes, nsats, ndos]
-
-        lon_flat = lon.value.flatten()
-        lat_flat = lat.value.flatten()
-        obs_flat = flavor_data.sum(axis=2).flatten()
-
-        valid = np.isfinite(lon_flat) & np.isfinite(lat_flat) & np.isfinite(obs_flat)
-        statistic_data = binned_statistic_2d(
-            lon_flat[valid],
-            lat_flat[valid],
-            obs_flat[valid],
-            statistic=map_statistic,
-            bins=[lon_edges, lat_edges],
-        )
-        m = statistic_data.statistic.T
-
-        # Keep historical behavior for sum maps: empty bins are zero-valued.
-        if map_statistic == "sum":
-            m = np.nan_to_num(m, nan=0.0)
-
-        plotTitlePre = str(
-            np.min(time).strftime("%d %b %Y %H:%M")
-            + " - "
-            + np.max(time).strftime("%d %b %Y %H:%M")
-        )
-
-        return GenericGeoMap(
-            data=m,
-            timeseries=TimeSeries(time=[time[0], time[-1]]),
-            mask=np.isnan(m),
-            meta={
-                "title": plotTitlePre,
-                "coordinate_system": "geodetic",
-                "extent": (-180.0, 180.0, -90.0, 90.0),
-                "map_fields": {
-                    "plotTitlePre": plotTitlePre,
-                    "pltdos": "",
-                },
-            },
-            unit="rad/s",
-            lon=lon_bins,
-            lat=lat_bins,
-            flavor=flavor,
-        )

@@ -1,16 +1,21 @@
 """Generic geospatial map container with SunPy-like map helpers."""
 
+from pathlib import Path
+
 import astropy.units as u
 import numpy as np
 from astropy.time import Time
 from astropy.timeseries import TimeSeries
+from scipy.stats import binned_statistic_2d
 from swxsoc.swxdata import SWXData
 
+from ..geomap import GenericGeoMap
+from ..util.enums import Flavor, SensorId
 from ..util.geom import load_region_contours, points_to_region_code
 from ..visualization.viz import plot_region_code_contours_on_geomap
 
 
-class REACHTrack(object):
+class REACHTrack(SWXData):
     """A generic 2D geospatial map object.
 
     This class provides a compact, SunPy-like API for geospatial grids:
@@ -39,109 +44,71 @@ class REACHTrack(object):
 
     def __init__(
         self,
-        trackdata: SWXData,
-        reach_id: int,
-        dose_id: int,
+        file_path: str | Path,
     ):
-        ts_times = Time(trackdata["time"])
+        if not isinstance(file_path, Path):
+            file_path = Path(file_path)
+
+        trackdata = SWXData.load(file_path)
+        super().__init__(
+            timeseries=trackdata.timeseries,
+            meta=trackdata.meta,
+            support=trackdata.support,
+            schema=trackdata.schema,
+        )
+
+    def sensor_id_to_index(self, sensor_id: SensorId | int) -> int:
+        """Convert a SensorId or integer sensor number to the corresponding index."""
+        if isinstance(sensor_id, int):
+            sensor_id = SensorId(sensor_id)
+        try:
+            return np.where(self["sensor_ids"].data == sensor_id)[0][0]
+        except IndexError:
+            raise ValueError(
+                f"Sensor ID {sensor_id} not found in track data."
+            ) from None
+
+    def get_track(self, reach_id: SensorId | int, dose_id: int) -> TimeSeries:
+        if dose_id < 0 or dose_id >= self["observations"].data.shape[2]:
+            raise ValueError(
+                f"Invalid dose_id {dose_id}, must be between 0 and {self['observations'].shape[1] - 1}."
+            )
+
+        if isinstance(reach_id, int):
+            sensor_id = SensorId.from_str(reach_id)
+
+        reach_index = sensor_id.to_index()
+
+        ts_times = Time(self["time"])
         ts = TimeSeries(time=ts_times)
         ts["dose"] = (
-            trackdata["observations"].data[:, dose_id, reach_id] * u.rad / u.second
+            self["observations"].data[:, reach_index, dose_id] * u.rad / u.second
         )
-        ts["longitude"] = trackdata["lon"].data[:, reach_id] * u.deg
-        ts["latitude"] = trackdata["lat"].data[:, reach_id] * u.deg
-        ts["altitude"] = trackdata["alt"].data[:, reach_id] * u.km
-        contour_paths = load_region_contours()
-        ts["region_code"] = points_to_region_code(
-            lon=trackdata["lon"].data[:, reach_id],
-            lat=trackdata["lat"].data[:, reach_id],
-            paths_dict=contour_paths,
-        )
-        self._data = ts
-        self._meta = trackdata.meta
-        self._unit = trackdata["observations"].unit
-        self.dosimeter_id = trackdata["observation_flavors"].data[reach_id, dose_id]
-        self.reach_id = trackdata["sensor_ids"].data[reach_id]
+        ts["longitude"] = self["lon"].data[:, reach_index] * u.deg
+        ts["latitude"] = self["lat"].data[:, reach_index] * u.deg
+        ts["altitude"] = self["alt"].data[:, reach_index] * u.km
+        # contour_paths = load_region_contours()
+        # ts["region_code"] = points_to_region_code(
+        #    lon=self["lon"].data[:, reach_index],
+        #    lat=self["lat"].data[:, reach_index],
+        #    paths_dict=contour_paths,
+        # )
+        self._unit = self["observations"].unit
+        ts.meta["dosimeter_id"] = self["observation_flavors"].data[reach_index, dose_id]
+        ts.meta["reach_id"] = str(sensor_id)
+        return ts
 
-    def __repr__(self):
-        result = f"<REACHTrack reach_id={self.reach_id} dosimeter_id={self.dosimeter_id} time_range={self.data.time[0]} to {self.data.time[-1]}>"
-        return result
-
-    @property
-    def data(self) -> np.ma.MaskedArray:
-        """Map data as a masked 2D array."""
-        return self._data
-
-    @property
-    def meta(self) -> dict[str, str]:
-        """Map metadata dictionary."""
-        return self._meta
-
-    @property
-    def unit(self) -> str | None:
-        """Unit label for map values."""
-        return self._unit
-
-    def __getitem__(self, key):
-        """Return a time-sliced subtrack via ``track[start:end]`` syntax."""
-        if isinstance(key, slice):
-            if key.step not in (None, 1):
-                raise ValueError("Slice step is not supported for REACHTrack.")
-            return self.subtrack(start=key.start, end=key.stop)
-        raise TypeError(
-            "REACHTrack only supports slicing by time interval, e.g. "
-            "track['2026-01-01T00:00:00':'2026-01-01T01:00:00']"
-        )
-
-    def subtrack(self, start: str | Time | None = None, end: str | Time | None = None):
-        """Return a new track constrained to a smaller time interval.
-
-        Parameters
-        ----------
-        start : str or astropy.time.Time, optional
-            Inclusive start time. Uses the first timestamp when omitted.
-        end : str or astropy.time.Time, optional
-            Inclusive end time. Uses the last timestamp when omitted.
-
-        Returns
-        -------
-        REACHTrack
-            New ``REACHTrack`` instance containing only samples within
-            ``[start, end]``.
-
-        Raises
-        ------
-        ValueError
-            If ``end`` is earlier than ``start`` or no samples are found.
-        """
-        start_time = self.data.time[0] if start is None else Time(start)
-        end_time = self.data.time[-1] if end is None else Time(end)
-
-        if end_time < start_time:
-            raise ValueError("end must be greater than or equal to start.")
-
-        mask = (self.data.time >= start_time) & (self.data.time <= end_time)
-        if not np.any(mask):
-            raise ValueError("No track samples found in the requested time interval.")
-
-        new_track = object.__new__(REACHTrack)
-        new_track._data = self.data[mask]
-        new_track._meta = dict(self.meta)
-        new_track._unit = self.unit
-        new_track.dosimeter_id = self.dosimeter_id
-        new_track.reach_id = self.reach_id
-        return new_track
-
-    def plot(self) -> None:
+    def plot(self, reach_id: SensorId | int, dose_id: int) -> None:
         """Plot all track parameters as a function of time."""
+        ts = self.get_track(reach_id, dose_id)
         import matplotlib.dates as mdates
         import matplotlib.pyplot as plt
 
-        y_columns = [col for col in self.data.colnames if col != "time"]
+        y_columns = [col for col in ts.colnames if col != "time"]
         if not y_columns:
             raise ValueError("No track parameters available to plot.")
 
-        x_time = self.data.time.datetime
+        x_time = ts["time"].datetime
 
         fig, axes = plt.subplots(
             nrows=len(y_columns),
@@ -153,7 +120,7 @@ class REACHTrack(object):
             axes = [axes]
 
         for ax, col in zip(axes, y_columns):
-            y_data = self.data[col]
+            y_data = ts[col]
             if col == "dose":
                 ax.plot(x_time, np.log10(y_data.value))
             else:
@@ -168,7 +135,10 @@ class REACHTrack(object):
         axes[-1].set_xlabel("Time")
         axes[-1].xaxis.set_major_formatter(mdates.DateFormatter("%H:%M:%S"))
         axes[0].set_title(
-            self.meta.get("title", f"{self.reach_id} {self.dosimeter_id}")
+            ts.meta.get(
+                "title",
+                f"{ts.meta.get('reach_id')}, {ts.meta.get('dosimeter_id')}",
+            )
         )
         fig.autofmt_xdate()
         fig.tight_layout()
@@ -239,3 +209,88 @@ class REACHTrack(object):
         title = f"{self.reach_id} {self.dosimeter_id} {self.data.time[0].iso} to {self.data.time[-1].iso}"
         ax.set_title(self.meta.get("title", title))
         plt.show()
+
+    def to_geomap(
+        self,
+        flavor: Flavor,
+        lon_resolution: float = 1.0,
+        lat_resolution: float = 1.0,
+        map_statistic: str = "median",
+    ) -> GenericGeoMap:
+        """Convert this track to a geospatial map object."""
+
+        valid_statistics = {"sum", "mean", "median", "count", "min", "max", "std"}
+        if map_statistic not in valid_statistics:
+            raise ValueError(
+                "map_statistic must be one of "
+                f"{sorted(valid_statistics)}; got '{map_statistic}'."
+            )
+
+        flavor_mask = np.zeros(shape=(32, 2), dtype=np.bool_)
+
+        for this_dosimeter in [0, 1]:  # check each dosimeter
+            for this_id in np.arange(32):
+                this_flavor = Flavor.from_str(
+                    self["observation_flavors"].data[this_id, this_dosimeter]
+                )
+                if this_flavor in flavor:
+                    flavor_mask[this_id, this_dosimeter] = True
+        if not np.any(flavor_mask):
+            raise ValueError(f"Flavor {flavor} not found in data observation_flavors.")
+
+        lat = self["lat"].data * u.deg
+        lon = self["lon"].data * u.deg
+        time = self["time"]
+
+        # Histogram bins are defined by edges, while the map stores center coordinates.
+        lon_edges = np.arange(-180.0, 180.0 + lon_resolution, lon_resolution)
+        lat_edges = np.arange(-90.0, 90.0 + lat_resolution, lat_resolution)
+        lon_bins = 0.5 * (lon_edges[:-1] + lon_edges[1:])
+        lat_bins = 0.5 * (lat_edges[:-1] + lat_edges[1:])
+
+        flavor_data = (
+            self["observations"].data * flavor_mask[None, :, :]
+        )  # [ntimes, nsats, ndos]
+
+        lon_flat = lon.value.flatten()
+        lat_flat = lat.value.flatten()
+        obs_flat = flavor_data.sum(axis=2).flatten()
+
+        valid = np.isfinite(lon_flat) & np.isfinite(lat_flat) & np.isfinite(obs_flat)
+        statistic_data = binned_statistic_2d(
+            lon_flat[valid],
+            lat_flat[valid],
+            obs_flat[valid],
+            statistic=map_statistic,
+            bins=[lon_edges, lat_edges],
+        )
+        m = statistic_data.statistic.T
+
+        # Keep historical behavior for sum maps: empty bins are zero-valued.
+        if map_statistic == "sum":
+            m = np.nan_to_num(m, nan=0.0)
+
+        plotTitlePre = str(
+            np.min(time).strftime("%d %b %Y %H:%M")
+            + " - "
+            + np.max(time).strftime("%d %b %Y %H:%M")
+        )
+
+        return GenericGeoMap(
+            data=m,
+            timeseries=TimeSeries(time=[time[0], time[-1]]),
+            mask=np.isnan(m),
+            meta={
+                "title": plotTitlePre,
+                "coordinate_system": "geodetic",
+                "extent": (-180.0, 180.0, -90.0, 90.0),
+                "map_fields": {
+                    "plotTitlePre": plotTitlePre,
+                    "pltdos": "",
+                },
+            },
+            unit="rad/s",
+            lon=lon_bins,
+            lat=lat_bins,
+            flavor=flavor,
+        )
