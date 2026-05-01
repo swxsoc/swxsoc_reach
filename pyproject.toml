@@ -32,6 +32,7 @@ dependencies = [
   'astropy',
   'cartopy',
   'numpy',
+  'scipy',
   'matplotlib',
   'pandas',
   'swxsoc @ git+https://github.com/swxsoc/swxsoc.git@main',

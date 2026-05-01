@@ -5,6 +5,7 @@ import numpy as np
 from astropy.coordinates import EarthLocation
 from astropy.nddata import NDData
 from astropy.timeseries import TimeSeries
+from scipy.stats import binned_statistic_2d
 from swxsoc import log
 from swxsoc.swxdata import SWXData
 
@@ -679,8 +680,32 @@ class GenericGeoMap(SWXData):
         flavor: Flavor,
         lon_resolution: float = 1.0,
         lat_resolution: float = 1.0,
+        map_statistic: str = "sum",
     ) -> "GenericGeoMap":
-        """Create a GenericGeoMap from raw track data in a SWXData object."""
+        """Create a GenericGeoMap from raw track data in a SWXData object.
+
+        Parameters
+        ----------
+        data : SWXData
+            Input track data.
+        flavor : Flavor
+            Observation flavor(s) to include.
+        lon_resolution : float, optional
+            Longitude bin resolution in degrees.
+        lat_resolution : float, optional
+            Latitude bin resolution in degrees.
+        map_statistic : str, optional
+            Statistic used when binning observations into map cells.
+            Supported values are ``sum``, ``mean``, ``median``, ``count``,
+            ``min``, ``max``, and ``std``.
+        """
+
+        valid_statistics = {"sum", "mean", "median", "count", "min", "max", "std"}
+        if map_statistic not in valid_statistics:
+            raise ValueError(
+                "map_statistic must be one of "
+                f"{sorted(valid_statistics)}; got '{map_statistic}'."
+            )
 
         flavor_mask = np.zeros(shape=(32, 2), dtype=np.bool_)
 
@@ -708,12 +733,23 @@ class GenericGeoMap(SWXData):
             data["observations"].data * flavor_mask[None, :, :]
         )  # [ntimes, nsats, ndos]
 
-        m = np.histogram2d(
-            lon.value.flatten(),
-            lat.value.flatten(),
+        lon_flat = lon.value.flatten()
+        lat_flat = lat.value.flatten()
+        obs_flat = flavor_data.sum(axis=2).flatten()
+
+        valid = np.isfinite(lon_flat) & np.isfinite(lat_flat) & np.isfinite(obs_flat)
+        statistic_data = binned_statistic_2d(
+            lon_flat[valid],
+            lat_flat[valid],
+            obs_flat[valid],
+            statistic=map_statistic,
             bins=[lon_edges, lat_edges],
-            weights=flavor_data.sum(axis=2).flatten(),
-        )[0].T
+        )
+        m = statistic_data.statistic.T
+
+        # Keep historical behavior for sum maps: empty bins are zero-valued.
+        if map_statistic == "sum":
+            m = np.nan_to_num(m, nan=0.0)
 
         plotTitlePre = str(
             np.min(time).strftime("%d %b %Y %H:%M")

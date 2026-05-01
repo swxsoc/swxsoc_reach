@@ -150,26 +150,6 @@ def test_plot_region_code_contours_on_geomap_returns_contour(monkeypatch):
     assert contour is not None
 
 
-def test_generate_region_contour_data_returns_mpath_object(monkeypatch):
-    """Contour utility should return a matplotlib Path object."""
-
-    monkeypatch.setattr(
-        util,
-        "load_regions",
-        lambda: (
-            np.array([0.0, 1.0, 2.0, 0.0, 1.0, 2.0, 0.0, 1.0, 2.0]),
-            np.array([0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 2.0, 2.0, 2.0]),
-            np.array([0, 0, 0, 0, 1, 0, 0, 0, 0]),
-        ),
-    )
-
-    path = util.generate_region_contour_data(contour_levels=(0.5,))
-
-    assert isinstance(path, mpath.Path)
-    assert path.vertices.ndim == 2
-    assert path.vertices.shape[1] == 2
-
-
 def test_contour_image_to_path_returns_mpath_object():
     """Low-level contour extraction should return a matplotlib Path."""
     image = np.array(

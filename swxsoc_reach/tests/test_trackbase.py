@@ -116,8 +116,11 @@ def test_region_code_maps_per_timestamp(monkeypatch):
     fake_lon = np.array([-100.0, -90.0, -100.0, -90.0])
     fake_lat = np.array([10.0, 10.0, 20.0, 20.0])
     fake_codes = np.array([1, 2, 3, 4])
+    monkeypatch.setattr(trackbase, "load_region_contours", lambda: {})
     monkeypatch.setattr(
-        trackbase, "compute_region_code", lambda lon, lat: np.array([1, 2, 3, 4, 1, 2])
+        trackbase,
+        "points_to_region_code",
+        lambda lon, lat, paths_dict: np.array([1, 2, 3, 4, 1, 2]),
     )
 
     track = REACHTrack(trackdata=_FakeTrackData(), reach_id=0, dose_id=0)

@@ -6,7 +6,7 @@ from astropy.time import Time
 from astropy.timeseries import TimeSeries
 from swxsoc.swxdata import SWXData
 
-from ..util.util import compute_region_code
+from ..util.geom import load_region_contours, points_to_region_code
 from ..visualization.viz import plot_region_code_contours_on_geomap
 
 
@@ -51,9 +51,11 @@ class REACHTrack(object):
         ts["longitude"] = trackdata["lon"].data[:, reach_id] * u.deg
         ts["latitude"] = trackdata["lat"].data[:, reach_id] * u.deg
         ts["altitude"] = trackdata["alt"].data[:, reach_id] * u.km
-        ts["region_code"] = compute_region_code(
+        contour_paths = load_region_contours()
+        ts["region_code"] = points_to_region_code(
             lon=trackdata["lon"].data[:, reach_id],
             lat=trackdata["lat"].data[:, reach_id],
+            paths_dict=contour_paths,
         )
         self._data = ts
         self._meta = trackdata.meta

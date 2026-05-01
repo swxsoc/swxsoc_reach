@@ -1,6 +1,6 @@
 import csv
 from pathlib import Path
-from typing import Any, Sequence
+from typing import Any
 
 import matplotlib.path as mpath
 import matplotlib.pyplot as plt
@@ -10,12 +10,11 @@ from cartopy import crs as ccrs
 from swxsoc.util import create_science_filename, parse_science_filename
 
 from swxsoc_reach import _data_directory
+from swxsoc_reach.util.geom import contour_image_to_path  # noqa: F401
 
 __all__ = [
-    "compute_region_code",
     "contour_image_to_path",
     "create_reach_filename",
-    "generate_region_contour_data",
     "load_regions",
     "parse_science_filename",
     "plot_region_contours",
@@ -23,202 +22,33 @@ __all__ = [
 ]
 
 
-def load_regions() -> tuple[
-    npt.NDArray[np.float64],
-    npt.NDArray[np.float64],
-    npt.NDArray[np.int_],
-]:
+def load_regions(
+    file_path: str | Path | None = None,
+) -> tuple[npt.NDArray[np.float64], npt.NDArray[np.float64], npt.NDArray[np.int_]]:
     """Load region longitudes, latitudes, and integer region codes."""
-    REGION_FILE = _data_directory / "region_file.csv"
+    region_file = (
+        Path(file_path)
+        if file_path is not None
+        else _data_directory / "region_file.csv"
+    )
+
     lookuplon: list[float] = []
     lookuplat: list[float] = []
     glook: list[int] = []
-    with open(REGION_FILE, "r") as f:
+
+    with region_file.open("r", encoding="utf-8") as f:
         reader = csv.reader(f)
         next(reader)  # skip header
         for row in reader:
-            lookuplon.append(float(row[2]))  # lon deg
-            lookuplat.append(float(row[1]))  # lat deg
-            glook.append(int(row[10]))  # Region Code
+            lookuplon.append(float(row[2]))
+            lookuplat.append(float(row[1]))
+            glook.append(int(row[10]))
+
     return (
         np.array(lookuplon, dtype=float),
         np.array(lookuplat, dtype=float),
         np.array(glook, dtype=int),
     )
-
-
-def _nearest_indices(
-    values: npt.NDArray[np.float64], query: npt.NDArray[np.float64]
-) -> npt.NDArray[np.int_]:
-    """Return indices of nearest values for each query element."""
-    if values.size == 1:
-        return np.zeros(query.shape, dtype=int)
-
-    idx = np.searchsorted(values, query)
-    idx = np.clip(idx, 1, values.size - 1)
-    left = values[idx - 1]
-    right = values[idx]
-    use_left = np.abs(query - left) <= np.abs(right - query)
-    idx[use_left] -= 1
-    return idx
-
-
-def compute_region_code(lon: npt.ArrayLike, lat: npt.ArrayLike) -> npt.NDArray[np.int_]:
-    """Map lon/lat points to integer region codes using nearest lookup points."""
-    lookuplon, lookuplat, glook = load_regions()
-
-    lon_values = np.unique(lookuplon)
-    lat_values = np.unique(lookuplat)
-    region_grid = np.full((lat_values.size, lon_values.size), np.nan)
-
-    lon_index = {value: index for index, value in enumerate(lon_values)}
-    lat_index = {value: index for index, value in enumerate(lat_values)}
-    for lon_value, lat_value, region_code in zip(
-        lookuplon,
-        lookuplat,
-        glook,
-        strict=False,
-    ):
-        region_grid[lat_index[lat_value], lon_index[lon_value]] = region_code
-
-    # Normalize longitude to match region table domain.
-    lon_arr = np.asarray(lon, dtype=float)
-    lon_norm = ((lon_arr + 180.0) % 360.0) - 180.0
-    lat_arr = np.asarray(lat, dtype=float)
-
-    lon_idx = _nearest_indices(lon_values, lon_norm)
-    lat_idx = _nearest_indices(lat_values, lat_arr)
-    codes = region_grid[lat_idx, lon_idx]
-
-    # Fill any unmapped points with 0 (outside known region table points).
-    return np.nan_to_num(codes, nan=0).astype(int)
-
-
-def contour_image_to_path(
-    image: npt.ArrayLike,
-    contour_level: float,
-    x_values: npt.ArrayLike | None = None,
-    y_values: npt.ArrayLike | None = None,
-    ax: Any | None = None,
-) -> mpath.Path | None:
-    """Convert one contour level from an image into a matplotlib path.
-
-    Parameters
-    ----------
-    image : array-like
-        2D scalar image to contour.
-    contour_level : float
-        Contour level to extract.
-    x_values : array-like, optional
-        X-axis coordinates for image columns.
-    y_values : array-like, optional
-        Y-axis coordinates for image rows.
-    ax : matplotlib.axes.Axes, optional
-        Existing axis for contour extraction.
-
-    Returns
-    -------
-    matplotlib.path.Path | None
-        Single or compound path for this contour level.
-        Returns None if no segments are found.
-    """
-    image2d = np.asarray(image, dtype=float)
-    if image2d.ndim != 2:
-        raise ValueError("image must be a 2D array.")
-
-    if x_values is None:
-        x_values = np.arange(image2d.shape[1], dtype=float)
-    if y_values is None:
-        y_values = np.arange(image2d.shape[0], dtype=float)
-
-    created_fig = False
-    if ax is None:
-        fig, ax = plt.subplots()
-        created_fig = True
-
-    contour = ax.contour(
-        np.asarray(x_values, dtype=float),
-        np.asarray(y_values, dtype=float),
-        image2d,
-        levels=[float(contour_level)],
-    )
-
-    paths: list[mpath.Path] = []
-    for segment in contour.allsegs[0]:
-        vertices = np.asarray(segment, dtype=float)
-        if vertices.shape[0] < 3:
-            continue
-        paths.append(mpath.Path(vertices, closed=True))
-
-    if created_fig:
-        plt.close(fig)
-
-    if not paths:
-        return None
-    if len(paths) == 1:
-        return paths[0]
-    return mpath.Path.make_compound_path(*paths)
-
-
-def generate_region_contour_data(
-    ax: Any | None = None,
-    contour_levels: Sequence[float] | None = None,
-) -> mpath.Path | None:
-    """Generate a matplotlib path object from the region CSV table.
-
-    Parameters
-    ----------
-    ax : matplotlib.axes.Axes, optional
-        Existing axis to draw contours on. If None, a new figure and axis
-        are created.
-    contour_levels : sequence of float, optional
-        Contour levels to generate. Defaults to REACH region code levels.
-
-    Returns
-    -------
-    matplotlib.path.Path | None
-        A compound path built from contour segments.
-        Returns None when no region points are available.
-    """
-    lookuplon, lookuplat, glook = load_regions()
-    if lookuplon.size == 0:
-        return None
-
-    if contour_levels is None:
-        contour_levels = (-4, -3, -2, -1, 1, 2, 3, 4)
-
-    lon_values = np.unique(lookuplon)
-    lat_values = np.unique(lookuplat)
-    region_grid = np.full((lat_values.size, lon_values.size), np.nan)
-
-    lon_index = {value: index for index, value in enumerate(lon_values)}
-    lat_index = {value: index for index, value in enumerate(lat_values)}
-
-    for lon_value, lat_value, region_code in zip(
-        lookuplon,
-        lookuplat,
-        glook,
-        strict=False,
-    ):
-        region_grid[lat_index[lat_value], lon_index[lon_value]] = region_code
-
-    paths: list[mpath.Path] = []
-    for level in contour_levels:
-        path = contour_image_to_path(
-            image=region_grid,
-            contour_level=float(level),
-            x_values=lon_values,
-            y_values=lat_values,
-            ax=ax,
-        )
-        if path is not None:
-            paths.append(path)
-
-    if not paths:
-        return None
-    if len(paths) == 1:
-        return paths[0]
-    return mpath.Path.make_compound_path(*paths)
 
 
 def plot_regions(
