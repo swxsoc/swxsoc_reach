@@ -14,3 +14,4 @@ For more details checkout the :ref:`reference`.
    logger
    customization
    historical-download
+   historical-process

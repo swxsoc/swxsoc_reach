@@ -2,7 +2,7 @@
 
 Drives :func:`swxsoc_reach.net.udl.download_UDL_reach_window` over an
 inclusive UTC date range, recording one or more rows per day in a
-:class:`~swxsoc_reach.historical.telemetry.DownloadTelemetry` CSV. Days
+:class:`~swxsoc_reach.historical.telemetry.HistoricalTelemetry` CSV. Days
 that already completed (per telemetry + on-disk artifact) are skipped,
 so reruns are idempotent and resumable.
 
@@ -19,16 +19,17 @@ import uuid
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
-from typing import Callable, Iterable
+from typing import Callable
 
 from astropy.time import Time
 
 from swxsoc_reach import log
+from swxsoc_reach.historical._dates import iter_dates as _iter_dates
 from swxsoc_reach.historical.telemetry import (
-    DownloadTelemetry,
+    HistoricalTelemetry,
+    STATUS_DOWNLOAD_PENDING,
     STATUS_DOWNLOADED,
     STATUS_FAILED,
-    STATUS_PENDING,
     STATUS_SKIPPED_NO_DATA,
     TelemetryRow,
     utcnow_iso,
@@ -168,18 +169,6 @@ def _expected_records(sensor_id: str) -> int:
     return EXPECTED_RECORDS_SINGLE
 
 
-def _iter_dates(start: date, end: date) -> Iterable[date]:
-    """Yield each UTC date in ``[start, end]`` inclusive."""
-    if end < start:
-        raise ValueError(
-            f"end_date {end.isoformat()} must be >= start_date {start.isoformat()}"
-        )
-    current = start
-    while current <= end:
-        yield current
-        current = current + timedelta(days=1)
-
-
 def _day_window(d: date) -> tuple[Time, Time, str, str]:
     """Return (start_time, end_time, start_iso, end_iso) for a UTC day.
 
@@ -210,7 +199,7 @@ def _decide_action(
     - prior ``DOWNLOADED`` and CSV missing → ``run`` (re-download)
     - prior ``SKIPPED_NO_DATA`` → ``skip_terminal``
     - prior ``FAILED`` → ``skip_failed`` unless ``retry_failed`` then ``run``
-    - prior ``PENDING`` (interrupted) → ``run``
+    - prior ``DOWNLOAD_PENDING`` (interrupted) → ``run``
     """
     if prior is None:
         return "run"
@@ -223,7 +212,7 @@ def _decide_action(
         return "skip_terminal"
     if prior.status == STATUS_FAILED:
         return "run" if retry_failed else "skip_failed"
-    # PENDING or unknown → re-run.
+    # DOWNLOAD_PENDING or unknown → re-run.
     return "run"
 
 
@@ -231,7 +220,7 @@ def run_download(
     config: DownloadRunConfig,
     *,
     download_fn: Callable[..., Path] | None = None,
-    telemetry: DownloadTelemetry | None = None,
+    telemetry: HistoricalTelemetry | None = None,
 ) -> DownloadRunSummary:
     """Run the historical UDL download orchestrator.
 
@@ -243,7 +232,7 @@ def run_download(
     2. **Load prior state.** Read the telemetry CSV at
        ``config.telemetry_path`` and reduce it to a ``{date: latest
        row}`` mapping via
-       :meth:`~swxsoc_reach.historical.telemetry.DownloadTelemetry.load_state`.
+       :meth:`~swxsoc_reach.historical.telemetry.HistoricalTelemetry.load_state`.
        Missing/empty file is treated as no prior state.
     3. **Plan.** Expand ``[start_date, end_date]`` into one
        UTC-midnight-bounded window per day, decide an action per day
@@ -291,7 +280,7 @@ def run_download(
         accept the same keyword arguments and return the path to the
         written artifact, or raise ``ValueError`` for an empty window.
         Tests inject a stub here; production callers leave it ``None``.
-    telemetry : DownloadTelemetry, optional
+    telemetry : HistoricalTelemetry, optional
         Override for the telemetry writer/reader. Defaults to one
         backed by ``config.telemetry_path``. Tests may inject a
         pre-populated instance to simulate restart scenarios.
@@ -305,7 +294,7 @@ def run_download(
     if download_fn is None:
         download_fn = udl_module.download_UDL_reach_window
     if telemetry is None:
-        telemetry = DownloadTelemetry(config.telemetry_path)
+        telemetry = HistoricalTelemetry(config.telemetry_path)
 
     run_id = str(uuid.uuid4())
     config.output_dir.mkdir(parents=True, exist_ok=True)
@@ -385,7 +374,7 @@ def run_download(
             expected_records=str(_expected_records(config.sensor_id)),
             started_at_utc=started,
         )
-        telemetry.append_row(TelemetryRow(status=STATUS_PENDING, **base_row))
+        telemetry.append_row(TelemetryRow(status=STATUS_DOWNLOAD_PENDING, **base_row))
 
         t0 = time.monotonic()
         try:

@@ -62,7 +62,7 @@ def test_download_parser_minimum_args(tmp_path):
 def test_config_from_args_defaults_telemetry_to_output_dir(tmp_path):
     parser = cli._build_parser()
     args = parser.parse_args(_argv_download(tmp_path))
-    config = cli._config_from_args(args, auth_token="Bearer x")
+    config = cli._download_config_from_args(args, auth_token="Bearer x")
     assert config.telemetry_path == tmp_path / "out" / "download_telemetry.csv"
     assert config.auth_token == "Bearer x"
 
@@ -71,7 +71,7 @@ def test_config_from_args_honors_explicit_telemetry_file(tmp_path):
     custom = tmp_path / "elsewhere" / "t.csv"
     parser = cli._build_parser()
     args = parser.parse_args(_argv_download(tmp_path, "--telemetry-file", str(custom)))
-    config = cli._config_from_args(args, auth_token="x")
+    config = cli._download_config_from_args(args, auth_token="x")
     assert config.telemetry_path == custom
 
 
@@ -208,10 +208,81 @@ def test_aimd_flags_propagate_to_config(tmp_path):
             "50.0",
         )
     )
-    config = cli._config_from_args(args, auth_token="x")
+    config = cli._download_config_from_args(args, auth_token="x")
     assert config.max_concurrent_requests == 8
     assert config.initial_rate == 10.0
     assert config.additive_increase == 2.0
     assert config.multiplicative_decrease == 0.25
     assert config.min_rate == 2.0
     assert config.max_rate == 50.0
+
+
+# --- process subcommand ---
+
+
+def _argv_process(tmp_path: Path, *extra: str) -> list[str]:
+    return [
+        "process",
+        "--start-date",
+        "2026-01-01",
+        "--end-date",
+        "2026-01-02",
+        "--input-dir",
+        str(tmp_path / "in"),
+        "--output-dir",
+        str(tmp_path / "out"),
+        "--sensor-id",
+        "REACH-1",
+        *extra,
+    ]
+
+
+def test_process_parser_minimum_args(tmp_path):
+    parser = cli._build_parser()
+    args = parser.parse_args(_argv_process(tmp_path))
+    assert args.command == "process"
+    assert args.input_dir == tmp_path / "in"
+    assert args.output_dir == tmp_path / "out"
+    assert args.upload_to_s3 is False
+    assert args.s3_bucket is None
+    assert args.telemetry_file is None
+
+
+def test_process_config_telemetry_defaults_to_input_dir(tmp_path):
+    parser = cli._build_parser()
+    args = parser.parse_args(_argv_process(tmp_path))
+    cfg = cli._process_config_from_args(args)
+    assert cfg.telemetry_path == tmp_path / "in" / "download_telemetry.csv"
+
+
+def test_process_upload_requires_bucket(tmp_path, monkeypatch):
+    """--upload-to-s3 without --s3-bucket exits 2 via parser.error."""
+    monkeypatch.setattr(
+        cli,
+        "run_process",
+        lambda config: pytest.fail("must not run when bucket missing"),
+    )
+    with pytest.raises(SystemExit) as exc:
+        cli.main(_argv_process(tmp_path, "--upload-to-s3"))
+    assert exc.value.code == 2
+
+
+def test_main_process_returns_1_on_failure(tmp_path, monkeypatch):
+    from swxsoc_reach.historical.process_orchestrator import ProcessRunSummary
+
+    monkeypatch.setattr(
+        cli,
+        "run_process",
+        lambda config: ProcessRunSummary(
+            run_id="r-1",
+            days_planned=2,
+            days_attempted=2,
+            days_processed=1,
+            days_uploaded=0,
+            days_skipped_existing=0,
+            days_skipped_no_input=0,
+            days_failed=1,
+        ),
+    )
+    rc = cli.main(_argv_process(tmp_path, "--dry-run"))
+    assert rc == 1

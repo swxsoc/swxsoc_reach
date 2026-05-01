@@ -40,6 +40,7 @@ dev = [
 
 net = [
   'boto3',
+  'sdc_aws_utils @ git+https://github.com/swxsoc/sdc_aws_utils.git@main',
 ]
 
 docs = [

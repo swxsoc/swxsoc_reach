@@ -9,11 +9,11 @@ import pytest
 
 from swxsoc_reach.historical import telemetry as tm
 from swxsoc_reach.historical.telemetry import (
-    DownloadTelemetry,
+    HistoricalTelemetry,
     SCHEMA,
     STATUS_DOWNLOADED,
     STATUS_FAILED,
-    STATUS_PENDING,
+    STATUS_DOWNLOAD_PENDING,
     STATUS_SKIPPED_NO_DATA,
     TelemetryRow,
 )
@@ -25,7 +25,7 @@ def _row(**overrides) -> TelemetryRow:
         chunk_date_utc="2026-01-01",
         window_start_utc="2026-01-01T00:00:00+00:00",
         window_end_utc="2026-01-02T00:00:00+00:00",
-        status=STATUS_PENDING,
+        status=STATUS_DOWNLOAD_PENDING,
         sensor_id="REACH-1",
         descriptor="QUICKLOOK",
         output_format="csv",
@@ -37,9 +37,9 @@ def _row(**overrides) -> TelemetryRow:
 
 def test_append_row_writes_header_then_appends(tmp_path):
     path = tmp_path / "download_telemetry.csv"
-    t = DownloadTelemetry(path)
+    t = HistoricalTelemetry(path)
 
-    t.append_row(_row(status=STATUS_PENDING))
+    t.append_row(_row(status=STATUS_DOWNLOAD_PENDING))
     t.append_row(
         _row(
             status=STATUS_DOWNLOADED,
@@ -56,42 +56,42 @@ def test_append_row_writes_header_then_appends(tmp_path):
     # Header + 2 data rows
     assert rows[0] == list(SCHEMA)
     assert len(rows) == 3
-    assert rows[1][SCHEMA.index("status")] == STATUS_PENDING
+    assert rows[1][SCHEMA.index("status")] == STATUS_DOWNLOAD_PENDING
     assert rows[2][SCHEMA.index("status")] == STATUS_DOWNLOADED
     assert rows[2][SCHEMA.index("records_downloaded")] == "1234"
 
 
 def test_append_row_creates_parent_directories(tmp_path):
     path = tmp_path / "nested" / "deep" / "telemetry.csv"
-    t = DownloadTelemetry(path)
+    t = HistoricalTelemetry(path)
     t.append_row(_row())
     assert path.exists()
 
 
 def test_append_row_rejects_unknown_columns(tmp_path):
-    t = DownloadTelemetry(tmp_path / "t.csv")
+    t = HistoricalTelemetry(tmp_path / "t.csv")
     with pytest.raises(ValueError, match="Unknown telemetry columns"):
         t.append_row({"chunk_date_utc": "2026-01-01", "bogus": "x"})
 
 
 def test_append_row_rejects_invalid_status(tmp_path):
-    t = DownloadTelemetry(tmp_path / "t.csv")
+    t = HistoricalTelemetry(tmp_path / "t.csv")
     with pytest.raises(ValueError, match="Invalid telemetry status"):
         t.append_row(_row(status="WHATEVER"))
 
 
 def test_load_state_empty_when_no_file(tmp_path):
-    t = DownloadTelemetry(tmp_path / "missing.csv")
+    t = HistoricalTelemetry(tmp_path / "missing.csv")
     assert t.load_state() == {}
 
 
 def test_load_state_returns_most_recent_row_per_date(tmp_path):
-    t = DownloadTelemetry(tmp_path / "t.csv")
+    t = HistoricalTelemetry(tmp_path / "t.csv")
 
     # Two attempts on 2026-01-01: PENDING then FAILED (retry).
     t.append_row(
         _row(
-            status=STATUS_PENDING,
+            status=STATUS_DOWNLOAD_PENDING,
             started_at_utc="2026-01-01T00:00:00.000000+00:00",
         )
     )
@@ -125,7 +125,7 @@ def test_load_state_returns_most_recent_row_per_date(tmp_path):
 
 def test_load_state_skips_rows_with_unparseable_chunk_date(tmp_path):
     path = tmp_path / "t.csv"
-    t = DownloadTelemetry(path)
+    t = HistoricalTelemetry(path)
     t.append_row(_row(chunk_date_utc="2026-01-01"))
 
     # Hand-write a junk row to simulate corruption.
@@ -142,7 +142,7 @@ def test_load_state_skips_rows_with_unparseable_chunk_date(tmp_path):
 
 
 def test_iter_rows_returns_all_rows_in_order(tmp_path):
-    t = DownloadTelemetry(tmp_path / "t.csv")
+    t = HistoricalTelemetry(tmp_path / "t.csv")
     t.append_row(_row(chunk_date_utc="2026-01-01"))
     t.append_row(_row(chunk_date_utc="2026-01-02"))
 
@@ -151,7 +151,7 @@ def test_iter_rows_returns_all_rows_in_order(tmp_path):
 
 
 def test_iter_rows_when_file_missing_yields_nothing(tmp_path):
-    t = DownloadTelemetry(tmp_path / "missing.csv")
+    t = HistoricalTelemetry(tmp_path / "missing.csv")
     assert list(t.iter_rows()) == []
 
 

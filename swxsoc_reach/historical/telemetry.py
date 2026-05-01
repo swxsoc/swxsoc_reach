@@ -1,7 +1,7 @@
 """Append-only CSV telemetry for the historical UDL download orchestrator.
 
 One row is written per attempt at a per-day download. Older rows for the
-same ``chunk_date_utc`` are *not* removed; :meth:`DownloadTelemetry.load_state`
+same ``chunk_date_utc`` are *not* removed; :meth:`HistoricalTelemetry.load_state`
 returns the most-recent row per date (by ``started_at_utc``), which is
 how restart/resume decisions are made.
 """
@@ -22,6 +22,7 @@ SCHEMA: tuple[str, ...] = (
     "window_start_utc",
     "window_end_utc",
     "status",
+    # Download Columns
     "records_downloaded",
     "expected_records",
     "availability_pct",
@@ -35,16 +36,41 @@ SCHEMA: tuple[str, ...] = (
     "error_message",
     "started_at_utc",
     "finished_at_utc",
+    # Processing Columns
+    "process_seconds",
+    "cdf_size_mb",
+    "cdf_path",
+    # Upload Columns
+    "upload_seconds",
+    "s3_bucket",
+    "s3_key",
 )
 
 # Status values for the download phase.
-STATUS_PENDING = "PENDING"
+STATUS_DOWNLOAD_PENDING = "DOWNLOAD_PENDING"
 STATUS_DOWNLOADED = "DOWNLOADED"
 STATUS_SKIPPED_NO_DATA = "SKIPPED_NO_DATA"
 STATUS_FAILED = "FAILED"
 
+# Status values for the process / upload phase.
+STATUS_PROCESS_PENDING = "PROCESS_PENDING"
+STATUS_PROCESSED = "PROCESSED"
+STATUS_UPLOAD_PENDING = "UPLOAD_PENDING"
+STATUS_UPLOADED = "UPLOADED"
+STATUS_SKIPPED_NO_INPUT = "SKIPPED_NO_INPUT"
+
 VALID_STATUSES: frozenset[str] = frozenset(
-    {STATUS_PENDING, STATUS_DOWNLOADED, STATUS_SKIPPED_NO_DATA, STATUS_FAILED}
+    {
+        STATUS_DOWNLOAD_PENDING,
+        STATUS_DOWNLOADED,
+        STATUS_SKIPPED_NO_DATA,
+        STATUS_FAILED,
+        STATUS_PROCESS_PENDING,
+        STATUS_PROCESSED,
+        STATUS_UPLOAD_PENDING,
+        STATUS_UPLOADED,
+        STATUS_SKIPPED_NO_INPUT,
+    }
 )
 
 
@@ -63,6 +89,7 @@ class TelemetryRow:
     window_start_utc: str = ""
     window_end_utc: str = ""
     status: str = ""
+    # Download Columns
     records_downloaded: str = ""
     expected_records: str = ""
     availability_pct: str = ""
@@ -76,6 +103,14 @@ class TelemetryRow:
     error_message: str = ""
     started_at_utc: str = ""
     finished_at_utc: str = ""
+    # Processing Columns
+    process_seconds: str = ""
+    cdf_size_mb: str = ""
+    cdf_path: str = ""
+    # Upload Columns
+    upload_seconds: str = ""
+    s3_bucket: str = ""
+    s3_key: str = ""
 
     def to_dict(self) -> dict[str, str]:
         """Return the row as a ``{column: str}`` dict in schema order."""
@@ -88,7 +123,7 @@ class TelemetryRow:
         return cls(**{k: v for k, v in raw.items() if k in known})
 
 
-class DownloadTelemetry:
+class HistoricalTelemetry:
     """Append-only CSV writer / reader for download telemetry."""
 
     def __init__(self, telemetry_path: Path | str):

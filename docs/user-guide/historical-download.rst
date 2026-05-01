@@ -169,7 +169,7 @@ for each day in the requested range, picks an action:
    * - ``FAILED``
      - n/a
      - skip, unless ``--retry-failed``
-   * - ``PENDING``
+   * - ``DOWNLOAD_PENDING``
      - n/a
      - re-run (interrupted)
 
@@ -178,7 +178,7 @@ Telemetry CSV schema
 ====================
 
 One row is appended per attempt. Older rows for the same date are
-preserved; ``DownloadTelemetry.load_state`` returns the most-recent
+preserved; ``HistoricalTelemetry.load_state`` returns the most-recent
 row per ``chunk_date_utc`` (file order breaks ties).
 
 .. list-table::
@@ -196,7 +196,11 @@ row per ``chunk_date_utc`` (file order breaks ties).
    * - ``window_end_utc``
      - ISO 8601 UTC, exclusive (``window_start + 86400 s``).
    * - ``status``
-     - ``PENDING`` | ``DOWNLOADED`` | ``SKIPPED_NO_DATA`` | ``FAILED``.
+     - ``DOWNLOAD_PENDING`` | ``DOWNLOADED`` | ``SKIPPED_NO_DATA`` |
+       ``FAILED``. Phase 2 (process / upload) writes additional
+       statuses (``PROCESS_PENDING``, ``PROCESSED``,
+       ``UPLOAD_PENDING``, ``UPLOADED``, ``SKIPPED_NO_INPUT``) to the
+       same file — see :ref:`historical-process`.
    * - ``records_downloaded``
      - Number of records in the written artifact.
    * - ``expected_records``
@@ -258,9 +262,9 @@ loss):
 
 1. The telemetry CSV in ``--output-dir`` is consistent on disk
    (``fsync`` after every row).
-2. Days that were mid-flight at interrupt time will have a ``PENDING``
-   row as their latest entry — these will be **re-run** on the next
-   invocation.
+2. Days that were mid-flight at interrupt time will have a
+   ``DOWNLOAD_PENDING`` row as their latest entry — these will be
+   **re-run** on the next invocation.
 3. Days that completed normally have a ``DOWNLOADED`` row plus their
    artifact on disk and will be **skipped** on the next invocation.
 4. To pick up where you left off, simply re-run the same command.

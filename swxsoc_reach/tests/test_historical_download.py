@@ -16,10 +16,10 @@ from swxsoc_reach.historical.download_orchestrator import (
     run_download,
 )
 from swxsoc_reach.historical.telemetry import (
-    DownloadTelemetry,
+    HistoricalTelemetry,
     STATUS_DOWNLOADED,
     STATUS_FAILED,
-    STATUS_PENDING,
+    STATUS_DOWNLOAD_PENDING,
     STATUS_SKIPPED_NO_DATA,
     TelemetryRow,
 )
@@ -91,7 +91,7 @@ def test_iter_dates_rejects_inverted_range():
     "prior_status,csv_exists,retry_failed,expected",
     [
         (None, False, False, "run"),
-        (STATUS_PENDING, False, False, "run"),
+        (STATUS_DOWNLOAD_PENDING, False, False, "run"),
         (STATUS_DOWNLOADED, True, False, "skip_existing"),
         (STATUS_DOWNLOADED, False, False, "run"),
         (STATUS_SKIPPED_NO_DATA, False, False, "skip_terminal"),
@@ -125,9 +125,9 @@ def test_run_download_single_day_writes_telemetry_and_artifact(tmp_path):
     assert summary.days_downloaded == 1
     assert summary.days_failed == 0
 
-    rows = list(DownloadTelemetry(cfg.telemetry_path).iter_rows())
+    rows = list(HistoricalTelemetry(cfg.telemetry_path).iter_rows())
     statuses = [r.status for r in rows]
-    assert statuses == [STATUS_PENDING, STATUS_DOWNLOADED]
+    assert statuses == [STATUS_DOWNLOAD_PENDING, STATUS_DOWNLOADED]
     final = rows[-1]
     assert final.records_downloaded == "10"
     assert final.expected_records == str(EXPECTED_RECORDS_SINGLE)
@@ -140,7 +140,7 @@ def test_run_download_multi_day_inclusive_range(tmp_path):
     cfg = _config(tmp_path, start_date=date(2026, 1, 1), end_date=date(2026, 1, 3))
     summary = run_download(cfg, download_fn=_make_csv_writer())
     assert summary.days_downloaded == 3
-    state = DownloadTelemetry(cfg.telemetry_path).load_state()
+    state = HistoricalTelemetry(cfg.telemetry_path).load_state()
     assert set(state.keys()) == {
         date(2026, 1, 1),
         date(2026, 1, 2),
@@ -168,7 +168,7 @@ def test_run_download_redownloads_when_csv_missing(tmp_path):
     run_download(cfg, download_fn=_make_csv_writer())
 
     # Delete the CSV.
-    state = DownloadTelemetry(cfg.telemetry_path).load_state()
+    state = HistoricalTelemetry(cfg.telemetry_path).load_state()
     Path(state[date(2026, 1, 1)].csv_path).unlink()
 
     summary = run_download(cfg, download_fn=_make_csv_writer())
@@ -227,7 +227,7 @@ def test_run_download_failure_classification(tmp_path):
     assert summary.days_skipped_no_data == 1
     assert summary.days_failed == 1
 
-    state = DownloadTelemetry(cfg.telemetry_path).load_state()
+    state = HistoricalTelemetry(cfg.telemetry_path).load_state()
     assert state[date(2026, 1, 1)].status == STATUS_SKIPPED_NO_DATA
     assert state[date(2026, 1, 2)].status == STATUS_FAILED
     assert state[date(2026, 1, 2)].error_type == "RuntimeError"
@@ -267,7 +267,7 @@ def test_run_download_limit_days_counts_from_first_incomplete(tmp_path):
     assert summary.days_downloaded == 2
     assert summary.days_skipped_existing == 1
 
-    state = DownloadTelemetry(cfg.telemetry_path).load_state()
+    state = HistoricalTelemetry(cfg.telemetry_path).load_state()
     assert set(state.keys()) == {
         date(2026, 1, 1),
         date(2026, 1, 2),
@@ -278,7 +278,7 @@ def test_run_download_limit_days_counts_from_first_incomplete(tmp_path):
 def test_run_download_uses_expected_records_for_all_sensor(tmp_path):
     cfg = _config(tmp_path, sensor_id="ALL")
     run_download(cfg, download_fn=_make_csv_writer())
-    state = DownloadTelemetry(cfg.telemetry_path).load_state()
+    state = HistoricalTelemetry(cfg.telemetry_path).load_state()
     row = state[date(2026, 1, 1)]
     assert row.expected_records == str(EXPECTED_RECORDS_ALL)
 

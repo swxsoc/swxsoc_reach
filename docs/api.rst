@@ -12,6 +12,8 @@ API Reference
    swxsoc_reach.calibration.calibration
    swxsoc_reach.calibration.transform
    swxsoc_reach.historical.download_orchestrator
+   swxsoc_reach.historical.process_orchestrator
+   swxsoc_reach.historical.s3_upload
    swxsoc_reach.historical.telemetry
    swxsoc_reach.io.aws_db
    swxsoc_reach.io.file_tools
