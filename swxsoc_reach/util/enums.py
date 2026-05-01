@@ -148,24 +148,37 @@ class SensorId(Flag):
         | REACH_181
     )
 
-    @property
-    def id_str(self) -> str:
+    def __str__(self) -> str:
         """Human-readable sensor id string, e.g. ``REACH-101``."""
         return self.name.replace("_", "-")
 
     @classmethod
-    def from_str(cls, name: str) -> "SensorId":
+    def from_str(cls, name: str | int) -> "SensorId":
         """Return the ``SensorId`` member matching *name*.
 
         Accepts values like ``"REACH-101"``, ``"reach_101"``, or ``"101"``.
         """
-        cleaned = name.strip().upper().replace("-", "_")
-        if cleaned.isdigit():
-            cleaned = f"REACH_{cleaned}"
-        elif not cleaned.startswith("REACH_"):
-            cleaned = f"REACH_{cleaned.removeprefix('REACH')}"
+        if isinstance(name, int):
+            if 0 > name or name >= 32:
+                raise ValueError(
+                    f"Invalid sensor index, must be non-negative and less than 32, got {name}."
+                )
+            reach_index = 2**name
+            return cls(reach_index)
+        else:
+            cleaned = name.strip().upper().replace("-", "_")
+            if cleaned.isdigit():
+                cleaned = f"REACH_{cleaned}"
+            elif not cleaned.startswith("REACH_"):
+                cleaned = f"REACH_{cleaned.removeprefix('REACH')}"
 
-        try:
-            return cls.__members__[cleaned]
-        except KeyError:
-            raise ValueError(f"Unknown sensor id {name!r}.") from None
+            try:
+                return cls.__members__[cleaned]
+            except KeyError:
+                raise ValueError(f"Unknown sensor id {name!r}.") from None
+
+    def to_index(self) -> int:
+        """Convert this sensor id flag to a zero-based index (e.g. REACH_101 -> 0)."""
+        if self.value == 0 or self.value & (self.value - 1) != 0:
+            raise ValueError(f"SensorId {self} is not a single valid sensor flag.")
+        return self.value.bit_length() - 1
