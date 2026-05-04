@@ -104,7 +104,7 @@ def _add_download_subparser(subparsers: argparse._SubParsersAction) -> None:
     )
     dl.add_argument(
         "--descriptor",
-        choices=["QUICKLOOK", "PRELIMINARY"],
+        choices=["QUICKLOOK", "PROVISIONAL"],
         default="QUICKLOOK",
         help="UDL descriptor query value (default: QUICKLOOK).",
     )
