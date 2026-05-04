@@ -10,6 +10,7 @@ from cartopy import crs as ccrs
 from swxsoc.util import create_science_filename, parse_science_filename
 
 from swxsoc_reach import _data_directory
+from swxsoc_reach.util.enums import Region
 from swxsoc_reach.util.geom import contour_image_to_path  # noqa: F401
 
 __all__ = [
@@ -64,10 +65,7 @@ def plot_regions(
         return None
 
     region_specs = [
-        ("SAA and Inner Zone", (1, -1), "#cd594a"),
-        ("Polar Cap", (2, -2), "#efd469"),
-        ("Outer Zone", (3, -3), "#093145"),
-        ("Slot", (4, -4), "#b5c689"),
+        (region.label, region.signed_codes, region.color) for region in Region.ordered()
     ]
     selected_names = None
     if region_names is not None:

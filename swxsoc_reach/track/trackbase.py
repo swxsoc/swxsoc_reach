@@ -1,5 +1,6 @@
 """Generic geospatial map container with SunPy-like map helpers."""
 
+from os import times
 from pathlib import Path
 
 import astropy.units as u
@@ -9,64 +10,23 @@ from astropy.timeseries import TimeSeries
 from scipy.stats import binned_statistic_2d
 from swxsoc.swxdata import SWXData
 
+from swxsoc_reach.util.schema import REACHDataSchema
+
 from ..geomap import GenericGeoMap
-from ..util.enums import Flavor, SensorId
+from ..util.enums import Flavor, Region, SensorId
 from ..util.geom import load_region_contours, points_to_region_code
 from ..visualization.viz import plot_region_code_contours_on_geomap
 
 
 class REACHTrack(SWXData):
-    """A generic 2D geospatial map object.
-
-    This class provides a compact, SunPy-like API for geospatial grids:
-
-    - map metadata in ``meta``
-    - data access via ``data`` / ``unit``
-    - pixel/world coordinate conversion helpers
-    - submap extraction and nearest-neighbor resampling
-    - a built-in plotting method for quick visualization
-
-    Parameters
-    ----------
-    data : numpy.ndarray
-        2D geospatial data array.
-    meta : dict | None, optional
-        Metadata for the map (title, coordinate system, extent, etc.).
-    mask : numpy.ndarray | None, optional
-        Optional mask array broadcastable to ``data``.
-    unit : str | None, optional
-        Unit label for map values.
-    lon : numpy.ndarray | None, optional
-        1D or 2D longitudes in degrees.
-    lat : numpy.ndarray | None, optional
-        1D or 2D latitudes in degrees.
+    """
+    This is a container for REACH track data, which consists of time series of observations from multiple sensors as a function of time, longitude, and latitude. It provides methods for extracting individual tracks, plotting the track parameters as a function of time, plotting the track on a global geomap, and converting the track to a gridded geospatial map.
     """
 
-    def __init__(
-        self,
-        file_path: str | Path,
-    ):
-        if not isinstance(file_path, Path):
-            file_path = Path(file_path)
-
-        trackdata = SWXData.load(file_path)
-        super().__init__(
-            timeseries=trackdata.timeseries,
-            meta=trackdata.meta,
-            support=trackdata.support,
-            schema=trackdata.schema,
-        )
-
-    def sensor_id_to_index(self, sensor_id: SensorId | int) -> int:
-        """Convert a SensorId or integer sensor number to the corresponding index."""
-        if isinstance(sensor_id, int):
-            sensor_id = SensorId(sensor_id)
-        try:
-            return np.where(self["sensor_ids"].data == sensor_id)[0][0]
-        except IndexError:
-            raise ValueError(
-                f"Sensor ID {sensor_id} not found in track data."
-            ) from None
+    def truncate(self, time_start: Time, time_end: Time) -> "REACHTrack":
+        """Return a new REACHTrack truncated to the specified time range."""
+        mask = (self["time"] >= time_start) & (self["time"] <= time_end)
+        raise NotImplementedError("Truncation not yet implemented for REACHTrack.")
 
     def get_track(self, reach_id: SensorId | int, dose_id: int) -> TimeSeries:
         if dose_id < 0 or dose_id >= self["observations"].data.shape[2]:
@@ -76,6 +36,8 @@ class REACHTrack(SWXData):
 
         if isinstance(reach_id, int):
             sensor_id = SensorId.from_str(reach_id)
+        else:
+            sensor_id = reach_id
 
         reach_index = sensor_id.to_index()
 
@@ -87,12 +49,12 @@ class REACHTrack(SWXData):
         ts["longitude"] = self["lon"].data[:, reach_index] * u.deg
         ts["latitude"] = self["lat"].data[:, reach_index] * u.deg
         ts["altitude"] = self["alt"].data[:, reach_index] * u.km
-        # contour_paths = load_region_contours()
-        # ts["region_code"] = points_to_region_code(
-        #    lon=self["lon"].data[:, reach_index],
-        #    lat=self["lat"].data[:, reach_index],
-        #    paths_dict=contour_paths,
-        # )
+        contour_paths = load_region_contours()
+        ts["region_code"] = points_to_region_code(
+            lon=self["lon"].data[:, reach_index],
+            lat=self["lat"].data[:, reach_index],
+            paths_dict=contour_paths,
+        )
         self._unit = self["observations"].unit
         ts.meta["dosimeter_id"] = self["observation_flavors"].data[reach_index, dose_id]
         ts.meta["reach_id"] = str(sensor_id)
@@ -256,6 +218,12 @@ class REACHTrack(SWXData):
         lat_flat = lat.value.flatten()
         obs_flat = flavor_data.sum(axis=2).flatten()
 
+        ts = TimeSeries(time=[self.time[0], self.time[-1]])
+        ts.time.meta = {
+            "CATDESC": "Observation Time",
+            "VAR_TYPE": "support_data",
+        }
+
         valid = np.isfinite(lon_flat) & np.isfinite(lat_flat) & np.isfinite(obs_flat)
         statistic_data = binned_statistic_2d(
             lon_flat[valid],
@@ -266,31 +234,99 @@ class REACHTrack(SWXData):
         )
         m = statistic_data.statistic.T
 
-        # Keep historical behavior for sum maps: empty bins are zero-valued.
-        if map_statistic == "sum":
-            m = np.nan_to_num(m, nan=0.0)
+        # Build a region-code grid over the same lon/lat bins using the saved
+        # contour paths, then derive per-region boolean masks.
+        lon2d, lat2d = np.meshgrid(lon_bins, lat_bins)  # both shape (nlat, nlon)
+        grid_points = np.column_stack([lon2d.ravel(), lat2d.ravel()])
+        contour_paths = load_region_contours()
+        region_codes_flat = np.zeros(len(grid_points), dtype=int)
+        for code, path_obj in contour_paths.items():
+            if path_obj is None:
+                continue
+            inside = path_obj.contains_points(grid_points)
+            region_codes_flat[inside] = code
+        region_code_grid = region_codes_flat.reshape(m.shape)
 
-        plotTitlePre = str(
-            np.min(time).strftime("%d %b %Y %H:%M")
-            + " - "
-            + np.max(time).strftime("%d %b %Y %H:%M")
+        # Stack into a single (nregions, nlat, nlon) boolean array using
+        # canonical Region enum order.
+        region_mask = np.stack(
+            [
+                np.isin(region_code_grid, region.signed_codes)
+                for region in Region.ordered()
+            ],
+            axis=0,
         )
 
-        return GenericGeoMap(
-            data=m,
-            timeseries=TimeSeries(time=[time[0], time[-1]]),
-            mask=np.isnan(m),
-            meta={
-                "title": plotTitlePre,
-                "coordinate_system": "geodetic",
-                "extent": (-180.0, 180.0, -90.0, 90.0),
-                "map_fields": {
-                    "plotTitlePre": plotTitlePre,
-                    "pltdos": "",
+        from astropy.nddata import NDData
+
+        variables: dict[str, NDData] = {
+            "map_data": NDData(
+                data=m,
+                unit=u.rad / u.s,
+                mask=np.isnan(m),
+                meta={
+                    "CATDESC": "Mean dose rate",
+                    "VAR_TYPE": "support_data",
+                    "UNITS": (u.rad / u.s).to_string(),
+                    "DEPEND_0": "Epoch",
+                    "DEPEND_2": "lon, lat",
+                    "LABL_PTR_1": "Epoch_label",
+                    "LABL_PTR_2": "lon, lat",
                 },
-            },
-            unit="rad/s",
-            lon=lon_bins,
-            lat=lat_bins,
-            flavor=flavor,
+            ),
+            "lon": NDData(
+                data=lon_bins,
+                unit=u.deg,
+                meta={
+                    "CATDESC": "Longitude",
+                    "VAR_TYPE": "support_data",
+                    "UNITS": u.deg.to_string(),
+                    "DEPEND_0": "Epoch",
+                    "LABL_PTR_1": "Epoch_label",
+                },
+            ),
+            "lat": NDData(
+                data=lat_bins,
+                unit=u.deg,
+                meta={
+                    "CATDESC": "Latitude",
+                    "VAR_TYPE": "support_data",
+                    "UNITS": u.deg.to_string(),
+                    "DEPEND_0": "Epoch",
+                },
+            ),
+            "Epoch_label": NDData(
+                data=np.array([t.isot for t in ts.time]),
+                meta={"CATDESC": "Label for Epoch dimension", "VAR_TYPE": "metadata"},
+            ),
+            "mask": NDData(
+                data=region_mask,
+                meta={
+                    "CATDESC": (
+                        "Boolean region masks, shape (nregions, nlat, nlon). "
+                        "Axis-0 order: "
+                        + ", ".join(
+                            [
+                                f"{region.mask_index}={region.label} (±{region.code})"
+                                for region in Region.ordered()
+                            ]
+                        )
+                    ),
+                    "VAR_TYPE": "support_data",
+                },
+            ),
+        }
+
+        schema = REACHDataSchema()
+        meta = dict(schema.default_global_attributes)
+        meta["Data_version"] = "1.0.0"
+        meta["Data_level"] = "l2"
+        meta["Flavor"] = str(flavor)
+        meta["coordinate_system"] = "geodetic"
+
+        return GenericGeoMap(
+            timeseries=ts,
+            support=variables,
+            meta=meta,
+            schema=self.schema,
         )

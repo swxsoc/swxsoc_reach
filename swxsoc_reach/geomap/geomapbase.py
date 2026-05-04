@@ -3,16 +3,12 @@
 import astropy.units as u
 import numpy as np
 from astropy.coordinates import EarthLocation
-from astropy.nddata import NDData
-from astropy.timeseries import TimeSeries
 from swxsoc import log
 from swxsoc.swxdata import SWXData
 
-from swxsoc_reach.util.schema import REACHDataSchema
-from swxsoc_reach.util.util import load_regions
 from swxsoc_reach.visualization.viz import plot_region_code_contours_on_geomap
 
-from ..util.enums import Flavor, SensorId
+from ..util.enums import Flavor, Region, SensorId
 
 
 class GenericGeoMap(SWXData):
@@ -20,139 +16,30 @@ class GenericGeoMap(SWXData):
 
     This class provides a compact, SunPy-like API for geospatial grids:
 
-    - map metadata in ``meta``
-    - data access via ``data`` / ``unit``
-    - pixel/world coordinate conversion helpers
-    - submap extraction and nearest-neighbor resampling
-    - a built-in plotting method for quick visualization
-
-    Parameters
-    ----------
-    data : numpy.ndarray
-        2D geospatial data array.
-    meta : dict | None, optional
-        Metadata for the map (title, coordinate system, extent, etc.).
-    mask : numpy.ndarray | None, optional
-        Optional mask array broadcastable to ``data``.
-    unit : str | None, optional
-        Unit label for map values.
-    lon : numpy.ndarray | None, optional
-        1D or 2D longitudes in degrees.
-    lat : numpy.ndarray | None, optional
-        1D or 2D latitudes in degrees.
     """
 
-    def __init__(
-        self,
-        data: np.ndarray,
-        meta: dict[str, str] | None = None,
-        *,
-        timeseries: TimeSeries | None = None,
-        data_version: str = "1.0.0",
-        data_level: str = "L1C>Level 1 Calibrated",
-        global_attrs: dict | None = None,
-        mask: np.ndarray | None = None,
-        unit: str | None = None,
-        lon: np.ndarray | None = None,
-        lat: np.ndarray | None = None,
-        flavor: Flavor | None = None,
-    ):
-        from astropy.time import Time
-        from astropy.timeseries import TimeSeries
-
-        # Build a minimal TimeSeries for SWXData if none provided.
-        # Two entries are required by REACHDataSchema._get_resolution.
-        if timeseries is None:
-            timeseries = TimeSeries(
-                {
-                    "time": Time(
-                        ["2000-01-01T00:00:00", "2000-01-01T00:00:05"],
-                        format="isot",
-                        scale="utc",
-                    )
-                }
-            )
-
-        # Build SWXData global metadata from schema defaults
-        _swx_meta = dict(REACHDataSchema().default_global_attributes)
-        # Override Data_level to a value accepted by the mission config
-        # (default 'L1>Level 1' maps to 'l1' which is not in valid_data_levels)
-        _swx_meta["Data_level"] = data_level
-        _swx_meta["Data_version"] = data_version
-        if global_attrs is not None:
-            _swx_meta.update(global_attrs)
-
-        arr = np.asarray(data)
-        if arr.ndim != 2:
-            raise ValueError(
-                f"GenericGeoMap expects 2D data, got array with shape {arr.shape}."
-            )
-
-        _map_arr = np.ma.array(arr, mask=mask, copy=True)
-        _map_nddata = NDData(
-            data=_map_arr,
-            mask=np.ma.getmaskarray(_map_arr),
-            meta={
-                "CATDESC": "2D geospatial map data",
-                "VAR_TYPE": "support_data",
-                "UNITS": unit if unit is not None else "",
-            },
-        )
-
-        # Set _map_meta BEFORE super().__init__() because _derive_metadata()
-        # may call self.meta (which returns _map_meta) during initialization.
-        self._map_meta = dict(meta) if meta is not None else {}
-
-        super().__init__(
-            timeseries=timeseries,
-            support={"map_data": _map_nddata},
-            meta=_swx_meta,
-            schema=REACHDataSchema(),
-        )
-
-        self._unit = unit
-        self.plot_settings = {
-            "cmap": self._map_meta.get("cmap", "viridis"),
-            "origin": self._map_meta.get("origin", "lower"),
-        }
-
-        self._lon = None if lon is None else np.asarray(lon, dtype=float)
-        self._lat = None if lat is None else np.asarray(lat, dtype=float)
-        self.flavor = flavor
-        self._validate_coordinates()
-
-    def __repr__(self) -> str:
-        title = self._map_meta.get("title", "Untitled")
-        coord_sys = self.coordinate_system
-        return (
-            f"GenericGeoMap(title={title!r}, shape={self.shape}, "
-            f"coordinate_system={coord_sys!r}, unit={self.unit!r})"
-        )
+    @property
+    def map_data(self) -> np.ndarray:
+        """2D geospatial data array."""
+        return self.support["map_data"].data
 
     @property
-    def map_data(self) -> np.ma.MaskedArray:
-        """Map data as a masked 2D array, stored as NDData in SWXData support."""
-        nd = self._support["map_data"]
-        arr = np.asarray(nd.data)
-        mask = nd.mask if nd.mask is not None else False
-        return np.ma.array(arr, mask=mask)
+    def _lon(self) -> np.ndarray:
+        """Longitude coordinate array (1D or 2D) in degrees, or None if not provided."""
+        if "lon" in self.support:
+            return self.support["lon"].data
+        return None
 
     @property
-    def map_meta(self) -> dict[str, str]:
-        """Map-specific metadata dictionary."""
-        return self._map_meta
+    def _lat(self) -> np.ndarray:
+        """Latitude coordinate array (1D or 2D) in degrees, or None if not provided."""
+        if "lat" in self.support:
+            return self.support["lat"].data
+        return None
 
     @property
-    def unit(self) -> str | None:
-        """Unit label for map values."""
-        return self._unit
-
-    @property
-    def quantity(self):
-        """Data as an astropy Quantity when astropy is available."""
-        if self._unit is None or u is None:
-            return self.map_data
-        return np.asarray(self.map_data) * u.Unit(self._unit)
+    def flavor(self) -> Flavor:
+        pass
 
     @property
     def shape(self) -> tuple[int, int]:
@@ -167,39 +54,16 @@ class GenericGeoMap(SWXData):
     @property
     def coordinate_system(self) -> str:
         """Coordinate system label for this map."""
-        return str(self._map_meta.get("coordinate_system", "geodetic"))
+        return str(self.meta.get("coordinate_system", "geodetic"))
 
     @property
     def extent(self) -> tuple[float, float, float, float]:
         """Map extent as lon/lat min-max values in degrees."""
-        if "extent" in self._map_meta:
-            lon_min, lon_max, lat_min, lat_max = self._map_meta["extent"]
-            return (
-                float(lon_min),
-                float(lon_max),
-                float(lat_min),
-                float(lat_max),
-            )
-
-        lon2d, lat2d = self.lon_lat_grid()
         return (
-            float(np.nanmin(lon2d)),
-            float(np.nanmax(lon2d)),
-            float(np.nanmin(lat2d)),
-            float(np.nanmax(lat2d)),
-        )
-
-    def copy(self) -> "GenericGeoMap":
-        """Return a deep-ish copy of the map data and metadata."""
-        _md = self.map_data
-        return GenericGeoMap(
-            np.asarray(_md),
-            dict(self._map_meta),
-            timeseries=self._timeseries[self._default_timeseries_key].copy(),
-            mask=np.ma.getmaskarray(_md),
-            unit=self._unit,
-            lon=None if self._lon is None else self._lon.copy(),
-            lat=None if self._lat is None else self._lat.copy(),
+            float(self._lon.min()),
+            float(self._lon.max()),
+            float(self._lat.min()),
+            float(self._lat.max()),
         )
 
     def lon_lat_grid(self) -> tuple[np.ndarray, np.ndarray]:
@@ -229,18 +93,6 @@ class GenericGeoMap(SWXData):
         lat_axis = np.linspace(lat_min, lat_max, ny)
         lon2d, lat2d = np.meshgrid(lon_axis, lat_axis)
         return lon2d, lat2d
-
-    def extent_from_shape(self) -> tuple[float, float, float, float]:
-        """Infer extent from metadata or default global geodetic bounds."""
-        if "extent" in self._map_meta:
-            lon_min, lon_max, lat_min, lat_max = self._map_meta["extent"]
-            return (
-                float(lon_min),
-                float(lon_max),
-                float(lat_min),
-                float(lat_max),
-            )
-        return -180.0, 180.0, -90.0, 90.0
 
     def pixel_to_world(self, x: float, y: float):
         """Convert zero-based pixel coordinates to an EarthLocation."""
@@ -311,22 +163,7 @@ class GenericGeoMap(SWXData):
         sub_data = _md[y0:y1, x0:x1]
         sub_lon = lon2d[y0:y1, x0:x1]
         sub_lat = lat2d[y0:y1, x0:x1]
-        sub_meta = dict(self._map_meta)
-        sub_meta["extent"] = (
-            float(np.nanmin(sub_lon)),
-            float(np.nanmax(sub_lon)),
-            float(np.nanmin(sub_lat)),
-            float(np.nanmax(sub_lat)),
-        )
-        return GenericGeoMap(
-            np.asarray(sub_data),
-            meta=sub_meta,
-            timeseries=self._timeseries[self._default_timeseries_key].copy(),
-            mask=np.ma.getmaskarray(sub_data),
-            unit=self._unit,
-            lon=sub_lon,
-            lat=sub_lat,
-        )
+        pass
 
     def resample(self, dimensions: tuple[int, int]) -> "GenericGeoMap":
         """Return a nearest-neighbor resampled map with new dimensions."""
@@ -352,62 +189,26 @@ class GenericGeoMap(SWXData):
         lon_resampled = lon2d[np.ix_(y_index, x_index)]
         lat_resampled = lat2d[np.ix_(y_index, x_index)]
 
-        resampled_meta = dict(self._map_meta)
-        resampled_meta["extent"] = (
-            float(np.nanmin(lon_resampled)),
-            float(np.nanmax(lon_resampled)),
-            float(np.nanmin(lat_resampled)),
-            float(np.nanmax(lat_resampled)),
-        )
-
-        return GenericGeoMap(
-            np.asarray(data_resampled),
-            meta=resampled_meta,
-            timeseries=self._timeseries[self._default_timeseries_key].copy(),
-            mask=np.ma.getmaskarray(data_resampled),
-            unit=self._unit,
-            lon=lon_resampled,
-            lat=lat_resampled,
-        )
-
-    def wrap_longitude(self, center: float = 0.0) -> "GenericGeoMap":
-        """Wrap longitudes around ``center`` and reorder map columns."""
-        lon2d, lat2d = self.lon_lat_grid()
-        wrapped_lon = ((lon2d - center + 180.0) % 360.0) - 180.0 + center
-
-        column_order = np.argsort(wrapped_lon[self.shape[0] // 2, :])
-        _md = self.map_data
-        wrapped_data = _md[:, column_order]
-        wrapped_lon = wrapped_lon[:, column_order]
-        wrapped_lat = lat2d[:, column_order]
-
-        wrapped_meta = dict(self._map_meta)
-        wrapped_meta["extent"] = (
-            float(np.nanmin(wrapped_lon)),
-            float(np.nanmax(wrapped_lon)),
-            float(np.nanmin(wrapped_lat)),
-            float(np.nanmax(wrapped_lat)),
-        )
-
-        return GenericGeoMap(
-            np.asarray(wrapped_data),
-            meta=wrapped_meta,
-            timeseries=self._timeseries[self._default_timeseries_key].copy(),
-            mask=np.ma.getmaskarray(wrapped_data),
-            unit=self._unit,
-            lon=wrapped_lon,
-            lat=wrapped_lat,
-        )
+        pass
 
     def plot(
         self,
         ax=None,
         *,
         add_colorbar: bool = True,
-        use_world_coordinates: bool = True,
+        color_by_region: bool = True,
         **kwargs,
     ):
-        """Plot this map with matplotlib and return ``(ax, artist)``."""
+        """Plot this map with matplotlib and return ``(ax, artist)``.
+
+        Parameters
+        ----------
+        color_by_region : bool, optional
+            When ``True`` (default) the data is split into per-region arrays
+            and each region is drawn with its own colormap.  When ``False`` the
+            full map data is plotted as a single ``pcolormesh`` using the
+            ``viridis`` colormap.
+        """
         import matplotlib as mpl
         import matplotlib.pyplot as plt
 
@@ -421,61 +222,29 @@ class GenericGeoMap(SWXData):
         colorbarmax = -2
         colorbarmin = -7
 
-        # Make the colorblind friendly colormaps
-        # These colors work well for all be true black white colorblind
+        # Colorblind-friendly colormaps
         cdi = "#093145"
-        cli = "#3c6478"
-        cda = "#107896"
         cla = "#43abc9"
+        cda = "#107896"
+        clg = "#F3F4F6"
         cdk = "#829356"
         clk = "#b5c689"
         cdd = "#bca136"
         cld = "#efd469"
-        cdc = "#c2571a"
-        clc = "#f58b4c"
         cdr = "#9a2617"
         clr = "#cd594a"
-        clg = "#F3F4F6"
-        cdg = "#8B8E95"
 
-        greycolors = [clg, cdg]
-        greencolors = [clg, clk, cdk]
-        yellowcolors = [clg, cld, cdd]
-        redcolors = [clg, clr, cdr]
-        hotcolors = [cld, cdd, cdc, cdr]
-        colors = [cdi, cdk, cld, cdc, cdr]
-        bluecolors = [clg, cla, cda, cdi]
+        bluemap = mpl.colors.LinearSegmentedColormap.from_list("", [clg, cla, cda, cdi])
+        greenmap = mpl.colors.LinearSegmentedColormap.from_list("", [clg, clk, cdk])
+        yellowmap = mpl.colors.LinearSegmentedColormap.from_list("", [clg, cld, cdd])
+        redmap = mpl.colors.LinearSegmentedColormap.from_list("", [clg, clr, cdr])
 
-        bluemap = mpl.colors.LinearSegmentedColormap.from_list("", bluecolors)
-        pltmap = mpl.colors.LinearSegmentedColormap.from_list("", hotcolors)
-        greenmap = mpl.colors.LinearSegmentedColormap.from_list("", greencolors)
-        yellowmap = mpl.colors.LinearSegmentedColormap.from_list("", yellowcolors)
-        redmap = mpl.colors.LinearSegmentedColormap.from_list("", redcolors)
-
-        lookuplon, lookuplat, glook = load_regions()
-
-        # Create 2D region grid
+        # Split map data into per-region arrays using the pre-computed mask
+        # stored by to_geomap(). Shape: (nregions, nlat, nlon).
         _md = self.map_data
-        region_grid = np.zeros(_md.shape, dtype=int)
-        lon_indices = ((lookuplon + 180) % 360).astype(int)
-        lat_indices = (lookuplat + 90).astype(int)
-        region_grid[lat_indices, lon_indices] = glook
+        xylon, xylat = self.lon_lat_grid()
 
-        # Assign to regions using masks
-        SAA = np.zeros(_md.shape) * np.nan
-        PC = np.zeros(_md.shape) * np.nan
-        outrad = np.zeros(_md.shape) * np.nan
-        slot = np.zeros(_md.shape) * np.nan
-        for region_code in np.unique(glook):
-            mask = region_grid == region_code
-            if region_code in (1, -1):  # SAA and Inner Zone
-                SAA[mask] = _md[mask]
-            elif region_code in (2, -2):  # Polar Cap
-                PC[mask] = _md[mask]
-            elif region_code in (3, -3):  # Outer Zone
-                outrad[mask] = _md[mask]
-            elif region_code in (4, -4):  # Slot
-                slot[mask] = _md[mask]
+        region_mask = self["mask"].data
 
         if ax is None:
             fig = plt.figure(figsize=(11.69, 8.27))
@@ -491,153 +260,131 @@ class GenericGeoMap(SWXData):
         else:
             fig = ax.figure
 
-        if has_cartopy:
+        import warnings
+
+        # Cartopy's GridLiner calls set_ticklabels() without a FixedLocator,
+        # which produces a UserWarning in recent matplotlib versions.  Suppress it.
+        with warnings.catch_warnings():
+            warnings.filterwarnings(
+                "ignore",
+                message="set_ticklabels\\(\\) should only be used with a fixed number",
+                category=UserWarning,
+            )
             plot_region_code_contours_on_geomap(
                 ax=ax,
                 draw_coastlines=True,
                 draw_gridlines=True,
                 label_contours=False,
             )
-        xylon = self.lon_lat_grid()[0]
-        xylat = self.lon_lat_grid()[1]
-        mapSAA = ax.pcolormesh(
-            xylon,
-            xylat,
-            np.log10(SAA),
-            vmin=colorbarmin,
-            vmax=colorbarmax,
-            cmap=redmap,
+
+        time_str = (
+            np.min(self.time).strftime("%d %b %Y %H:%M")
+            + " - "
+            + np.max(self.time).strftime("%d %b %Y %H:%M")
         )
-        mapPC = ax.pcolormesh(
-            xylon,
-            xylat,
-            np.log10(PC),
-            vmin=colorbarmin,
-            vmax=colorbarmax,
-            cmap=yellowmap,
-        )
-        mapout = ax.pcolormesh(
-            xylon,
-            xylat,
-            np.log10(outrad),
-            vmin=colorbarmin,
-            vmax=colorbarmax,
-            cmap=bluemap,
-        )
-        mapslot = ax.pcolormesh(
-            xylon,
-            xylat,
-            np.log10(slot),
-            vmin=colorbarmin,
-            vmax=colorbarmax,
-            cmap=greenmap,
-        )
+        ax.set_title(f"{time_str} - Flavor {self.flavor}")
 
-        title_pre = self._map_meta["map_fields"]["plotTitlePre"]
-        pltdos = self._map_meta["map_fields"].get("pltdos", "")
+        if color_by_region:
+            region_cmaps = {
+                Region.SAA: redmap,
+                Region.POLAR_CAP: yellowmap,
+                Region.OUTER_ZONE: bluemap,
+                Region.SLOT: greenmap,
+            }
+            regions = [
+                (region, region_cmaps[region], region.label)
+                for region in Region.ordered()
+            ]
 
-        pltname = f"{self.flavor} {pltdos}".strip()
+            meshes = []
+            for region, cmap, _ in regions:
+                region_data = np.where(region_mask[region.mask_index], _md, np.nan)
+                with np.errstate(divide="ignore", invalid="ignore"):
+                    log_data = np.where(region_data > 0, np.log10(region_data), np.nan)
+                mesh = ax.pcolormesh(
+                    xylon,
+                    xylat,
+                    log_data,
+                    vmin=colorbarmin,
+                    vmax=colorbarmax,
+                    cmap=cmap,
+                )
+                meshes.append(mesh)
 
-        ax.set_title(
-            (title_pre + pltname).strip(),
-            fontdict={"fontsize": 15},
-        )
+            if add_colorbar:
+                intticks = int(np.floor(colorbarmax - colorbarmin) + 1)
+                tickemptylabels = [" " for _ in range(intticks)]
 
-        if add_colorbar:
-            intticks = int(np.floor(colorbarmax - colorbarmin) + 1)
-            tickemptylabels = [" " for _ in range(intticks)]
+                pos = ax.get_position()
+                cbar_height = 0.03
+                cbar_width = pos.width
+                cbar_x = pos.x0
+                cbar_y = pos.y0 - 0.08
 
-            pos = ax.get_position()
-            cbar_height = 0.03
-            cbar_width = pos.width
-            cbar_x = pos.x0
-            cbar_y = pos.y0 - 0.08
+                for i, (mesh, (_, _, label)) in enumerate(zip(meshes, regions)):
+                    cax = fig.add_axes((cbar_x, cbar_y, cbar_width, cbar_height))
+                    cbar = fig.colorbar(mesh, cax=cax, orientation="horizontal")
+                    cbar.ax.tick_params(direction="in")
+                    cbar.ax.text(
+                        0.01,
+                        0.5,
+                        label,
+                        transform=cbar.ax.transAxes,
+                        ha="left",
+                        va="center",
+                        color="black",
+                        fontsize=9,
+                        weight="bold",
+                    )
+                    if i < len(regions) - 1:
+                        cbar.ax.set_xticklabels(tickemptylabels)
+                    else:
+                        cbar.set_label("log (rad/sec)", fontsize=10, labelpad=5)
+                        cbar.ax.xaxis.set_label_position("bottom")
+                    cbar_y -= cbar_height
 
-            cax_saa = fig.add_axes((cbar_x, cbar_y, cbar_width, cbar_height))
-            cbarSAA = fig.colorbar(
-                mapSAA,
-                cax=cax_saa,
-                orientation="horizontal",
+            last_mesh = meshes[-1]
+        else:
+            with np.errstate(divide="ignore", invalid="ignore"):
+                log_data = np.where(_md > 0, np.log10(_md), np.nan)
+            last_mesh = ax.pcolormesh(
+                xylon,
+                xylat,
+                log_data,
+                vmin=colorbarmin,
+                vmax=colorbarmax,
+                cmap="viridis",
             )
-            cbarSAA.ax.set_xticklabels(tickemptylabels)
-            cbarSAA.ax.tick_params(direction="in")
-            cbarSAA.ax.text(
-                0.01,
-                0.5,
-                "SAA and Inner Zone",
-                transform=cbarSAA.ax.transAxes,
-                ha="left",
-                va="center",
-                color="black",
-                fontsize=9,
-                weight="bold",
-            )
+            if add_colorbar:
+                fig.colorbar(
+                    last_mesh, ax=ax, label="log (rad/sec)", orientation="horizontal"
+                )
 
-            cbar_y -= cbar_height
-            cax_out = fig.add_axes((cbar_x, cbar_y, cbar_width, cbar_height))
-            cbarout = fig.colorbar(
-                mapout,
-                cax=cax_out,
-                orientation="horizontal",
-            )
-            cbarout.ax.set_xticklabels(tickemptylabels)
-            cbarout.ax.tick_params(direction="in")
-            cbarout.ax.text(
-                0.01,
-                0.5,
-                "Outer Zone",
-                transform=cbarout.ax.transAxes,
-                ha="left",
-                va="center",
-                color="black",
-                fontsize=9,
-                weight="bold",
-            )
-
-            cbar_y -= cbar_height
-            cax_slot = fig.add_axes((cbar_x, cbar_y, cbar_width, cbar_height))
-            cbarslot = fig.colorbar(
-                mapslot,
-                cax=cax_slot,
-                orientation="horizontal",
-            )
-            cbarslot.ax.set_xticklabels(tickemptylabels)
-            cbarslot.ax.tick_params(direction="in")
-            cbarslot.ax.text(
-                0.01,
-                0.5,
-                "Slot",
-                transform=cbarslot.ax.transAxes,
-                ha="left",
-                va="center",
-                color="black",
-                fontsize=9,
-                weight="bold",
-            )
-
-            cbar_y -= cbar_height
-            cax_pc = fig.add_axes((cbar_x, cbar_y, cbar_width, cbar_height))
-            cbarPC = fig.colorbar(
-                mapPC,
-                cax=cax_pc,
-                orientation="horizontal",
-            )
-            cbarPC.ax.tick_params(direction="in")
-            cbarPC.ax.text(
-                0.01,
-                0.5,
-                "Polar Cap",
-                transform=cbarPC.ax.transAxes,
-                ha="left",
-                va="center",
-                color="black",
-                fontsize=9,
-                weight="bold",
-            )
-            cbarPC.set_label("log (rad/sec)", fontsize=10, labelpad=5)
-            cbarPC.ax.xaxis.set_label_position("bottom")
         plt.show()
-        return ax, mapPC
+        return ax, last_mesh
+
+    def sum_per_region(self) -> dict[str, float]:
+        """Return the sum of all map pixels within each region.
+
+        The mask stored by :meth:`~swxsoc_reach.track.trackbase.REACHTrack.to_geomap`
+        is used directly, so no contour-path computation is needed here.
+
+        Returns
+        -------
+        dict
+            Keys are region keys (``"saa"``, ``"polar_cap"``,
+            ``"outer_zone"``, ``"slot"``); values are the sum of finite
+            ``map_data`` pixels that fall inside that region.  NaN pixels
+            are excluded from the sum.
+        """
+        region_mask = self["mask"].data  # shape (nregions, nlat, nlon)
+        _md = self.map_data
+
+        result: dict[str, float] = {}
+        for region in Region.ordered():
+            masked = np.where(region_mask[region.mask_index], _md, np.nan)
+            result[region.key] = float(np.nansum(masked))
+        return result
 
     def _validate_coordinates(self) -> None:
         """Validate user-provided longitude/latitude arrays, if provided."""

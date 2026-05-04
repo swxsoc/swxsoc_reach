@@ -3,7 +3,62 @@
 from __future__ import annotations
 
 import re
-from enum import Flag, auto
+from enum import Enum, Flag, auto
+
+
+class Region(Enum):
+    """REACH region definitions shared across masking and plotting logic."""
+
+    SAA = (0, 1, "SAA and Inner Zone", "saa", "#cd594a")
+    POLAR_CAP = (1, 2, "Polar Cap", "polar_cap", "#efd469")
+    OUTER_ZONE = (2, 3, "Outer Zone", "outer_zone", "#093145")
+    SLOT = (3, 4, "Slot", "slot", "#b5c689")
+
+    def __init__(
+        self,
+        mask_index: int,
+        code: int,
+        label: str,
+        key: str,
+        color: str,
+    ) -> None:
+        self.mask_index = mask_index
+        self.code = code
+        self.label = label
+        self.key = key
+        self.color = color
+
+    @property
+    def signed_codes(self) -> tuple[int, int]:
+        """Return signed region-code family (positive and negative)."""
+        return (self.code, -self.code)
+
+    @classmethod
+    def ordered(cls) -> tuple["Region", ...]:
+        """Return regions in canonical mask-axis order."""
+        return (cls.SAA, cls.POLAR_CAP, cls.OUTER_ZONE, cls.SLOT)
+
+    @classmethod
+    def contour_levels(cls) -> list[int]:
+        """Return signed contour level order used for contour plotting."""
+        levels = [-region.code for region in reversed(cls.ordered())]
+        levels.extend([region.code for region in cls.ordered()])
+        return levels
+
+    @classmethod
+    def contour_colors(cls) -> list[str]:
+        """Return contour colors corresponding to contour_levels order."""
+        color_by_code = {
+            -cls.SLOT.code: "#6b7280",
+            -cls.OUTER_ZONE.code: cls.OUTER_ZONE.color,
+            -cls.POLAR_CAP.code: cls.POLAR_CAP.color,
+            -cls.SAA.code: cls.SAA.color,
+            cls.SAA.code: cls.SAA.color,
+            cls.POLAR_CAP.code: cls.POLAR_CAP.color,
+            cls.OUTER_ZONE.code: cls.OUTER_ZONE.color,
+            cls.SLOT.code: cls.SLOT.color,
+        }
+        return [color_by_code[level] for level in cls.contour_levels()]
 
 
 class Flavor(Flag):

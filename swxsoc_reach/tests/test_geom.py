@@ -3,13 +3,14 @@ import numpy as np
 import pytest
 
 import swxsoc_reach.util.geom as geom_util
+from swxsoc_reach.util.enums import Region
 
 
-def test_read_contour_paths_filters_region_code(tmp_path):
-    """read_contour_paths should return paths for every supported region code."""
+def test_load_region_contours_returns_all_region_codes(tmp_path):
+    """load_region_contours should return paths for every supported region code."""
     contour_file = tmp_path / "region_contour_paths.npz"
 
-    contour_levels = np.array([-4, -3, -2, -1, 1, 2, 3, 4], dtype=int)
+    contour_levels = np.array(Region.contour_levels(), dtype=int)
     vertices_by_segment = np.array(
         [
             [[-1.0, -1.0], [-0.5, -1.0], [-0.5, -0.5], [-1.0, -1.0]],
@@ -23,27 +24,37 @@ def test_read_contour_paths_filters_region_code(tmp_path):
         ],
         dtype=float,
     )
+
+    all_vertices = vertices_by_segment.reshape(-1, 2)
+    path_vertex_counts = np.full(contour_levels.size, 4, dtype=int)
+    path_code_counts = np.full(contour_levels.size, 4, dtype=int)
+    path_codes = np.array(
+        [
+            mpath.Path.MOVETO,
+            mpath.Path.LINETO,
+            mpath.Path.LINETO,
+            mpath.Path.CLOSEPOLY,
+        ],
+        dtype=np.uint8,
+    )
+    all_codes = np.tile(path_codes, contour_levels.size)
+
     np.savez_compressed(
         contour_file,
         contour_levels=contour_levels,
-        vertices_by_segment=vertices_by_segment,
+        vertices=all_vertices,
+        codes=all_codes,
+        path_vertex_counts=path_vertex_counts,
+        path_code_counts=path_code_counts,
     )
 
-    region_codes = [-4, -3, -2, -1, 1, 2, 3, 4]
-    for code in region_codes:
-        paths = geom_util.read_contour_paths(
-            region_code=code, contour_file=contour_file
-        )
-        assert isinstance(paths, list)
-        assert len(paths) > 0
-        assert all(isinstance(path, mpath.Path) for path in paths)
-
-    with pytest.raises(ValueError, match="Invalid region code"):
-        geom_util.read_contour_paths(region_code=99, contour_file=contour_file)
+    paths_dict = geom_util.load_region_contours(contour_file=contour_file)
+    assert set(paths_dict) == set(Region.contour_levels())
+    assert all(isinstance(path, mpath.Path) for path in paths_dict.values())
 
 
-def test_read_contour_paths_rejects_legacy_object_npz(tmp_path):
-    """Object-array NPZ files should be rejected (no legacy pickle fallback)."""
+def test_load_region_contours_rejects_legacy_object_npz(tmp_path):
+    """Legacy NPZ schema should be rejected (no compatibility fallback)."""
     contour_file = tmp_path / "region_contour_paths_legacy.npz"
     contour_levels = np.array([1], dtype=int)
     vertices_by_segment = np.array(
@@ -56,5 +67,5 @@ def test_read_contour_paths_rejects_legacy_object_npz(tmp_path):
         vertices_by_segment=vertices_by_segment,
     )
 
-    with pytest.raises(ValueError, match="Object arrays cannot be loaded"):
-        geom_util.read_contour_paths(region_code=1, contour_file=contour_file)
+    with pytest.raises(KeyError, match="vertices"):
+        geom_util.load_region_contours(contour_file=contour_file)

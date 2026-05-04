@@ -12,6 +12,7 @@ from scipy import stats
 from swxsoc.swxdata import SWXData
 
 from swxsoc_reach import log
+from swxsoc_reach.util.enums import Region
 
 
 def plot_region_code_contours_on_geomap(
@@ -30,18 +31,9 @@ def plot_region_code_contours_on_geomap(
     lookuplon, lookuplat, glook = load_regions()
 
     if contour_levels is None:
-        contour_levels = [-4, -3, -2, -1, 1, 2, 3, 4]
+        contour_levels = Region.contour_levels()
     if contour_colors is None:
-        contour_colors = [
-            "#6b7280",
-            "#093145",
-            "#efd469",
-            "#cd594a",
-            "#cd594a",
-            "#efd469",
-            "#093145",
-            "#b5c689",
-        ]
+        contour_colors = Region.contour_colors()
 
     if ax is None:
         fig = plt.figure(figsize=(11.69, 8.27))
@@ -148,10 +140,12 @@ def plot_mapdata(
 
     xylon = newv["xylon"]
     xylat = newv["xylat"]
-    SAA = newv["SAA"]
-    PC = newv["PC"]
-    outrad = newv["outrad"]
-    slot = newv["slot"]
+    region_data_by_enum = {
+        Region.SAA: newv["SAA"],
+        Region.POLAR_CAP: newv["PC"],
+        Region.OUTER_ZONE: newv["outrad"],
+        Region.SLOT: newv["slot"],
+    }
     # Epoch = newv['Epoch']
 
     # *****
@@ -172,7 +166,7 @@ def plot_mapdata(
         ax.coastlines()
 
         # and make the grid.
-        gl = ax.gridlines(
+        ax.gridlines(
             draw_labels=True,
             xlocs=np.arange(-180, 180, 30),
             ylocs=np.arange(-90, 90, 10),
@@ -182,33 +176,28 @@ def plot_mapdata(
 
         # Here we will be plotting all the different regions.
         print("making the plot flavor " + flav + " dose " + pltdos)
-        mapSAA = ax.pcolormesh(
-            xylon, xylat, np.log10(SAA), vmin=colorbarmin, vmax=colorbarmax, cmap=redmap
-        )  #'Reds')
-        mapPC = ax.pcolormesh(
-            xylon,
-            xylat,
-            np.log10(PC),
-            vmin=colorbarmin,
-            vmax=colorbarmax,
-            cmap=yellowmap,
-        )  #'Purples')
-        mapout = ax.pcolormesh(
-            xylon,
-            xylat,
-            np.log10(outrad),
-            vmin=colorbarmin,
-            vmax=colorbarmax,
-            cmap=bluemap,
-        )  #'Blues')
-        mapslot = ax.pcolormesh(
-            xylon,
-            xylat,
-            np.log10(slot),
-            vmin=colorbarmin,
-            vmax=colorbarmax,
-            cmap=greenmap,
-        )  #'Greens')
+        cmap_by_region = {
+            Region.SAA: redmap,
+            Region.POLAR_CAP: yellowmap,
+            Region.OUTER_ZONE: bluemap,
+            Region.SLOT: greenmap,
+        }
+        region_meshes: dict[Region, Any] = {}
+        for region in Region.ordered():
+            with np.errstate(divide="ignore", invalid="ignore"):
+                log_data = np.where(
+                    region_data_by_enum[region] > 0,
+                    np.log10(region_data_by_enum[region]),
+                    np.nan,
+                )
+            region_meshes[region] = ax.pcolormesh(
+                xylon,
+                xylat,
+                log_data,
+                vmin=colorbarmin,
+                vmax=colorbarmax,
+                cmap=cmap_by_region[region],
+            )
 
         # Here we can make the contour plots, but they are ugly so currently not turned on.
         # fix bad data in contour plot stuff
@@ -249,77 +238,29 @@ def plot_mapdata(
         cbar_x = pos.x0
         cbar_y = pos.y0 - 0.08
 
-        # SAA colorbar
-        cax_saa = fig.add_axes([cbar_x, cbar_y, cbar_width, cbar_height])
-        cbarSAA = fig.colorbar(mapSAA, cax=cax_saa, orientation="horizontal")
-        cbarSAA.ax.set_xticklabels(tickemptylabels)
-        cbarSAA.ax.tick_params(direction="in")
-        cbarSAA.ax.text(
-            0.01,
-            0.5,
-            "SAA and Inner Zone",
-            transform=cbarSAA.ax.transAxes,
-            ha="left",
-            va="center",
-            color="black",
-            fontsize=9,
-            weight="bold",
-        )
-
-        # Outer Zone colorbar
-        cbar_y -= cbar_height
-        cax_out = fig.add_axes([cbar_x, cbar_y, cbar_width, cbar_height])
-        cbarout = fig.colorbar(mapout, cax=cax_out, orientation="horizontal")
-        cbarout.ax.set_xticklabels(tickemptylabels)
-        cbarout.ax.tick_params(direction="in")
-        cbarout.ax.text(
-            0.01,
-            0.5,
-            "Outer Zone",
-            transform=cbarout.ax.transAxes,
-            ha="left",
-            va="center",
-            color="black",
-            fontsize=9,
-            weight="bold",
-        )
-
-        # Slot colorbar
-        cbar_y -= cbar_height
-        cax_slot = fig.add_axes([cbar_x, cbar_y, cbar_width, cbar_height])
-        cbarslot = fig.colorbar(mapslot, cax=cax_slot, orientation="horizontal")
-        cbarslot.ax.set_xticklabels(tickemptylabels)
-        cbarslot.ax.tick_params(direction="in")
-        cbarslot.ax.text(
-            0.01,
-            0.5,
-            "Slot",
-            transform=cbarslot.ax.transAxes,
-            ha="left",
-            va="center",
-            color="black",
-            fontsize=9,
-            weight="bold",
-        )
-
-        # Polar Cap colorbar
-        cbar_y -= cbar_height
-        cax_pc = fig.add_axes([cbar_x, cbar_y, cbar_width, cbar_height])
-        cbarPC = fig.colorbar(mapPC, cax=cax_pc, orientation="horizontal")
-        cbarPC.ax.tick_params(direction="in")
-        cbarPC.ax.text(
-            0.01,
-            0.5,
-            "Polar Cap",
-            transform=cbarPC.ax.transAxes,
-            ha="left",
-            va="center",
-            color="black",
-            fontsize=9,
-            weight="bold",
-        )
-        cbarPC.set_label("log (rads/sec)", fontsize=10, labelpad=5)
-        cbarPC.ax.xaxis.set_label_position("bottom")
+        for i, region in enumerate(Region.ordered()):
+            cax = fig.add_axes([cbar_x, cbar_y, cbar_width, cbar_height])
+            cbar = fig.colorbar(
+                region_meshes[region], cax=cax, orientation="horizontal"
+            )
+            cbar.ax.tick_params(direction="in")
+            cbar.ax.text(
+                0.01,
+                0.5,
+                region.label,
+                transform=cbar.ax.transAxes,
+                ha="left",
+                va="center",
+                color="black",
+                fontsize=9,
+                weight="bold",
+            )
+            if i < len(Region.ordered()) - 1:
+                cbar.ax.set_xticklabels(tickemptylabels)
+            else:
+                cbar.set_label("log (rads/sec)", fontsize=10, labelpad=5)
+                cbar.ax.xaxis.set_label_position("bottom")
+            cbar_y -= cbar_height
         fig.savefig(fileout, orientation="landscape")
 
         if show:

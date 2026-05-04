@@ -7,9 +7,11 @@ import numpy as np
 import pytest
 from scipy.interpolate import splprep
 
+import swxsoc_reach.util.geom as geom_util
 import swxsoc_reach.util.util as util
 import swxsoc_reach.visualization.viz as viz
 from swxsoc_reach import _test_files_directory
+from swxsoc_reach.util.enums import Region
 
 TIME = "2024-04-06T12:06:21"
 TIME_FORMATTED = "20240406T120621"
@@ -94,7 +96,7 @@ def test_plot_regions_can_filter_to_saa(tmp_path, monkeypatch):
     result = util.plot_regions(
         output,
         draw_coastlines=False,
-        region_names=("SAA and Inner Zone",),
+        region_names=(Region.SAA.label,),
         title="SAA Region Map",
     )
 
@@ -150,8 +152,8 @@ def test_plot_region_code_contours_on_geomap_returns_contour(monkeypatch):
     assert contour is not None
 
 
-def test_contour_image_to_path_returns_mpath_object():
-    """Low-level contour extraction should return a matplotlib Path."""
+def test_contour_image_to_path_returns_mpath_object_per_level():
+    """Low-level contour extraction should return one matplotlib Path per level."""
     image = np.array(
         [
             [0.0, 0.0, 0.0],
@@ -160,11 +162,28 @@ def test_contour_image_to_path_returns_mpath_object():
         ]
     )
 
-    path = util.contour_image_to_path(image=image, contour_level=0.5)
+    contour_paths = util.contour_image_to_path(image=image, contour_levels=[1.0])
+    path = contour_paths[1.0]
 
     assert isinstance(path, mpath.Path)
     assert path.vertices.ndim == 2
     assert path.vertices.shape[1] == 2
+
+
+def test_contour_image_to_path_returns_requested_levels():
+    image = np.array(
+        [
+            [0.0, 1.0, 1.0, 0.0],
+            [0.0, 1.0, 1.0, 0.0],
+            [0.0, 0.0, 2.0, 2.0],
+            [0.0, 0.0, 2.0, 2.0],
+        ]
+    )
+
+    contour_paths = util.contour_image_to_path(image=image, contour_levels=[1.0, 2.0])
+
+    assert set(contour_paths) == {1.0, 2.0}
+    assert all(isinstance(path_obj, mpath.Path) for path_obj in contour_paths.values())
 
 
 def test_read_spline_fit_polygons_returns_geometry(tmp_path):
@@ -566,20 +585,20 @@ def test_point_in_region_fixture_points_match_regions():
     region_codes = np.asarray(data["region_codes"], dtype=int)
     points_by_region = data["points_by_region"]
 
+    contour_dict = geom_util.load_region_contours(contour_file=contour_paths_path)
+
     for code, points in zip(region_codes, points_by_region, strict=False):
-        code_paths = util.read_contour_paths(contour_paths_path, region_code=int(code))
-        assert len(code_paths) > 0
+        code_path = contour_dict.get(int(code))
+        assert code_path is not None
 
         point_array = np.asarray(points, dtype=float)
         for lon, lat in point_array:
-            is_inside = any(
-                path.contains_point((float(lon), float(lat))) for path in code_paths
-            )
+            is_inside = code_path.contains_point((float(lon), float(lat)))
             assert is_inside
 
 
-def test_read_contour_paths_filters_region_code(tmp_path, monkeypatch):
-    """Test reading contour NPZ returns matplotlib paths for selected code."""
+def test_load_region_contours_filters_region_code(tmp_path):
+    """Test current contour NPZ loader returns expected region-code keys."""
     contour_file = tmp_path / "region_contour_paths.npz"
     contour_levels = np.array([1, 2, 1], dtype=int)
     vertices_by_segment = np.array(
@@ -590,19 +609,32 @@ def test_read_contour_paths_filters_region_code(tmp_path, monkeypatch):
         ],
         dtype=float,
     )
+
+    all_vertices = vertices_by_segment.reshape(-1, 2)
+    path_vertex_counts = np.full(contour_levels.size, 4, dtype=int)
+    path_code_counts = np.full(contour_levels.size, 4, dtype=int)
+    path_codes = np.array(
+        [
+            mpath.Path.MOVETO,
+            mpath.Path.LINETO,
+            mpath.Path.LINETO,
+            mpath.Path.CLOSEPOLY,
+        ],
+        dtype=np.uint8,
+    )
+    all_codes = np.tile(path_codes, contour_levels.size)
+
     np.savez_compressed(
         contour_file,
         contour_levels=contour_levels,
-        vertices_by_segment=vertices_by_segment,
+        vertices=all_vertices,
+        codes=all_codes,
+        path_vertex_counts=path_vertex_counts,
+        path_code_counts=path_code_counts,
     )
 
-    monkeypatch.setattr(util, "_data_directory", tmp_path)
+    paths_dict = geom_util.load_region_contours(contour_file=contour_file)
 
-    region_1_paths = util.read_contour_paths(region_code=1)
-    region_2_paths = util.read_contour_paths(region_code=2)
-    region_3_paths = util.read_contour_paths(region_code=3)
-
-    assert len(region_1_paths) == 2
-    assert len(region_2_paths) == 1
-    assert len(region_3_paths) == 0
-    assert all(isinstance(path, mpath.Path) for path in region_1_paths)
+    assert set(paths_dict) == {1, 2}
+    assert isinstance(paths_dict[1], mpath.Path)
+    assert isinstance(paths_dict[2], mpath.Path)
