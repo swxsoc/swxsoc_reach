@@ -483,6 +483,21 @@ def build_swxdata(
     if global_attrs is not None:
         meta.update(global_attrs)
 
+    # Determine whether PROVISIONAL or QUICKLOOK data based on descriptor
+    if "descriptor" not in data.columns:
+        raise ValueError(
+            "Input data must contain a 'descriptor' column to determine data provenance."
+        )
+    # check that there is only one unique descriptor value
+    unique_descriptors = data["descriptor"].unique()
+    if len(unique_descriptors) > 1:
+        raise ValueError(
+            f"Expected only one unique descriptor value to determine data provenance, but found multiple: {unique_descriptors}"
+        )
+    descriptor = unique_descriptors[0]
+    # Set Global Provenance based on descriptor content
+    meta["UDL_Source"] = descriptor
+
     # --- 7. Assemble SWXData -------------------------------------------
     reach_data = SWXData(timeseries=ts, support=variables, meta=meta, schema=schema)
 
