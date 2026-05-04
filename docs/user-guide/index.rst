@@ -14,6 +14,7 @@ Note that this package is still in active development.
 
    overview
    geom
+   data_objects
    logger
    customization
    changelog
