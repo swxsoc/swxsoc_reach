@@ -35,7 +35,12 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = [
-  "swxsoc_reach[docs, test, style, other]"
+  "swxsoc_reach[docs, test, style, net, other]"
+]
+
+net = [
+  'boto3',
+  'sdc_aws_utils @ git+https://github.com/swxsoc/sdc_aws_utils.git@main',
 ]
 
 docs = [
