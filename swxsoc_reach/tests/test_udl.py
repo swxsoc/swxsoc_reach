@@ -353,6 +353,182 @@ def test_download_udl_reach_to_file_rejects_invalid_output_format(monkeypatch):
             )
 
 
+# --- download_UDL_reach_window (absolute-time) tests ---
+
+
+def test_download_udl_reach_window_csv_with_absolute_times(monkeypatch):
+    """Absolute-time entry point should write the same artifacts without
+    consulting Time.now()."""
+
+    def boom_now():
+        raise AssertionError("Time.now() must not be called for absolute-time API")
+
+    monkeypatch.setattr(udl.Time, "now", staticmethod(boom_now))
+
+    monkeypatch.setattr(
+        udl,
+        "get_reach_datetimelist",
+        lambda start_time, end_time, sensor_id: ["window-1"],
+    )
+    monkeypatch.setattr(
+        udl,
+        "get_reach_urllist",
+        lambda dtlist, sensor_id, descriptor: {
+            "window-1": "https://example.test/chunk1"
+        },
+    )
+
+    class FakeResponse:
+        status_code = 200
+
+        def raise_for_status(self):
+            return None
+
+        def json(self):
+            return [
+                {
+                    "idSensor": "REACH-1",
+                    "obTime": "2026-01-01T00:00:00.000Z",
+                    "flux": 7.5,
+                }
+            ]
+
+    monkeypatch.setattr(
+        udl.requests, "get", lambda url, headers, timeout: FakeResponse()
+    )
+
+    start_time = Time("2026-01-01T00:00:00", format="isot", scale="utc")
+    end_time = Time("2026-01-02T00:00:00", format="isot", scale="utc")
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        output_path = udl.download_UDL_reach_window(
+            auth_token="Bearer test-token",
+            sensor_id="REACH-1",
+            descriptor="proton",
+            output_format="csv",
+            start_time=start_time,
+            end_time=end_time,
+            output_dir=Path(tmpdir),
+        )
+
+        assert output_path.parent == Path(tmpdir)
+        assert output_path.exists()
+        assert output_path.name == "REACH-1_20260101T000000_20260102T000000.csv"
+
+        with open(output_path, "r", encoding="utf-8", newline="") as infile:
+            rows = list(csv.DictReader(infile))
+
+        assert rows == [
+            {
+                "idSensor": "REACH-1",
+                "obTime": "2026-01-01T00:00:00.000Z",
+                "flux": "7.5",
+            }
+        ]
+
+
+def test_download_udl_reach_window_raises_on_no_records(monkeypatch):
+    monkeypatch.setattr(
+        udl,
+        "get_reach_datetimelist",
+        lambda start_time, end_time, sensor_id: ["window-1"],
+    )
+    monkeypatch.setattr(
+        udl,
+        "get_reach_urllist",
+        lambda dtlist, sensor_id, descriptor: {
+            "window-1": "https://example.test/chunk1"
+        },
+    )
+
+    class EmptyResponse:
+        status_code = 200
+
+        def raise_for_status(self):
+            return None
+
+        def json(self):
+            return []
+
+    monkeypatch.setattr(
+        udl.requests, "get", lambda url, headers, timeout: EmptyResponse()
+    )
+
+    start_time = Time("2026-01-01T00:00:00", format="isot", scale="utc")
+    end_time = Time("2026-01-02T00:00:00", format="isot", scale="utc")
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        with pytest.raises(ValueError, match="No records returned"):
+            udl.download_UDL_reach_window(
+                auth_token="Bearer test-token",
+                sensor_id="REACH-1",
+                descriptor="proton",
+                output_format="csv",
+                start_time=start_time,
+                end_time=end_time,
+                output_dir=Path(tmpdir),
+            )
+
+
+def test_download_udl_reach_window_rejects_invalid_output_format(monkeypatch):
+    monkeypatch.setattr(
+        udl.requests,
+        "get",
+        lambda *args, **kwargs: pytest.fail("requests.get should not be called"),
+    )
+
+    start_time = Time("2026-01-01T00:00:00", format="isot", scale="utc")
+    end_time = Time("2026-01-02T00:00:00", format="isot", scale="utc")
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        with pytest.raises(ValueError, match="REACH_FILE_FORMAT"):
+            udl.download_UDL_reach_window(
+                auth_token="Bearer test-token",
+                sensor_id="REACH-1",
+                descriptor="electron",
+                output_format="txt",
+                start_time=start_time,
+                end_time=end_time,
+                output_dir=tmpdir,
+            )
+
+
+def test_download_udl_reach_to_file_delegates_to_window(monkeypatch):
+    """Legacy relative-time API should compute its window from Time.now()
+    and delegate to download_UDL_reach_window."""
+    fixed_now = Time("2026-01-01T01:00:00", format="isot", scale="utc")
+    monkeypatch.setattr(udl.Time, "now", staticmethod(lambda: fixed_now))
+
+    captured = {}
+    sentinel = Path("/tmp/sentinel.csv")
+
+    def fake_window(**kwargs):
+        captured.update(kwargs)
+        return sentinel
+
+    monkeypatch.setattr(udl, "download_UDL_reach_window", fake_window)
+
+    result = udl.download_UDL_reach_to_file(
+        auth_token="Bearer t",
+        sensor_id="REACH-1",
+        descriptor="electron",
+        output_format="csv",
+        delay_seconds=60,
+        window_seconds=600,
+        output_dir="/tmp/out",
+    )
+
+    assert result is sentinel
+    expected_end = fixed_now - udl.TimeDelta(60, format="sec")
+    expected_start = expected_end - udl.TimeDelta(600, format="sec")
+    assert captured["start_time"].isot == expected_start.isot
+    assert captured["end_time"].isot == expected_end.isot
+    assert captured["sensor_id"] == "REACH-1"
+    assert captured["descriptor"] == "electron"
+    assert captured["output_format"] == "csv"
+    assert captured["output_dir"] == "/tmp/out"
+
+
 # --- AdaptiveRateController tests ---
 
 

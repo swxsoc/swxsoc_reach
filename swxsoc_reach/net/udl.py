@@ -499,13 +499,13 @@ def _concatenate_chunk_files(
                         out.write(line)
 
 
-def download_UDL_reach_to_file(
+def download_UDL_reach_window(
     auth_token: str,
     sensor_id: str,
     descriptor: str,
     output_format: Literal["json", "csv"],
-    delay_seconds: int,
-    window_seconds: int,
+    start_time: Time,
+    end_time: Time,
     output_dir: Path | str,
     max_concurrent_requests: int = 4,
     initial_rate: float = 5.0,
@@ -514,7 +514,12 @@ def download_UDL_reach_to_file(
     min_rate: float = 5.0,
     max_rate: float = 25.0,
 ) -> Path:
-    """Download REACH data from UDL and write one combined output file.
+    """Download REACH data from UDL for an explicit absolute UTC window.
+
+    Behaves identically to :func:`download_UDL_reach_to_file` except that
+    the query window is provided directly as ``start_time`` / ``end_time``
+    rather than computed relative to ``Time.now()``. Suitable for
+    historical reprocessing where the operator drives the window.
 
     Each chunk is written to a temporary file as it arrives, keeping peak
     memory proportional to one chunk instead of the full dataset.  Temp
@@ -531,11 +536,11 @@ def download_UDL_reach_to_file(
         UDL descriptor value to include in each request.
     output_format : {'json', 'csv'}
         Output serialization format.
-    delay_seconds : int
-        Number of seconds to subtract from ``Time.now()`` before ending the
-        query window.
-    window_seconds : int
-        Duration of the query window in seconds.
+    start_time : astropy.time.Time
+        Inclusive start of the UTC query window.
+    end_time : astropy.time.Time
+        Exclusive end of the UTC query window. Must be strictly after
+        ``start_time``.
     output_dir : pathlib.Path or str
         Directory where the combined output file is written.
     max_concurrent_requests : int, optional
@@ -574,9 +579,6 @@ def download_UDL_reach_to_file(
     # Convert Output directory to Path object
     output_dir = Path(output_dir)
 
-    # Set Start and End times for REACH data query
-    end_time = Time.now() - TimeDelta(delay_seconds, format="sec")
-    start_time = end_time - TimeDelta(window_seconds, format="sec")
     log.info(
         "Starting REACH download-to-file run",
         extra={
@@ -624,7 +626,7 @@ def download_UDL_reach_to_file(
             future_to_chunk = {}
             total_chunks = len(urls)
             for request_index, (dt, url) in enumerate(urls.items(), start=1):
-                log.info(f"Queueing Chunk {request_index} of {total_chunks}")
+                log.debug(f"Queueing Chunk {request_index} of {total_chunks}")
                 chunk_path = tmp_dir_path / f"chunk_{request_index}.tmp"
                 future = executor.submit(
                     _fetch_and_spool_chunk,
@@ -643,7 +645,7 @@ def download_UDL_reach_to_file(
                 total_record_count += record_count
                 if written_path is not None:
                     chunk_files[dt] = written_path
-                log.info(
+                log.debug(
                     f"Received Chunk {request_index} of {total_chunks}. "
                     f"Chunk window: {dt} with {record_count} records."
                 )
@@ -674,3 +676,85 @@ def download_UDL_reach_to_file(
         },
     )
     return filepath
+
+
+def download_UDL_reach_to_file(
+    auth_token: str,
+    sensor_id: str,
+    descriptor: str,
+    output_format: Literal["json", "csv"],
+    delay_seconds: int,
+    window_seconds: int,
+    output_dir: Path | str,
+    max_concurrent_requests: int = 4,
+    initial_rate: float = 5.0,
+    additive_increase: float = 1.0,
+    multiplicative_decrease: float = 0.5,
+    min_rate: float = 5.0,
+    max_rate: float = 25.0,
+) -> Path:
+    """Download REACH data from UDL for a relative-time window.
+
+    Computes ``end_time = Time.now() - delay_seconds`` and
+    ``start_time = end_time - window_seconds`` and delegates to
+    :func:`download_UDL_reach_window`. This is the entry point used by
+    the scheduled Lambda.
+
+    Parameters
+    ----------
+    auth_token : str
+        UDL authorization token value for the ``Authorization`` header.
+    sensor_id : str
+        REACH sensor identifier, or ``ALL``.
+    descriptor : str
+        UDL descriptor value to include in each request.
+    output_format : {'json', 'csv'}
+        Output serialization format.
+    delay_seconds : int
+        Number of seconds to subtract from ``Time.now()`` before ending the
+        query window.
+    window_seconds : int
+        Duration of the query window in seconds.
+    output_dir : pathlib.Path or str
+        Directory where the combined output file is written.
+    max_concurrent_requests : int, optional
+        Maximum number of chunk requests to run concurrently.
+    initial_rate, additive_increase, multiplicative_decrease, min_rate, max_rate : float, optional
+        AIMD rate controller tuning parameters; see
+        :func:`download_UDL_reach_window`.
+
+    Returns
+    -------
+    pathlib.Path
+        Path to the written output file.
+
+    Raises
+    ------
+    ValueError
+        If ``output_format`` is invalid or no records are returned.
+    requests.HTTPError
+        If any UDL request fails.
+    """
+    # Validate format eagerly so callers get the same error before any
+    # Time.now() / network work happens (matches prior behavior).
+    if output_format not in {"json", "csv"}:
+        raise ValueError("REACH_FILE_FORMAT must be either 'json' or 'csv'.")
+
+    end_time = Time.now() - TimeDelta(delay_seconds, format="sec")
+    start_time = end_time - TimeDelta(window_seconds, format="sec")
+
+    return download_UDL_reach_window(
+        auth_token=auth_token,
+        sensor_id=sensor_id,
+        descriptor=descriptor,
+        output_format=output_format,
+        start_time=start_time,
+        end_time=end_time,
+        output_dir=output_dir,
+        max_concurrent_requests=max_concurrent_requests,
+        initial_rate=initial_rate,
+        additive_increase=additive_increase,
+        multiplicative_decrease=multiplicative_decrease,
+        min_rate=min_rate,
+        max_rate=max_rate,
+    )

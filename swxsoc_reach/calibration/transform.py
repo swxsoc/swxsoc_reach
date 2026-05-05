@@ -252,8 +252,9 @@ def build_swxdata(
        in astropy's recursive ISO-8601 parser for large arrays.
     4. **Pre-compute per-sensor groupby** on a sensor-deduplicated view of
        the data for efficient scalar-column extraction.
-    5. **Build variable dict** of :class:`~astropy.nddata.NDData` arrays
-       (observations, attitude, quality, sensor-position, and label variables).
+     5. **Build variable dict** of :class:`~astropy.nddata.NDData` arrays
+         (dose-rate cube, geolocation/quality arrays, sensor-position arrays,
+         and label/ID metadata variables).
     6. **Seed global attributes** from :class:`~swxsoc_reach.util.schema.REACHDataSchema`
        defaults, then overlay *version* and any caller-supplied *global_attrs*.
     7. **Assemble and return** a :class:`~swxsoc.swxdata.SWXData` instance
@@ -261,23 +262,24 @@ def build_swxdata(
 
     The returned :class:`~swxsoc.swxdata.SWXData` contains:
 
-    ========================  ==========================================
-    Variable                  Shape
-    ========================  ==========================================
-    ``Epoch``                 ``(n_times,)``
-    ``Epoch_label``           ``(n_times,)``
-    ``sensor_ids``            ``(n_sensors,)``
-    ``observation_flavors``   ``(n_sensors, n_flavors_max)``
-    ``Flavor_label``          ``(n_flavors_max,)``
-    ``observations``          ``(n_times, n_sensors, n_flavors_max)``
-    ``lat``                   ``(n_times, n_sensors)``
-    ``lon``                   ``(n_times, n_sensors)``
-    ``alt``                   ``(n_times, n_sensors)``
-    ``obQuality``             ``(n_times, n_sensors)``
-    ``senPos0``               ``(n_times, n_sensors)``
-    ``senPos1``               ``(n_times, n_sensors)``
-    ``senPos2``               ``(n_times, n_sensors)``
-    ========================  ==========================================
+    ===========================  ==========================================
+    Variable                     Shape
+    ===========================  ==========================================
+    ``Epoch``                    ``(n_times,)``
+    ``sensor_labels``            ``(n_sensors,)``
+    ``sensor_ids``               ``(n_sensors,)``
+    ``dosimeter_flavor_labels``  ``(n_flavors_max,)``
+    ``dosimeter_flavor_ids``     ``(n_flavors_max,)``
+    ``dosimeter_flavors``        ``(n_sensors, n_flavors_max)``
+    ``dose_rate``                ``(n_times, n_sensors, n_flavors_max)``
+    ``lat``                      ``(n_times, n_sensors)``
+    ``lon``                      ``(n_times, n_sensors)``
+    ``alt``                      ``(n_times, n_sensors)``
+    ``obQuality``                ``(n_times, n_sensors)``
+    ``sensor_position_x``        ``(n_times, n_sensors)``
+    ``sensor_position_y``        ``(n_times, n_sensors)``
+    ``sensor_position_z``        ``(n_times, n_sensors)``
+    ===========================  ==========================================
 
     Parameters
     ----------
