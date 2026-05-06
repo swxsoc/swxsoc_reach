@@ -6,8 +6,7 @@ from astropy.coordinates import EarthLocation
 from swxsoc.swxdata import SWXData
 
 from swxsoc_reach.visualization.viz import plot_region_code_contours_on_geomap
-
-from ..util.enums import Flavor, Region
+from swxsoc_reach.util.enums import Flavor, Region
 
 
 class GenericGeoMap(SWXData):

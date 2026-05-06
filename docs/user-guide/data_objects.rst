@@ -1,8 +1,8 @@
 .. _data-objects-guide:
 
-**********************
+************************
 Working with Map Objects
-**********************
+************************
 
 This page describes the new geospatial data objects produced by
 :mod:`swxsoc_reach.track.trackbase` and how to use them in analysis code.

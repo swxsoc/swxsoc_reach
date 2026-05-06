@@ -7,12 +7,6 @@ Geometry Region Guide
 The :mod:`swxsoc_reach.util.geom` module provides geometry helpers for REACH
 region boundaries.
 
-Module Summary
-==============
-
-.. automodule:: swxsoc_reach.util.geom
-   :members:
-
 Region Plots
 ============
 
@@ -25,7 +19,7 @@ in the development notebook, with one panel per region code.
    import matplotlib.pyplot as plt
    import numpy as np
 
-   from swxsoc_reach.util.geom import REGION_CODES, read_contour_paths
+   from swxsoc_reach.util.geom import REGION_CODES, read_contour_path
    from swxsoc_reach.util.util import load_regions
 
    lon_values, lat_values, region_grid = load_regions()
@@ -46,7 +40,7 @@ in the development notebook, with one panel per region code.
                label="Region Samples",
            )
 
-       for path in read_contour_paths(code):
+       for path in read_contour_path(code):
            vertices = np.asarray(path.vertices, dtype=float)
            if vertices.shape[0] < 2:
                continue

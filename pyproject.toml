@@ -9,7 +9,7 @@ readme = "README.rst"
 dynamic = ["version"]
 authors = [
   {name = "Steven Christe", email="steven.christe@nasa.gov"},
-  {name = "Andrew Robbertz", email="a.robbertz@gmail.com"},
+  {name = "Andrew Robbertz", email="andrew.l.robbertz@nasa.gov"},
   {name = "Aaron Breneman", email="aaron.w.breneman@nasa.gov"},
   {name = "Alexa Halford", email="alexa.j.halford@nasa.gov"},
 ]
