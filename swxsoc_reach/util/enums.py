@@ -132,6 +132,16 @@ class Flavor(Flag):
                 f"Unknown flavor {name!r}. Must be one of: {valid}"
             ) from None
 
+    def __str__(self):
+        """
+        returns human-readable flavor string, e.g. ``flavor-x`` instead of ``Flavor.X``.
+
+        for `ALL` flavor, returns ``all`` instead of ``flavor-all``.
+        """
+        if self == Flavor.ALL:
+            return "all"
+        return super().__str__().replace("Flavor.", "flavor-")
+
 
 class SensorId(Flag):
     """REACH sensor identifiers as combinable flags."""

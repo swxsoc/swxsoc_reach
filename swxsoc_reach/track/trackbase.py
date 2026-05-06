@@ -4,31 +4,58 @@ import astropy.units as u
 import numpy as np
 from astropy.time import Time
 from astropy.timeseries import TimeSeries
+from astropy.nddata import NDData
 from scipy.stats import binned_statistic_2d
 from swxsoc.swxdata import SWXData
 
+from swxsoc_reach.geomap import GenericGeoMap
+from swxsoc_reach.util.enums import Flavor, Region, SensorId
+from swxsoc_reach.util.geom import load_region_contours, points_to_region_code
 from swxsoc_reach.util.schema import REACHDataSchema
-
-from ..geomap import GenericGeoMap
-from ..util.enums import Flavor, Region, SensorId
-from ..util.geom import load_region_contours, points_to_region_code
-from ..visualization.viz import plot_region_code_contours_on_geomap
+from swxsoc_reach.visualization.viz import plot_region_code_contours_on_geomap
 
 
 class REACHTrack(SWXData):
     """
-    This is a container for REACH track data, which consists of time series of observations from multiple sensors as a function of time, longitude, and latitude. It provides methods for extracting individual tracks, plotting the track parameters as a function of time, plotting the track on a global geomap, and converting the track to a gridded geospatial map.
+    This is a container for REACH track data, which consists of time series of observations from multiple sensors as a function of time, longitude, and latitude.
+    It provides methods for extracting individual tracks, plotting the track parameters as a function of time, plotting the track on a global geomap, and converting the track to a gridded geospatial map.
     """
 
-    def truncate(self, time_start: Time, time_end: Time) -> "REACHTrack":
-        """Return a new REACHTrack truncated to the specified time range."""
-        mask = (self["time"] >= time_start) & (self["time"] <= time_end)
-        raise NotImplementedError("Truncation not yet implemented for REACHTrack.")
-
     def get_track(self, reach_id: SensorId | int, dose_id: int) -> TimeSeries:
-        if dose_id < 0 or dose_id >= self["observations"].data.shape[2]:
+        """
+        Retrieve a time series of tracking data for a specific sensor and dosimeter.
+
+        Parameters
+        ----------
+        reach_id : SensorId or int
+            Sensor selector. If a ``SensorId`` is provided, it must represent a
+            single sensor. If an ``int`` is provided, it is interpreted as a
+            zero-based sensor index (0-31), not a REACH numeric id.
+        dose_id : int
+            The dosimeter index. Must be between 0 and the number of dosimeter flavors minus 1.
+
+        Returns
+        -------
+        TimeSeries
+            A TimeSeries object containing:
+            - dose : Dose rate in rad/s
+            - longitude : Longitude coordinates in degrees
+            - latitude : Latitude coordinates in degrees
+            - altitude : Altitude values in km
+            - region_code : Region codes determined from lon/lat coordinates
+            - meta['dosimeter_id'] : The dosimeter flavor value for this track
+            - meta['reach_id'] : The sensor identifier as string
+
+        Raises
+        ------
+        ValueError
+            If ``dose_id`` is out of range, if integer ``reach_id`` is outside
+            0-31, or if ``reach_id`` does not resolve to a single valid sensor.
+        """
+        n_dosimeters = len(self["dosimeter_flavor_ids"].data)
+        if dose_id < 0 or dose_id >= n_dosimeters:
             raise ValueError(
-                f"Invalid dose_id {dose_id}, must be between 0 and {self['observations'].shape[1] - 1}."
+                f"Invalid dose_id {dose_id}, must be between 0 and {n_dosimeters - 1}."
             )
 
         if isinstance(reach_id, int):
@@ -38,30 +65,61 @@ class REACHTrack(SWXData):
 
         reach_index = sensor_id.to_index()
 
+        # Get the Astropy Time for the TimeSeries
         ts_times = Time(self["time"])
         ts = TimeSeries(time=ts_times)
-        ts["dose"] = (
-            self["observations"].data[:, reach_index, dose_id] * u.rad / u.second
-        )
+
+        # Get the Dose Rate Observational Data
+        ts["dose"] = self["dose_rate"].data[:, reach_index, dose_id] * u.rad / u.second
+
+        # Get Geodetic Coordinates and Region Codes
         ts["longitude"] = self["lon"].data[:, reach_index] * u.deg
         ts["latitude"] = self["lat"].data[:, reach_index] * u.deg
         ts["altitude"] = self["alt"].data[:, reach_index] * u.km
+
+        # Define Region Codes based on lon/lat coordinates using the saved contour paths
         contour_paths = load_region_contours()
         ts["region_code"] = points_to_region_code(
             lon=self["lon"].data[:, reach_index],
             lat=self["lat"].data[:, reach_index],
             paths_dict=contour_paths,
         )
-        self._unit = self["observations"].unit
-        ts.meta["dosimeter_id"] = self["observation_flavors"].data[reach_index, dose_id]
+
+        # Update TimeSeries metadata
+        self._unit = self["dose_rate"].unit
+        ts.meta["dosimeter_id"] = self["dosimeter_flavors"].data[reach_index, dose_id]
         ts.meta["reach_id"] = str(sensor_id)
+
         return ts
 
     def plot(self, reach_id: SensorId | int, dose_id: int) -> None:
-        """Plot all track parameters as a function of time."""
-        ts = self.get_track(reach_id, dose_id)
+        """Plot track parameters as a function of time.
+
+        Builds a vertically stacked set of subplots for all columns returned by
+        :meth:`get_track` except ``time``. The ``dose`` series is plotted as
+        ``log10(dose)`` and all other series are plotted in their native units.
+        The figure title uses ``ts.meta['title']`` when present, otherwise it
+        falls back to ``"{reach_id}, {dosimeter_id}"`` from track metadata.
+
+        Parameters
+        ----------
+        reach_id : SensorId or int
+            Sensor selector passed through to :meth:`get_track`.
+        dose_id : int
+            Dosimeter index passed through to :meth:`get_track`.
+
+        Raises
+        ------
+        ValueError
+            If no plottable track parameters are available.
+            Any :class:`ValueError` raised by :meth:`get_track` may also
+            propagate for invalid sensor or dosimeter selections.
+        """
         import matplotlib.dates as mdates
         import matplotlib.pyplot as plt
+
+        # Get Specific Track TimeSeries for the Given Sensor and Dosimeter
+        ts = self.get_track(reach_id, dose_id)
 
         y_columns = [col for col in ts.colnames if col != "time"]
         if not y_columns:
@@ -69,6 +127,7 @@ class REACHTrack(SWXData):
 
         x_time = ts["time"].datetime
 
+        # Setup Axes
         fig, axes = plt.subplots(
             nrows=len(y_columns),
             ncols=1,
@@ -78,17 +137,22 @@ class REACHTrack(SWXData):
         if len(y_columns) == 1:
             axes = [axes]
 
+        # Plot Each Parameter
         for ax, col in zip(axes, y_columns):
             y_data = ts[col]
             if col == "dose":
                 ax.plot(x_time, np.log10(y_data.value))
+                unit = getattr(y_data, "unit", None)
+                if unit is not None and str(unit):
+                    label = f"Log10 Dose ({unit})"
+                else:
+                    label = "Log10 Dose"
             else:
                 ax.plot(x_time, y_data)
-
-            label = col.replace("_", " ").title()
-            unit = getattr(y_data, "unit", None)
-            if unit is not None and str(unit):
-                label = f"{label} ({unit})"
+                label = col.replace("_", " ").title()
+                unit = getattr(y_data, "unit", None)
+                if unit is not None and str(unit):
+                    label = f"{label} ({unit})"
             ax.set_ylabel(label)
 
         axes[-1].set_xlabel("Time")
@@ -119,14 +183,13 @@ class REACHTrack(SWXData):
         except ImportError as exc:
             raise ImportError("plotgeo requires cartopy to be installed.") from exc
 
-        lon_data = self.data["longitude"]
-        lat_data = self.data["latitude"]
-        lon = np.asarray(getattr(lon_data, "value", lon_data), dtype=float)
-        lat = np.asarray(getattr(lat_data, "value", lat_data), dtype=float)
+        lon = self["lon"].data
+        lat = self["lat"].data
 
+        # Verify Color Mapping and Prepare Color Values
         if color_by == "dose":
-            values = np.asarray(np.log10(self.data["dose"].value), dtype=float)
-            colorbar_label = f"Dose ({self.unit})"
+            values = np.asarray(np.log10(self["dose_rate"].data), dtype=float)
+            colorbar_label = f"Dose ({self['dose_rate'].unit})"
             cmap = "viridis"
         elif color_by == "region_code":
             values = np.asarray(self.data["region_code"], dtype=float)
@@ -155,6 +218,7 @@ class REACHTrack(SWXData):
             alpha=0.5,
             transform=ccrs.PlateCarree(),
         )
+        # Plot points colored by the selected scalar
         scatter = ax.scatter(
             lon,
             lat,
@@ -176,8 +240,47 @@ class REACHTrack(SWXData):
         lat_resolution: float = 1.0,
         map_statistic: str = "median",
     ) -> GenericGeoMap:
-        """Convert this track to a geospatial map object."""
+        """Convert track observations into a gridded geospatial map.
 
+        The selected dosimeter ``flavor`` values are aggregated onto a regular
+        geodetic longitude/latitude grid using a 2D binned statistic. Region
+        masks are derived from saved contour paths and included in the output
+        support variables.
+
+        Parameters
+        ----------
+        flavor : Flavor
+            Dosimeter flavor (or bitwise combination of flavors) to include in
+            the map aggregation.
+        lon_resolution : float, optional
+            Longitude bin width in degrees. Default is 1.0.
+        lat_resolution : float, optional
+            Latitude bin width in degrees. Default is 1.0.
+        map_statistic : str, optional
+            Statistic passed to :func:`scipy.stats.binned_statistic_2d` for
+            per-bin aggregation. Supported values are ``"sum"``, ``"mean"``,
+            ``"median"``, ``"count"``, ``"min"``, ``"max"``, and ``"std"``.
+            Default is ``"median"``.
+
+        Returns
+        -------
+        GenericGeoMap
+            A geospatial map object containing:
+
+            - ``map_data``: gridded dose-rate statistic on ``(lat, lon)``
+            - ``lon`` / ``lat``: grid-center coordinate vectors
+            - ``mask``: boolean region masks with shape
+              ``(nregions, nlat, nlon)``
+            - metadata describing level, version, flavor, and coordinate system
+
+        Raises
+        ------
+        ValueError
+            If ``map_statistic`` is not one of the supported statistics, or if
+            no data channels match the requested ``flavor``.
+        """
+
+        # Input Validation
         valid_statistics = {"sum", "mean", "median", "count", "min", "max", "std"}
         if map_statistic not in valid_statistics:
             raise ValueError(
@@ -185,12 +288,20 @@ class REACHTrack(SWXData):
                 f"{sorted(valid_statistics)}; got '{map_statistic}'."
             )
 
-        flavor_mask = np.zeros(shape=(32, 2), dtype=np.bool_)
+        # Mask ~= (32 sensors x 2 dosimeter flavors) to select only the flavors requested by the caller.
+        flavor_mask = np.zeros(
+            shape=(
+                len(self["sensor_ids"].data),
+                len(self["dosimeter_flavor_ids"].data),
+            ),
+            dtype=np.bool_,
+        )
 
-        for this_dosimeter in [0, 1]:  # check each dosimeter
-            for this_id in np.arange(32):
+        # Populate Mask for each satellite and dosimeter flavor.
+        for this_dosimeter in self["dosimeter_flavor_ids"].data:  # check each dosimeter
+            for this_id in range(len(self["sensor_ids"].data)):  # check each sensor
                 this_flavor = Flavor.from_str(
-                    self["observation_flavors"].data[this_id, this_dosimeter]
+                    self["dosimeter_flavors"].data[this_id, this_dosimeter]
                 )
                 if this_flavor in flavor:
                     flavor_mask[this_id, this_dosimeter] = True
@@ -199,7 +310,6 @@ class REACHTrack(SWXData):
 
         lat = self["lat"].data * u.deg
         lon = self["lon"].data * u.deg
-        time = self["time"]
 
         # Histogram bins are defined by edges, while the map stores center coordinates.
         lon_edges = np.arange(-180.0, 180.0 + lon_resolution, lon_resolution)
@@ -207,15 +317,16 @@ class REACHTrack(SWXData):
         lon_bins = 0.5 * (lon_edges[:-1] + lon_edges[1:])
         lat_bins = 0.5 * (lat_edges[:-1] + lat_edges[1:])
 
+        # Apply Mask to get only the flavors requested by the caller
         flavor_data = (
-            self["observations"].data * flavor_mask[None, :, :]
+            self["dose_rate"].data * flavor_mask[None, :, :]
         )  # [ntimes, nsats, ndos]
 
         lon_flat = lon.value.flatten()
         lat_flat = lat.value.flatten()
         obs_flat = flavor_data.sum(axis=2).flatten()
 
-        ts = TimeSeries(time=[self.time[0], self.time[-1]])
+        ts = TimeSeries(time=[self.time[0]])
         ts.time.meta = {
             "CATDESC": "Observation Time",
             "VAR_TYPE": "support_data",
@@ -254,21 +365,21 @@ class REACHTrack(SWXData):
             axis=0,
         )
 
-        from astropy.nddata import NDData
-
+        # Define CDF Variables Dict.
         variables: dict[str, NDData] = {
             "map_data": NDData(
-                data=m,
+                # NOTE: Expand first dimension for 1 time step to conform to CDF Format requirements.
+                data=np.expand_dims(m, axis=0),
                 unit=u.rad / u.s,
-                mask=np.isnan(m),
                 meta={
-                    "CATDESC": "Mean dose rate",
-                    "VAR_TYPE": "support_data",
+                    "CATDESC": f"{map_statistic} dose rate",
+                    "VAR_TYPE": "data",
                     "UNITS": (u.rad / u.s).to_string(),
                     "DEPEND_0": "Epoch",
-                    "DEPEND_2": "lon, lat",
-                    "LABL_PTR_1": "Epoch_label",
-                    "LABL_PTR_2": "lon, lat",
+                    "DEPEND_1": "lat",
+                    "DEPEND_2": "lon",
+                    "LABL_PTR_1": "lat_label",
+                    "LABL_PTR_2": "lon_label",
                 },
             ),
             "lon": NDData(
@@ -278,8 +389,7 @@ class REACHTrack(SWXData):
                     "CATDESC": "Longitude",
                     "VAR_TYPE": "support_data",
                     "UNITS": u.deg.to_string(),
-                    "DEPEND_0": "Epoch",
-                    "LABL_PTR_1": "Epoch_label",
+                    "LABLAXIS": "Longitude Bins (degrees)",
                 },
             ),
             "lat": NDData(
@@ -289,12 +399,35 @@ class REACHTrack(SWXData):
                     "CATDESC": "Latitude",
                     "VAR_TYPE": "support_data",
                     "UNITS": u.deg.to_string(),
-                    "DEPEND_0": "Epoch",
+                    "LABLAXIS": "Latitude Bins (degrees)",
                 },
             ),
-            "Epoch_label": NDData(
-                data=np.array([t.isot for t in ts.time]),
-                meta={"CATDESC": "Label for Epoch dimension", "VAR_TYPE": "metadata"},
+            "lon_label": NDData(
+                data=np.asarray(
+                    [f"{lon_val:.2f} deg" for lon_val in lon_bins], dtype="U"
+                ),
+                meta={
+                    "CATDESC": "Longitude bin labels",
+                    "VAR_TYPE": "metadata",
+                },
+            ),
+            "lat_label": NDData(
+                data=np.asarray(
+                    [f"{lat_val:.2f} deg" for lat_val in lat_bins], dtype="U"
+                ),
+                meta={
+                    "CATDESC": "Latitude bin labels",
+                    "VAR_TYPE": "metadata",
+                },
+            ),
+            "regions": NDData(
+                data=np.asarray(
+                    [region.label for region in Region.ordered()], dtype="U"
+                ),
+                meta={
+                    "CATDESC": "Region labels corresponding to mask axis-0",
+                    "VAR_TYPE": "metadata",
+                },
             ),
             "mask": NDData(
                 data=region_mask,
@@ -304,26 +437,47 @@ class REACHTrack(SWXData):
                         "Axis-0 order: "
                         + ", ".join(
                             [
-                                f"{region.mask_index}={region.label} (±{region.code})"
+                                f"{region.mask_index}={region.label} (+/-{region.code})"
                                 for region in Region.ordered()
                             ]
                         )
                     ),
                     "VAR_TYPE": "support_data",
+                    "DEPEND_0": "regions",
+                    "DEPEND_1": "lat",
+                    "DEPEND_2": "lon",
+                    "LABL_PTR_1": "regions",
+                    "LABL_PTR_2": "lat_label",
+                    "LABL_PTR_3": "lon_label",
                 },
             ),
         }
 
         schema = REACHDataSchema()
         meta = dict(schema.default_global_attributes)
+
+        # MAP Start/End Time Keywords
+        meta["Time_start"] = self.time[0].isot
+        meta["Time_end"] = self.time[-1].isot
+        meta["Time_resolution"] = str((self.time[-1] - self.time[0]).sec * u.s)
+
         meta["Data_version"] = "1.0.0"
         meta["Data_level"] = "l2"
+        meta["Instrument_mode"] = str(flavor)
         meta["Flavor"] = str(flavor)
         meta["coordinate_system"] = "geodetic"
+
+        # NOTE for GeoMap we want to override some Schema Requirements.
+        # If this gets very ugly in the future we can consider a separate schema just for GeoMaps.
+        # ===
+        # We don't want to derive the resolution for the Epoch coordinate since it's not a regular time series, it's just a single timestamp representing the map time.
+        schema.variable_attribute_schema["attribute_key"]["RESOLUTION"]["derived"] = (
+            False
+        )
 
         return GenericGeoMap(
             timeseries=ts,
             support=variables,
             meta=meta,
-            schema=self.schema,
+            schema=schema,
         )

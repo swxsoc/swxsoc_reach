@@ -252,7 +252,7 @@ def build_swxdata(
        in astropy's recursive ISO-8601 parser for large arrays.
     4. **Pre-compute per-sensor groupby** on a sensor-deduplicated view of
        the data for efficient scalar-column extraction.
-     5. **Build variable dict** of :class:`~astropy.nddata.NDData` arrays
+    5. **Build variable dict** of :class:`~astropy.nddata.NDData` arrays
          (dose-rate cube, geolocation/quality arrays, sensor-position arrays,
          and label/ID metadata variables).
     6. **Seed global attributes** from :class:`~swxsoc_reach.util.schema.REACHDataSchema`
@@ -299,6 +299,7 @@ def build_swxdata(
     -------
     SWXData
         Fully assembled SWXData instance ready to be saved as CDF.
+
     """
     # --- 1. Deduplicate ------------------------------------------------
     data = deduplicate_records(data)

@@ -33,11 +33,12 @@ Quick start
 
 .. code-block:: python
 
+   from pathlib import Path
    import numpy as np
    from swxsoc_reach.track.trackbase import REACHTrack
    from swxsoc_reach.util.enums import Flavor
 
-   track = REACHTrack.load("path/to/file.cdf")
+   track = REACHTrack.load(Path("path/to/file.cdf"))
    geomap = track.to_geomap(flavor=Flavor.ALL)
 
    print(geomap.map_data.shape)

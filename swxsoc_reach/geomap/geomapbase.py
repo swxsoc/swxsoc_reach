@@ -18,8 +18,16 @@ class GenericGeoMap(SWXData):
 
     @property
     def map_data(self) -> np.ndarray:
-        """2D geospatial data array."""
-        return self.support["map_data"].data
+        """2D geospatial data array.
+
+        If the stored data includes a leading singleton time axis (for
+        example ``(1, ny, nx)`` for CDF compliance), that axis is removed
+        before returning.
+        """
+        data = self.support["map_data"].data
+        if data.ndim >= 3 and data.shape[0] == 1:
+            return np.squeeze(data, axis=0)
+        return data
 
     @property
     def _lon(self) -> np.ndarray:
@@ -36,8 +44,15 @@ class GenericGeoMap(SWXData):
         return None
 
     @property
+    def regions(self) -> list[str]:
+        """List of region names corresponding to the map's regions variable."""
+        if "regions" not in self.support:
+            return []
+        return self.support["regions"].data
+
+    @property
     def flavor(self) -> Flavor:
-        pass
+        return self.meta.get("Flavor", None)
 
     @property
     def shape(self) -> tuple[int, int]:
@@ -65,7 +80,37 @@ class GenericGeoMap(SWXData):
         )
 
     def lon_lat_grid(self) -> tuple[np.ndarray, np.ndarray]:
-        """Return 2D longitude and latitude grids in degrees."""
+        """
+        Return 2D longitude and latitude grids in degrees.
+
+        This method generates 2D grids of longitude and latitude coordinates that match
+        the shape of the map. The grids can be constructed in three ways:
+
+        1. If 1D longitude and latitude arrays are provided, they are converted to 2D grids
+            using meshgrid. The 1D arrays must have lengths matching the map dimensions
+            (nx and ny respectively).
+        2. If 2D longitude and latitude arrays are provided, they are returned directly
+            after validation that their shapes match the map shape.
+        3. If no longitude/latitude arrays are provided, grids are generated based on the
+            map extent and shape, creating evenly-spaced coordinate arrays.
+
+        Returns
+        -------
+        tuple[np.ndarray, np.ndarray]
+            A tuple containing:
+                - lon2d : np.ndarray
+                    2D array of longitude values in degrees with shape (ny, nx)
+                - lat2d : np.ndarray
+                    2D array of latitude values in degrees with shape (ny, nx)
+
+        Raises
+        ------
+        ValueError
+             If 1D lon/lat arrays don't match map dimensions (nx, ny).
+             If 2D lon/lat arrays don't match map shape.
+             If lon and lat arrays have different dimensionalities (one 1D, one 2D).
+
+        """
         ny, nx = self.shape
 
         if self._lon is not None and self._lat is not None:
@@ -93,7 +138,38 @@ class GenericGeoMap(SWXData):
         return lon2d, lat2d
 
     def pixel_to_world(self, x: float, y: float):
-        """Convert zero-based pixel coordinates to an EarthLocation."""
+        """Convert zero-based pixel coordinates to an EarthLocation on Earth's surface.
+
+        This method takes pixel coordinates from an image and converts them to geographic
+        coordinates (latitude, longitude) using the internal longitude/latitude grid.
+        The result is returned as an astropy EarthLocation object positioned at sea level.
+
+        Parameters
+        ----------
+        x : float
+            The zero-based x-coordinate (column) in pixels. Values outside the image bounds
+            are clipped to the valid range [0, width-1].
+        y : float
+            The zero-based y-coordinate (row) in pixels. Values outside the image bounds
+            are clipped to the valid range [0, height-1].
+
+        Returns
+        -------
+        astropy.coordinates.EarthLocation
+            The geographic coordinates corresponding to the pixel location, with height
+            set to 0 meters (sea level).
+
+        Raises
+        ------
+        ImportError
+            If astropy.coordinates.EarthLocation or astropy.units is not available.
+
+        Notes
+        -----
+        Pixel coordinates are rounded to the nearest integer and clipped to ensure they
+        fall within the valid image bounds before lookup in the coordinate grid.
+
+        """
         if EarthLocation is None or u is None:
             raise ImportError(
                 "pixel_to_world requires astropy.coordinates.EarthLocation."
@@ -113,7 +189,40 @@ class GenericGeoMap(SWXData):
         location_or_lon,
         lat: float | None = None,
     ) -> tuple[int, int]:
-        """Convert EarthLocation or lon/lat values to pixel indices."""
+        """
+        Convert geographic coordinates to pixel indices in the map grid.
+
+        This method converts either an EarthLocation object or longitude/latitude values
+        to the corresponding pixel indices in the map's 2D grid. It finds the nearest grid
+        point to the specified location using Euclidean distance.
+
+        Parameters
+        ----------
+        location_or_lon : astropy.coordinates.EarthLocation or float
+            Either an EarthLocation object containing the geographic coordinates,
+            or the longitude value in degrees if `lat` is also provided.
+        lat : float, optional
+            The latitude value in degrees. Required if `location_or_lon` is a float.
+            Ignored if `location_or_lon` is an EarthLocation object.
+
+        Returns
+        -------
+        tuple[int, int]
+            A tuple of (x_idx, y_idx) representing the pixel indices in the map grid
+            that are closest to the specified location. x_idx corresponds to longitude
+            and y_idx corresponds to latitude.
+
+        Raises
+        ------
+        ValueError
+            If `location_or_lon` is not an EarthLocation and `lat` is None.
+
+        Notes
+        -----
+        The method uses the nearest-neighbor approach, finding the grid point with
+        the minimum Euclidean distance to the specified coordinates.
+
+        """
         if EarthLocation is not None and isinstance(location_or_lon, EarthLocation):
             lon_value = float(location_or_lon.lon.to_value(u.deg))
             lat_value = float(location_or_lon.lat.to_value(u.deg))
@@ -133,62 +242,6 @@ class GenericGeoMap(SWXData):
         )
         return int(x_idx), int(y_idx)
 
-    def submap(
-        self,
-        lon_range: tuple[float, float],
-        lat_range: tuple[float, float],
-    ) -> "GenericGeoMap":
-        """Extract a submap bounded by longitude and latitude ranges."""
-        lon_min, lon_max = sorted(lon_range)
-        lat_min, lat_max = sorted(lat_range)
-
-        lon2d, lat2d = self.lon_lat_grid()
-        inside = (
-            (lon2d >= lon_min)
-            & (lon2d <= lon_max)
-            & (lat2d >= lat_min)
-            & (lat2d <= lat_max)
-        )
-
-        if not np.any(inside):
-            raise ValueError("Requested submap bounds do not overlap the map domain.")
-
-        rows, cols = np.where(inside)
-        y0, y1 = rows.min(), rows.max() + 1
-        x0, x1 = cols.min(), cols.max() + 1
-
-        _md = self.map_data
-        sub_data = _md[y0:y1, x0:x1]
-        sub_lon = lon2d[y0:y1, x0:x1]
-        sub_lat = lat2d[y0:y1, x0:x1]
-        pass
-
-    def resample(self, dimensions: tuple[int, int]) -> "GenericGeoMap":
-        """Return a nearest-neighbor resampled map with new dimensions."""
-        ny_new, nx_new = dimensions
-        if ny_new <= 0 or nx_new <= 0:
-            raise ValueError("resample dimensions must be positive.")
-
-        ny_old, nx_old = self.shape
-        y_index = np.clip(
-            np.round(np.linspace(0, ny_old - 1, ny_new)).astype(int),
-            0,
-            ny_old - 1,
-        )
-        x_index = np.clip(
-            np.round(np.linspace(0, nx_old - 1, nx_new)).astype(int),
-            0,
-            nx_old - 1,
-        )
-
-        _md = self.map_data
-        data_resampled = _md[np.ix_(y_index, x_index)]
-        lon2d, lat2d = self.lon_lat_grid()
-        lon_resampled = lon2d[np.ix_(y_index, x_index)]
-        lat_resampled = lat2d[np.ix_(y_index, x_index)]
-
-        pass
-
     def plot(
         self,
         ax=None,
@@ -197,15 +250,51 @@ class GenericGeoMap(SWXData):
         color_by_region: bool = True,
         **kwargs,
     ):
-        """Plot this map with matplotlib and return ``(ax, artist)``.
+        """
+        Plot the geospatial dose-rate map and return the axes and mesh artist.
+
+        Dose-rate values are displayed on a log10 scale. Region contours,
+        coastlines, and gridlines are always drawn. If cartopy is installed the
+        axes will use a ``PlateCarree`` projection; otherwise a plain
+        matplotlib axes is used.
 
         Parameters
         ----------
+        ax : matplotlib.axes.Axes, optional
+            Axes to draw into.  When ``None`` (default) a new figure and axes
+            are created.
+        add_colorbar : bool, optional
+            Whether to add a colorbar to the figure.  Default is ``True``.
         color_by_region : bool, optional
-            When ``True`` (default) the data is split into per-region arrays
-            and each region is drawn with its own colormap.  When ``False`` the
-            full map data is plotted as a single ``pcolormesh`` using the
-            ``viridis`` colormap.
+            When ``True`` (default) map pixels are split into per-region arrays
+            and each region is rendered with its own custom colormap (red for
+            SAA, yellow for Polar Cap, blue for Outer Zone, green for Slot).
+            A stacked set of horizontal colorbars is added, one per region.
+            When ``False`` the full log10 map is plotted as a single
+            ``pcolormesh`` using the ``viridis`` colormap and a single
+            colorbar.
+        **kwargs
+            Currently unused; reserved for future keyword arguments.
+
+        Returns
+        -------
+        ax : matplotlib.axes.Axes
+            The axes containing the plot.
+        last_mesh : matplotlib.collections.QuadMesh
+            The ``pcolormesh`` artist for the last drawn region (or the single
+            mesh when ``color_by_region=False``).  Useful for further
+            colorbar customisation by the caller.
+
+        Notes
+        -----
+        - The color scale is fixed to ``[-7, -2]`` in log10(rad/s).
+        - The figure title is formatted as
+          ``"{start} - {end} - Flavor {flavor}"`` using the track time range
+          and the ``Flavor`` metadata attribute.
+        - When ``color_by_region=True`` the per-region colorbars are placed
+          below the map axes using absolute figure coordinates; callers
+          adjusting the axes position after calling ``plot`` may need to
+          reposition them.
         """
         import matplotlib as mpl
         import matplotlib.pyplot as plt
@@ -275,11 +364,7 @@ class GenericGeoMap(SWXData):
                 label_contours=False,
             )
 
-        time_str = (
-            np.min(self.time).strftime("%d %b %Y %H:%M")
-            + " - "
-            + np.max(self.time).strftime("%d %b %Y %H:%M")
-        )
+        time_str = self.meta["Time_start"] + " - " + self.meta["Time_end"]
         ax.set_title(f"{time_str} - Flavor {self.flavor}")
 
         if color_by_region:
@@ -362,7 +447,8 @@ class GenericGeoMap(SWXData):
         return ax, last_mesh
 
     def sum_per_region(self) -> dict[str, float]:
-        """Return the sum of all map pixels within each region.
+        """
+        Return the sum of all map pixels within each region.
 
         The mask stored by :meth:`~swxsoc_reach.track.trackbase.REACHTrack.to_geomap`
         is used directly, so no contour-path computation is needed here.
@@ -383,36 +469,3 @@ class GenericGeoMap(SWXData):
             masked = np.where(region_mask[region.mask_index], _md, np.nan)
             result[region.key] = float(np.nansum(masked))
         return result
-
-    def _validate_coordinates(self) -> None:
-        """Validate user-provided longitude/latitude arrays, if provided."""
-        if getattr(self, "_lon", None) is None and getattr(self, "_lat", None) is None:
-            return
-        if (self._lon is None) ^ (self._lat is None):
-            raise ValueError(
-                "lon and lat must either both be provided or both be None."
-            )
-        if self._lon is None:
-            return
-
-        lon = self._lon
-        lat = self._lat
-        if lat is None:
-            raise ValueError("lat cannot be None when lon is provided.")
-
-        if lon.ndim != lat.ndim:
-            raise ValueError("lon and lat must have the same dimensionality.")
-        if lon.ndim not in (1, 2):
-            raise ValueError("lon and lat must be 1D or 2D arrays.")
-
-        if lon.ndim == 1:
-            if lon.size != self.shape[1] or lat.size != self.shape[0]:
-                raise ValueError(
-                    "For 1D coordinates, lon length must match nx and "
-                    "lat length must match ny."
-                )
-        else:
-            if lon.shape != self.shape or lat.shape != self.shape:
-                raise ValueError(
-                    "For 2D coordinates, lon and lat must match map shape."
-                )

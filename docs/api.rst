@@ -25,3 +25,4 @@ API Reference
    swxsoc_reach.util.geom
    swxsoc_reach.util.schema
    swxsoc_reach.util.util
+   swxsoc_reach.visualization.viz
