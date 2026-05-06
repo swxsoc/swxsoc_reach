@@ -113,6 +113,7 @@ class REACHDataSchema(SWXSchema):
             instrument_mode = self._get_instrument_mode(data)
 
             # Build Derivation
+            # reach_all_prelim
             logical_source = f"{instrument_id}_{instrument_mode}_{data_type_short_name}"
         else:
             logical_source = data.meta[attr_name]
@@ -158,10 +159,6 @@ class REACHDataSchema(SWXSchema):
                 swxsoc_reach.config["mission"]["file_extension"]
             )
 
-            # Remove the `swxsoc_pipeline` prefix from the filename if it exists
-            # NOTE: Removing the `mission_name` currently breaks the filename parsing.
-            # We'll need to revisit this later once we have a better understanding of what we want our filenames to look like.
-            # science_filename = science_filename.replace("swxsoc_pipeline_", "")
         else:
             science_filename = data.meta[attr_name]
         return science_filename

@@ -239,12 +239,25 @@ def build_swxdata(
     global_attrs: dict | None = None,
 ) -> SWXData:
     """
-    Assemble an :class:`~swxsoc.swxdata.SWXData` object from a deduplicated
-    REACH DataFrame.
+    Assemble an :class:`~swxsoc.swxdata.SWXData` object from a raw REACH DataFrame.
 
-    This is the main entry point for the transformation layer.  It
-    orchestrates deduplication, metadata extraction, sparse-array
-    construction, and SWXData packaging in a single call.
+    This is the main entry point for the transformation layer.  It runs
+    the following pipeline in order:
+
+    1. **Deduplicate** records via :func:`deduplicate_records`.
+    2. **Extract sensor metadata** (sensor IDs, observatory names, flavors)
+       via :func:`extract_sensor_metadata`.
+    3. **Build common time axis** from the unique UTC observation timestamps,
+       stripping any trailing ``Z`` before parsing to avoid a stack overflow
+       in astropy's recursive ISO-8601 parser for large arrays.
+    4. **Pre-compute per-sensor groupby** on a sensor-deduplicated view of
+       the data for efficient scalar-column extraction.
+    5. **Build variable dict** of :class:`~astropy.nddata.NDData` arrays
+       (observations, attitude, quality, sensor-position, and label variables).
+    6. **Seed global attributes** from :class:`~swxsoc_reach.util.schema.REACHDataSchema`
+       defaults, then overlay *version* and any caller-supplied *global_attrs*.
+    7. **Assemble and return** a :class:`~swxsoc.swxdata.SWXData` instance
+       ready to be written to CDF.
 
     The returned :class:`~swxsoc.swxdata.SWXData` contains:
 
@@ -252,8 +265,10 @@ def build_swxdata(
     Variable                  Shape
     ========================  ==========================================
     ``Epoch``                 ``(n_times,)``
+    ``Epoch_label``           ``(n_times,)``
     ``sensor_ids``            ``(n_sensors,)``
     ``observation_flavors``   ``(n_sensors, n_flavors_max)``
+    ``Flavor_label``          ``(n_flavors_max,)``
     ``observations``          ``(n_times, n_sensors, n_flavors_max)``
     ``lat``                   ``(n_times, n_sensors)``
     ``lon``                   ``(n_times, n_sensors)``
@@ -268,7 +283,8 @@ def build_swxdata(
     ----------
     data : pd.DataFrame
         Raw (flat) DataFrame as returned by
-        :func:`~swxsoc_reach.io.file_tools.read_udl_json` or :func:`~swxsoc_reach.io.file_tools.read_udl_csv`.
+        :func:`~swxsoc_reach.io.file_tools.read_udl_json` or
+        :func:`~swxsoc_reach.io.file_tools.read_udl_csv`.
     version : str, optional
         Data version string written into the global attributes
         (default ``"1.0.0"``).
@@ -286,10 +302,20 @@ def build_swxdata(
     data = deduplicate_records(data)
 
     # --- 2. Sensor metadata --------------------------------------------
-    sensor_ids, _obs_names, observation_flavors = extract_sensor_metadata(data)
+    sensor_labels, _obs_names, observation_flavors = extract_sensor_metadata(data)
+
+    # Convert Sensor Labels to pure numeric IDs if they follow the "REACH-XXX" pattern
+    sensor_ids = np.asanyarray(
+        [int(sensor.replace("REACH-", "").strip()) for sensor in sensor_labels],
+        dtype=np.int32,
+    )
 
     # --- 3. Build common time axis -------------------------------------
-    times = Time(sorted(data["obTime"].unique())).sort()
+    # Strip trailing 'Z' and pass explicit scale/format to avoid a stack
+    # overflow in astropy's recursive ISO-8601 parser for large arrays.
+    unique_times_raw = sorted(data["obTime"].unique())
+    unique_times = [t[:-1] if t.endswith("Z") else t for t in unique_times_raw]
+    times = Time(unique_times, scale="utc", format="isot").sort()
     times_pd = pd.DatetimeIndex([t.datetime for t in times]).tz_localize("UTC")
 
     ts = TimeSeries(time=times)
@@ -305,141 +331,145 @@ def build_swxdata(
 
     # --- 5. Build variable dict ----------------------------------------
     variables: dict[str, NDData] = {
+        "sensor_labels": NDData(
+            data=sensor_labels,
+            meta={"CATDESC": "REACH Sensor Labels", "VAR_TYPE": "metadata"},
+        ),
         "sensor_ids": NDData(
-            data=np.array(sensor_ids),
+            data=sensor_ids,
             meta={"CATDESC": "REACH Sensor IDs", "VAR_TYPE": "metadata"},
         ),
-        "observation_flavors": NDData(
+        "dosimeter_flavor_labels": NDData(
+            data=np.array(
+                [f"flavor_{i}" for i in range(len(observation_flavors[0]))]
+            ),  # Assuming all sensors have the same max flavor count due to padding
+            meta={
+                "CATDESC": "Label for dosimeter flavors dimension",
+                "VAR_TYPE": "metadata",
+                "VAR_NOTES": "Variable is just used for Label Pointer. For actual flavor strings, see 'dosimeter_flavors' variable.",
+            },
+        ),
+        "dosimeter_flavor_ids": NDData(
+            data=np.array(
+                [i for i in range(len(observation_flavors[0]))], dtype=np.int32
+            ),  # Assuming all sensors have the same max flavor count due to padding
+            meta={
+                "CATDESC": "ID for dosimeter flavors dimension",
+                "VAR_TYPE": "metadata",
+                "VAR_NOTES": "Variable is just used for DEPENDS. For actual flavor strings, see 'dosimeter_flavors' variable.",
+            },
+        ),
+        "dosimeter_flavors": NDData(
             data=np.array(observation_flavors),
             meta={
                 "CATDESC": "Observation Flavors per Sensor",
                 "VAR_TYPE": "metadata",
             },
         ),
-        "Epoch_label": NDData(
-            data=np.array([t.isot for t in times]),
-            meta={"CATDESC": "Label for Epoch dimension", "VAR_TYPE": "metadata"},
-        ),
-        "Flavor_label": NDData(
-            data=np.array(
-                [f"flavor_{i}" for i in range(len(observation_flavors[0]))]
-            ),  # Assuming all sensors have the same max flavor count due to padding
-            meta={
-                "CATDESC": "Label for observation_flavors dimension",
-                "VAR_TYPE": "metadata",
-            },
-        ),
-        "observations": NDData(
+        "dose_rate": NDData(
             data=create_observation_array(
-                data, sensor_ids, times_pd, observation_flavors
+                data, sensor_labels, times_pd, observation_flavors
             ),
             meta={
-                "CATDESC": "Observation Values",
+                "CATDESC": "Dose rate for combined sensors and dosimeter flavors",
                 "VAR_TYPE": "data",
                 "UNITS": (u.J / u.kg * 0.01).to_string(),
                 "DEPEND_0": "Epoch",
-                "DEPEND_2": "sensor_ids",
-                "LABL_PTR_1": "Epoch_label",
-                "LABL_PTR_2": "sensor_ids",
-                "LABL_PTR_3": "Flavor_label",
+                "DEPEND_1": "sensor_ids",
+                "DEPEND_2": "dosimeter_flavor_ids",
+                "LABL_PTR_1": "sensor_labels",
+                "LABL_PTR_2": "dosimeter_flavor_labels",
             },
         ),
         "lat": NDData(
             data=create_sensor_array(
-                sensor_grouped, sensor_deduped_dt, sensor_ids, times_pd, "lat"
+                sensor_grouped, sensor_deduped_dt, sensor_labels, times_pd, "lat"
             ),
             meta={
                 "CATDESC": "Latitude",
                 "VAR_TYPE": "data",
                 "UNITS": u.degree.to_string(),
                 "DEPEND_0": "Epoch",
-                "DEPEND_2": "sensor_ids",
-                "LABL_PTR_1": "Epoch_label",
-                "LABL_PTR_2": "sensor_ids",
+                "DEPEND_1": "sensor_ids",
+                "LABL_PTR_1": "sensor_labels",
             },
         ),
         "lon": NDData(
             data=create_sensor_array(
-                sensor_grouped, sensor_deduped_dt, sensor_ids, times_pd, "lon"
+                sensor_grouped, sensor_deduped_dt, sensor_labels, times_pd, "lon"
             ),
             meta={
                 "CATDESC": "Longitude",
                 "VAR_TYPE": "data",
                 "UNITS": u.degree.to_string(),
                 "DEPEND_0": "Epoch",
-                "DEPEND_2": "sensor_ids",
-                "LABL_PTR_1": "Epoch_label",
-                "LABL_PTR_2": "sensor_ids",
+                "DEPEND_1": "sensor_ids",
+                "LABL_PTR_1": "sensor_labels",
             },
         ),
         "alt": NDData(
             data=create_sensor_array(
-                sensor_grouped, sensor_deduped_dt, sensor_ids, times_pd, "alt"
+                sensor_grouped, sensor_deduped_dt, sensor_labels, times_pd, "alt"
             ),
             meta={
                 "CATDESC": "Altitude",
                 "VAR_TYPE": "data",
                 "UNITS": u.km.to_string(),
                 "DEPEND_0": "Epoch",
-                "DEPEND_2": "sensor_ids",
-                "LABL_PTR_1": "Epoch_label",
-                "LABL_PTR_2": "sensor_ids",
+                "DEPEND_1": "sensor_ids",
+                "LABL_PTR_1": "sensor_labels",
             },
         ),
         "obQuality": NDData(
             data=create_sensor_array(
-                sensor_grouped, sensor_deduped_dt, sensor_ids, times_pd, "obQuality"
+                sensor_grouped, sensor_deduped_dt, sensor_labels, times_pd, "obQuality"
             ),
             meta={
                 "CATDESC": "Observation Quality",
                 "VAR_TYPE": "data",
-                "UNITS": u.dimensionless_unscaled.to_string(),
+                "UNITS": "unitless",
                 "DEPEND_0": "Epoch",
-                "DEPEND_2": "sensor_ids",
-                "LABL_PTR_1": "Epoch_label",
-                "LABL_PTR_2": "sensor_ids",
+                "DEPEND_1": "sensor_ids",
+                "LABL_PTR_1": "sensor_labels",
             },
         ),
-        "senPos0": NDData(
+        "sensor_position_x": NDData(
             data=create_sensor_array(
-                sensor_grouped, sensor_deduped_dt, sensor_ids, times_pd, "senPos0"
+                sensor_grouped, sensor_deduped_dt, sensor_labels, times_pd, "senPos0"
             ),
             meta={
-                "CATDESC": "Sensor Position 0",
+                "CATDESC": "GEI Coordinate Position X in KM",
                 "VAR_TYPE": "data",
-                "UNITS": u.dimensionless_unscaled.to_string(),
+                "UNITS": u.km.to_string(),
                 "DEPEND_0": "Epoch",
-                "DEPEND_2": "sensor_ids",
-                "LABL_PTR_1": "Epoch_label",
-                "LABL_PTR_2": "sensor_ids",
+                "DEPEND_1": "sensor_ids",
+                "LABL_PTR_1": "sensor_labels",
             },
         ),
-        "senPos1": NDData(
+        "sensor_position_y": NDData(
             data=create_sensor_array(
-                sensor_grouped, sensor_deduped_dt, sensor_ids, times_pd, "senPos1"
+                sensor_grouped, sensor_deduped_dt, sensor_labels, times_pd, "senPos1"
             ),
             meta={
-                "CATDESC": "Sensor Position 1",
+                "CATDESC": "GEI Coordinate Position Y in KM",
                 "VAR_TYPE": "data",
-                "UNITS": u.dimensionless_unscaled.to_string(),
+                "UNITS": u.km.to_string(),
                 "DEPEND_0": "Epoch",
-                "DEPEND_2": "sensor_ids",
-                "LABL_PTR_1": "Epoch_label",
-                "LABL_PTR_2": "sensor_ids",
+                "DEPEND_1": "sensor_ids",
+                "LABL_PTR_1": "sensor_labels",
             },
         ),
-        "senPos2": NDData(
+        "sensor_position_z": NDData(
             data=create_sensor_array(
-                sensor_grouped, sensor_deduped_dt, sensor_ids, times_pd, "senPos2"
+                sensor_grouped, sensor_deduped_dt, sensor_labels, times_pd, "senPos2"
             ),
             meta={
-                "CATDESC": "Sensor Position 2",
+                "CATDESC": "GEI Coordinate Position Z in KM",
                 "VAR_TYPE": "data",
-                "UNITS": u.dimensionless_unscaled.to_string(),
+                "UNITS": u.km.to_string(),
                 "DEPEND_0": "Epoch",
-                "DEPEND_2": "sensor_ids",
-                "LABL_PTR_1": "Epoch_label",
-                "LABL_PTR_2": "sensor_ids",
+                "DEPEND_1": "sensor_ids",
+                "LABL_PTR_1": "sensor_labels",
             },
         ),
     }
@@ -459,7 +489,7 @@ def build_swxdata(
     log.info(
         "Built SWXData: %d time steps, %d sensors, %d support variables",
         len(ts),
-        len(sensor_ids),
+        len(sensor_labels),
         len(variables),
     )
     return reach_data

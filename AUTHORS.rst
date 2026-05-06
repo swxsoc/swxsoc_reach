@@ -1,11 +1,15 @@
-=======
-Credits
-=======
+Authors
+-------
+
+Project Lead
+------------
+
+* `Steven D. Christe <https://github.com/ehsteve>`_
 
 Development Lead
 ----------------
 
-* `Steven D. Christe <https://github.com/ehsteve>`_
+* `Andrew Robbertz <https://github.com/Alrobbertz>`_
 
 Developers
 ----------

@@ -7,7 +7,7 @@ Testing Guidelines
 This section describes the testing framework and format standards for tests.
 Here we have heavily adapted the `Astropy version <https://docs.astropy.org/en/latest/development/testguide.html>`_, and **it is worth reading that link.**
 
-The testing framework used by sunpy is the `pytest`_ framework, accessed through the ``pytest`` command.
+The testing framework used by this package is the `pytest`_ framework, accessed through the ``pytest`` command.
 
 .. _pytest: https://pytest.org/en/latest/
 
@@ -48,7 +48,7 @@ Code examples in the documentation will also be run as tests and this helps to v
 We use the same system as Astropy, so for information on writing doctests see the astropy `documentation <https://docs.astropy.org/en/latest/development/testguide.html#writing-doctests>`_.
 
 You do not have to do anything extra in order to run any documentation tests.
-Within our ``setup.cfg`` file we have set default options for ``pytest``, such that you only need to run::
+Within our ``pyproject.toml`` file we have set default options for ``pytest`` under ``[tool.pytest.ini_options]``, such that you only need to run::
 
     $ pytest <rst to test>
 

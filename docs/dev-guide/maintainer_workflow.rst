@@ -103,7 +103,7 @@ Now you need to push the changes you have made to the code to the open pull requ
 
 You might have to add ``--force`` if you rebased instead of adding new commits.
 
-IOssue Milestones and Labels
+Issue Milestones and Labels
 ============================
 
 Current milestone guidelines:
@@ -132,4 +132,4 @@ Releases
 
 We have a `step by step checklist`_ on the Wiki on how to make a release.
 
-.. _step by step checklist: https://github.com/HERMES-SOC/hermes_core/wiki/Release-Process
+.. _step by step checklist: https://github.com/swxsoc/swxsoc_reach/wiki/Release-Process
