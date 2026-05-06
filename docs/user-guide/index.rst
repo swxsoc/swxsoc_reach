@@ -15,3 +15,5 @@ For more details checkout the :ref:`reference`.
    data_objects
    logger
    customization
+   historical-download
+   historical-process
