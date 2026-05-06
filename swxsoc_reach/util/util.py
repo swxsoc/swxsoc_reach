@@ -2,14 +2,12 @@ import csv
 from pathlib import Path
 from typing import Any
 
-import matplotlib.path as mpath
 import matplotlib.pyplot as plt
 import numpy as np
 import numpy.typing as npt
-from cartopy import crs as ccrs
-from swxsoc.util import create_science_filename, parse_science_filename
 from astropy.time import Time
-from swxsoc.util.util import parse_science_filename, TIME_FORMAT
+from cartopy import crs as ccrs
+from swxsoc.util.util import TIME_FORMAT, parse_science_filename
 
 from swxsoc_reach import _data_directory
 from swxsoc_reach.util.enums import Region

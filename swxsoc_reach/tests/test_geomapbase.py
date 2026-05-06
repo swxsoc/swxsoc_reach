@@ -1,6 +1,3 @@
-import datetime as dt
-from types import SimpleNamespace
-
 import numpy as np
 import pytest
 from astropy import units as u

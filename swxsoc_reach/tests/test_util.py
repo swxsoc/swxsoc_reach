@@ -10,7 +10,6 @@ from scipy.interpolate import splprep
 import swxsoc_reach.util.geom as geom_util
 import swxsoc_reach.util.util as util
 import swxsoc_reach.visualization.viz as viz
-from swxsoc_reach import _test_files_directory
 from swxsoc_reach.util.enums import Region
 
 TIME = "2024-04-06T00:00:00"

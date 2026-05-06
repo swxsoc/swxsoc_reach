@@ -1,8 +1,5 @@
 """Generic geospatial map container with SunPy-like map helpers."""
 
-from os import times
-from pathlib import Path
-
 import astropy.units as u
 import numpy as np
 from astropy.time import Time

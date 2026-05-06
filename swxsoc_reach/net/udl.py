@@ -1,12 +1,13 @@
-import json
 import csv
+import json
 import random
 import tempfile
 import threading
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import Any, Literal
 from pathlib import Path
+from typing import Any, Literal
+
 import requests
 from astropy.time import Time, TimeDelta
 

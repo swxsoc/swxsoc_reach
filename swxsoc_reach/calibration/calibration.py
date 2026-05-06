@@ -6,7 +6,6 @@ import os
 import tempfile
 from pathlib import Path
 
-import numpy as np
 from swxsoc.swxdata import SWXData
 from swxsoc.util.validation import validate
 
@@ -14,7 +13,6 @@ from swxsoc_reach import log
 from swxsoc_reach.calibration.transform import build_swxdata
 from swxsoc_reach.io.file_tools import read_file
 from swxsoc_reach.util.schema import REACHDataSchema
-from swxsoc_reach.util.util import load_regions
 from swxsoc_reach.visualization.viz import plot_mapdata
 
 __all__ = [
@@ -54,7 +52,7 @@ def process_file(
     # CHECK FILE TYPE; IF CDF THEN CREATE MAP CDF.
 
     if file_path.suffix.lower() == ".cdf":  # TODO also check that data level is l1c
-        log.info(f"Input file is already a CDF. Creating map CDF.")
+        log.info("Input file is already a CDF. Creating map CDF.")
         # Create map CDF (stubbed for now)
         v = SWXData(file_path)  # read in the CDF file into a SWXData object (stubbed)
         gridded_data = raw_to_mapdata(v)
@@ -67,7 +65,7 @@ def process_file(
         output_files.append(map_cdf_path)
         return output_files
     else:
-        log.info(f"Input file is not a CDF. Processing as UDL file.")
+        log.info("Input file is not a CDF. Processing as UDL file.")
 
         data = read_file(file_path)
         reach_data = build_swxdata(data)

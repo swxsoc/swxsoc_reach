@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from os import path
 from pathlib import Path
 
 import matplotlib.path as mpath

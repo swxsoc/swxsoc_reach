@@ -7,8 +7,6 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
 from cartopy import crs as ccrs
-from cartopy import feature as cfeature
-from scipy import stats
 from swxsoc.swxdata import SWXData
 
 from swxsoc_reach import log
