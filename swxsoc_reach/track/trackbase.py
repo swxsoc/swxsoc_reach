@@ -1,10 +1,12 @@
 """Generic geospatial map container with SunPy-like map helpers."""
 
+from copy import deepcopy
+
 import astropy.units as u
 import numpy as np
+from astropy.nddata import NDData
 from astropy.time import Time
 from astropy.timeseries import TimeSeries
-from astropy.nddata import NDData
 from scipy.stats import binned_statistic_2d
 from swxsoc.swxdata import SWXData
 
@@ -21,9 +23,9 @@ class REACHTrack(SWXData):
     It provides methods for extracting individual tracks, plotting the track parameters as a function of time, plotting the track on a global geomap, and converting the track to a gridded geospatial map.
     """
 
-    def get_track(self, reach_id: SensorId | int, dose_id: int) -> TimeSeries:
+    def get_track(self, reach_id: SensorId | int) -> TimeSeries:
         """
-        Retrieve a time series of tracking data for a specific sensor and dosimeter.
+        Retrieve a time series of tracking data for a specific sensor.
 
         Parameters
         ----------
@@ -31,8 +33,6 @@ class REACHTrack(SWXData):
             Sensor selector. If a ``SensorId`` is provided, it must represent a
             single sensor. If an ``int`` is provided, it is interpreted as a
             zero-based sensor index (0-31), not a REACH numeric id.
-        dose_id : int
-            The dosimeter index. Must be between 0 and the number of dosimeter flavors minus 1.
 
         Returns
         -------
@@ -52,12 +52,6 @@ class REACHTrack(SWXData):
             If ``dose_id`` is out of range, if integer ``reach_id`` is outside
             0-31, or if ``reach_id`` does not resolve to a single valid sensor.
         """
-        n_dosimeters = len(self["dosimeter_flavor_ids"].data)
-        if dose_id < 0 or dose_id >= n_dosimeters:
-            raise ValueError(
-                f"Invalid dose_id {dose_id}, must be between 0 and {n_dosimeters - 1}."
-            )
-
         if isinstance(reach_id, int):
             sensor_id = SensorId.from_str(reach_id)
         else:
@@ -69,8 +63,15 @@ class REACHTrack(SWXData):
         ts_times = Time(self["time"])
         ts = TimeSeries(time=ts_times)
 
-        # Get the Dose Rate Observational Data
-        ts["dose"] = self["dose_rate"].data[:, reach_index, dose_id] * u.rad / u.second
+        flavor_str = []
+        for dose_index in [0, 1]:
+            # Get the Dose Rate Observational Data
+            flavor_str.append(
+                Flavor.from_str(self["dosimeter_flavors"].data[reach_index][dose_index])
+            )
+            ts[f"dose{dose_index}"] = (
+                self["dose_rate"].data[:, reach_index, dose_index] * u.rad / u.second
+            )
 
         # Get Geodetic Coordinates and Region Codes
         ts["longitude"] = self["lon"].data[:, reach_index] * u.deg
@@ -86,40 +87,96 @@ class REACHTrack(SWXData):
         )
 
         # Update TimeSeries metadata
-        self._unit = self["dose_rate"].unit
-        ts.meta["dosimeter_id"] = self["dosimeter_flavors"].data[reach_index, dose_id]
+        ts.meta["flavors"] = flavor_str
         ts.meta["reach_id"] = str(sensor_id)
 
         return ts
 
-    def plot(self, reach_id: SensorId | int, dose_id: int) -> None:
+    def truncate(self, start_time: Time, end_time: Time) -> "REACHTrack":
+        """Return a new REACHTrack truncated to the specified time range.
+
+        Creates a copy of the track data with all time-indexed arrays (dose rates,
+        coordinates, quality flags, and sensor positions) sliced to include only
+        observations between ``start_time`` and ``end_time`` (inclusive).
+
+        Parameters
+        ----------
+        start_time : astropy.time.Time
+            Start of time window (inclusive).
+        end_time : astropy.time.Time
+            End of time window (inclusive).
+
+        Returns
+        -------
+        REACHTrack
+            A new ``REACHTrack`` object containing the time-sliced data.
+            The original object remains unchanged.
+        """
+        mask = (self.time >= start_time) & (self.time <= end_time)
+        truncated_data = deepcopy(self)
+
+        # Slice the internal TimeSeries directly (timeseries is a read-only property).
+        default_key = truncated_data._default_timeseries_key
+        truncated_data._timeseries[default_key] = truncated_data._timeseries[
+            default_key
+        ][mask]
+
+        # Slice all time-indexed (DEPEND_0=Epoch) support variables.
+        # NDData.data is read-only, so replace the whole NDData object.
+        for key in ("dose_rate",):
+            if key in truncated_data.support:
+                orig = self[key]
+                truncated_data.support[key] = NDData(
+                    data=orig.data[mask, :, :],
+                    unit=orig.unit,
+                    meta=orig.meta,
+                )
+        for key in (
+            "lat",
+            "lon",
+            "alt",
+            "obQuality",
+            "senPos0",
+            "senPos1",
+            "senPos2",
+        ):
+            if key in truncated_data.support:
+                orig = self[key]
+                truncated_data.support[key] = NDData(
+                    data=orig.data[mask, :],
+                    unit=orig.unit,
+                    meta=orig.meta,
+                )
+
+        return truncated_data
+
+    def plot(self, reach_id: SensorId | int) -> None:
         """Plot track parameters as a function of time.
 
         Builds a vertically stacked set of subplots for all columns returned by
-        :meth:`get_track` except ``time``. The ``dose`` series is plotted as
-        ``log10(dose)`` and all other series are plotted in their native units.
-        The figure title uses ``ts.meta['title']`` when present, otherwise it
-        falls back to ``"{reach_id}, {dosimeter_id}"`` from track metadata.
+        :meth:`get_track` except ``time``. The ``dose0`` and ``dose1`` series
+        are plotted as ``log10(dose)`` and all other series are plotted in their
+        native units. The figure title uses ``ts.meta['title']`` when present,
+        otherwise it falls back to ``"{reach_id}"`` from track metadata.
 
         Parameters
         ----------
         reach_id : SensorId or int
-            Sensor selector passed through to :meth:`get_track`.
-        dose_id : int
-            Dosimeter index passed through to :meth:`get_track`.
+            Sensor selector (0-31 or SensorId enum). Passed through to
+            :meth:`get_track`.
 
         Raises
         ------
         ValueError
             If no plottable track parameters are available.
             Any :class:`ValueError` raised by :meth:`get_track` may also
-            propagate for invalid sensor or dosimeter selections.
+            propagate for invalid sensor selection.
         """
         import matplotlib.dates as mdates
         import matplotlib.pyplot as plt
 
         # Get Specific Track TimeSeries for the Given Sensor and Dosimeter
-        ts = self.get_track(reach_id, dose_id)
+        ts = self.get_track(reach_id)
 
         y_columns = [col for col in ts.colnames if col != "time"]
         if not y_columns:
@@ -140,13 +197,13 @@ class REACHTrack(SWXData):
         # Plot Each Parameter
         for ax, col in zip(axes, y_columns):
             y_data = ts[col]
-            if col == "dose":
+            if col.count("dose"):
                 ax.plot(x_time, np.log10(y_data.value))
                 unit = getattr(y_data, "unit", None)
                 if unit is not None and str(unit):
-                    label = f"Log10 Dose ({unit})"
+                    label = f"Log10 Dose ({unit}) - {ts.meta['flavors'][y_columns.index(col)]}"
                 else:
-                    label = "Log10 Dose"
+                    label = f"Log10 Dose - {ts.meta['flavors'][y_columns.index(col)]}"
             else:
                 ax.plot(x_time, y_data)
                 label = col.replace("_", " ").title()
@@ -160,21 +217,45 @@ class REACHTrack(SWXData):
         axes[0].set_title(
             ts.meta.get(
                 "title",
-                f"{ts.meta.get('reach_id')}, {ts.meta.get('dosimeter_id')}",
+                f"{ts.meta.get('reach_id')}",
             )
         )
         fig.autofmt_xdate()
         fig.tight_layout()
         plt.show()
 
-    def plotgeo(self, color_by: str = "dose") -> None:
+    def plotgeo(
+        self, reach_id: SensorId | int, dose_index: int = 0, color_by: str = "dose0"
+    ) -> None:
         """Plot the track on a global geomap.
+
+        Displays track observations as points and lines on a global map with
+        region contour boundaries. Points can be colored by dose rate (log scale)
+        or region code.
 
         Parameters
         ----------
+        reach_id : SensorId or int
+            Sensor selector (0-31 or SensorId enum). Passed through to
+            :meth:`get_track`.
+        dose_index : int, optional
+            Dosimeter index (0 or 1) to use for coloring when ``color_by``
+            is ``"dose0"`` or ``"dose1"``. Default is 0.
         color_by : str, optional
             Scalar used to color track points. Supported values are
-            ``"dose"`` and ``"region_code"``.
+            ``"dose0"`` (dose rate channel 0, log scale with ``viridis``),
+            ``"dose1"`` (dose rate channel 1, log scale with ``viridis``), and
+            ``"region_code"`` (integer region code, colored with ``tab10``).
+            Default is ``"dose0"``.
+
+        Raises
+        ------
+        ImportError
+            If ``cartopy`` is not installed.
+        ValueError
+            If ``color_by`` is not ``"dose0"``, ``"dose1"``, or
+            ``"region_code"``, or if any :class:`ValueError` raised by
+            :meth:`get_track` propagates.
         """
         import matplotlib.pyplot as plt
 
@@ -183,21 +264,29 @@ class REACHTrack(SWXData):
         except ImportError as exc:
             raise ImportError("plotgeo requires cartopy to be installed.") from exc
 
-        lon = self["lon"].data
-        lat = self["lat"].data
+        # Get Specific Track TimeSeries for the Given Sensor and Dosimeter
+        ts = self.get_track(reach_id=reach_id)
+        lon = ts["longitude"]
+        lat = ts["latitude"]
 
         # Verify Color Mapping and Prepare Color Values
-        if color_by == "dose":
-            values = np.asarray(np.log10(self["dose_rate"].data), dtype=float)
-            colorbar_label = f"Dose ({self['dose_rate'].unit})"
+        if color_by == "dose0":
+            dose_data = ts["dose0"].quantity
+            values = np.log10(dose_data.value)
+            colorbar_label = f"Dose0 (log10 {dose_data.unit})"
+            cmap = "viridis"
+        elif color_by == "dose1":
+            dose_data = ts["dose1"].quantity
+            values = np.log10(dose_data.value)
+            colorbar_label = f"Dose1 (log10 {dose_data.unit})"
             cmap = "viridis"
         elif color_by == "region_code":
-            values = np.asarray(self.data["region_code"], dtype=float)
+            values = ts["region_code"]
             colorbar_label = "Region Code"
             cmap = "tab10"
         else:
             raise ValueError(
-                f"Unsupported color_by {color_by!r}. Use 'dose' or 'region_code'."
+                f"Unsupported color_by {color_by!r}. Use 'dose0', 'dose1', or 'region_code'."
             )
 
         fig = plt.figure(figsize=(11, 6))
@@ -211,8 +300,8 @@ class REACHTrack(SWXData):
 
         # Draw line first, then points colored by selected scalar.
         ax.plot(
-            lon,
-            lat,
+            lon.value,
+            lat.value,
             color="black",
             linewidth=0.8,
             alpha=0.5,
@@ -220,8 +309,8 @@ class REACHTrack(SWXData):
         )
         # Plot points colored by the selected scalar
         scatter = ax.scatter(
-            lon,
-            lat,
+            lon.value,
+            lat.value,
             c=values,
             s=20,
             cmap=cmap,
@@ -229,8 +318,11 @@ class REACHTrack(SWXData):
         )
 
         fig.colorbar(scatter, ax=ax, label=colorbar_label, shrink=0.85)
-        title = f"{self.reach_id} {self.dosimeter_id} {self.data.time[0].iso} to {self.data.time[-1].iso}"
-        ax.set_title(self.meta.get("title", title))
+        if color_by == "dose":
+            title = f"{ts.meta.get('reach_id')} {ts.meta.get('flavors')[dose_index]} {ts.time[0].iso} to {ts.time[-1].iso}"
+        else:
+            title = f"{ts.meta.get('reach_id')} {ts.time[0].iso} to {ts.time[-1].iso}"
+        ax.set_title(ts.meta.get("title", title))
         plt.show()
 
     def to_geomap(

@@ -71,7 +71,7 @@ Typical workflow:
    track = REACHTrack.load("path/to/file.cdf")
 
    # 1D track-style view for one sensor/dosimeter
-   ts = track.get_track(reach_id=SensorId.REACH_101, dose_id=0)
+   ts = track.get_track(reach_id=SensorId.REACH_101)
    print(ts.colnames)
 
    # Convert to 2D gridded map object
@@ -79,13 +79,39 @@ Typical workflow:
 
 Key ``REACHTrack`` methods:
 
-- ``get_track(reach_id, dose_id)``: returns a time-ordered
-  :class:`astropy.timeseries.TimeSeries` including ``dose``, ``longitude``,
-  ``latitude``, ``altitude``, and ``region_code``.
-- ``plot(reach_id, dose_id)``: quick-look parameter-vs-time plotting.
-- ``plotgeo(color_by="dose" | "region_code")``: global track visualization.
+- ``get_track(reach_id)``: returns a time-ordered
+  :class:`astropy.timeseries.TimeSeries` including ``dose0``, ``dose1``,
+  ``longitude``, ``latitude``, ``altitude``, and ``region_code``.
+- ``plot(reach_id)``: quick-look parameter-vs-time plotting.
+- ``plotgeo(color_by="dose0" | "region_code")``: global track visualization.
+- ``truncate(start_time, end_time)``: returns a new ``REACHTrack`` object
+  containing only data within the specified time range.
 - ``to_geomap(...)``: creates the map object used by the mask-based APIs on
   this page.
+
+Truncating track data by time
+=============================
+
+Use :meth:`swxsoc_reach.track.trackbase.REACHTrack.truncate` to extract a
+subset of track data within a specified time window. This creates a new
+``REACHTrack`` object with all time-indexed data (dose rates, coordinates,
+quality flags, and sensor positions) properly sliced.
+
+.. code-block:: python
+
+   from astropy.time import Time
+   from swxsoc_reach.track.trackbase import REACHTrack
+
+   track = REACHTrack.load("path/to/file.cdf")
+
+   # Extract data for a specific time interval
+   start = Time("2025-01-01T00:00:00")
+   end = Time("2025-01-01T01:00:00")
+   truncated = track.truncate(start, end)
+
+   # Original track is unchanged
+   print(f"Original length: {len(track.time)}")
+   print(f"Truncated length: {len(truncated.time)}")
 
 Reading region masks
 ====================
@@ -121,6 +147,26 @@ map:
 
    # Single-colormap rendering
    geomap.plot(color_by_region=False)
+
+Map properties
+==============
+
+The ``GenericGeoMap`` object provides several useful properties:
+
+- ``map_data``: 2D spatial data array with shape ``(ny, nx)``.
+- ``shape`` or ``dimensions``: Returns ``(ny, nx)`` - the spatial dimensions only,
+  regardless of whether time-indexed data is present.
+- ``extent``: Returns ``(lon_min, lon_max, lat_min, lat_max)`` in degrees.
+- ``coordinate_system``: Returns the coordinate system label (typically "geodetic").
+- ``flavor``: Returns the data flavor/type associated with the map.
+
+.. code-block:: python
+
+   ny, nx = geomap.shape
+   print(f"Map dimensions: {ny} latitude bins × {nx} longitude bins")
+   
+   lon_min, lon_max, lat_min, lat_max = geomap.extent
+   print(f"Map covers {lat_min}° to {lat_max}° latitude")
 
 Per-region totals
 =================

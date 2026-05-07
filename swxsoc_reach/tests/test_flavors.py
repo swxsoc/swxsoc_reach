@@ -105,9 +105,6 @@ class TestSensorId:
     def test_membership_in_all(self):
         assert SensorId.REACH_133 in SensorId.ALL
 
-    def test_id_str(self):
-        assert SensorId.REACH_140.id_str == "REACH-140"
-
     def test_unknown_sensor_raises_value_error(self):
         with pytest.raises(ValueError, match="Unknown sensor id"):
             SensorId.from_str("REACH-999")

@@ -13,4 +13,9 @@
     "python.testing.unittestEnabled": false,
     "python.testing.pytestEnabled": true,
     "notebook.formatOnSave.enabled": true,
+    "python-envs.defaultEnvManager": "ms-python.python:conda",
+    "python-envs.defaultPackageManager": "ms-python.python:conda",
+    "chat.tools.terminal.autoApprove": {
+        "C:/Users/sdchris1/AppData/Local/miniforge3/Scripts/conda.exe": true
+    },
 }

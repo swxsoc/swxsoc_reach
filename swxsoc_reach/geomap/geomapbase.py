@@ -5,8 +5,8 @@ import numpy as np
 from astropy.coordinates import EarthLocation
 from swxsoc.swxdata import SWXData
 
-from swxsoc_reach.visualization.viz import plot_region_code_contours_on_geomap
 from swxsoc_reach.util.enums import Flavor, Region
+from swxsoc_reach.visualization.viz import plot_region_code_contours_on_geomap
 
 
 class GenericGeoMap(SWXData):
@@ -56,8 +56,26 @@ class GenericGeoMap(SWXData):
 
     @property
     def shape(self) -> tuple[int, int]:
-        """Map shape as ``(ny, nx)``."""
-        return self.map_data.shape
+        """Map shape as ``(ny, nx)`` - spatial dimensions only.
+
+        Returns the spatial dimensions of the map grid, regardless of whether
+        time-indexed data is present in the underlying storage. If the internal
+        data includes a time axis (e.g., ``(nt, ny, nx)``), only the spatial
+        dimensions are returned.
+
+        Returns
+        -------
+        tuple[int, int]
+            The map dimensions as ``(num_latitude, num_longitude)``.
+        """
+        # map_data shape is (ny, nx) if singleton time was squeezed, or (nt, ny, nx) otherwise
+        data = self.map_data
+        if data.ndim == 3:
+            # Multiple time samples, return spatial dimensions only
+            return data.shape[1:]
+        else:
+            # Single time sample (already squeezed), return full shape
+            return data.shape
 
     @property
     def dimensions(self) -> tuple[int, int]:
@@ -66,12 +84,22 @@ class GenericGeoMap(SWXData):
 
     @property
     def coordinate_system(self) -> str:
-        """Coordinate system label for this map."""
+        """Coordinate system label for this map.
+
+        Returns the name of the coordinate system used by the map's longitude
+        and latitude values. Typically ``"geodetic"`` for WGS84 coordinates.
+        """
         return str(self.meta.get("coordinate_system", "geodetic"))
 
     @property
     def extent(self) -> tuple[float, float, float, float]:
-        """Map extent as lon/lat min-max values in degrees."""
+        """Map extent as lon/lat min-max values in degrees.
+
+        Returns
+        -------
+        tuple[float, float, float, float]
+            Extent as ``(lon_min, lon_max, lat_min, lat_max)`` in degrees.
+        """
         return (
             float(self._lon.min()),
             float(self._lon.max()),
