@@ -20,6 +20,7 @@ process in a bad state.
 from __future__ import annotations
 
 import os
+import shutil
 import time
 import traceback
 import uuid
@@ -247,6 +248,43 @@ def _process_one_day(
         os.chdir(saved_cwd)
 
 
+def _relocate_to_nested_layout(flat_path: Path, output_dir: Path) -> Path:
+    """Move *flat_path* into a nested subdirectory of *output_dir*.
+
+    The subdirectory mirrors the S3 key produced by
+    :func:`sdc_aws_utils.aws.create_s3_file_key` (e.g.
+    ``l1c/prelim/2026/01/01/``). Falls back to returning *flat_path*
+    unchanged if ``sdc_aws_utils`` or ``swxsoc`` are not importable, or
+    if key computation raises for any reason.
+    """
+    try:
+        from sdc_aws_utils.aws import create_s3_file_key
+        from swxsoc.util.util import parse_science_filename
+    except ImportError:
+        log.debug(
+            f"_relocate_to_nested_layout: sdc_aws_utils/swxsoc not available; "
+            f"keeping flat layout for {flat_path.name!r}"
+        )
+        return flat_path
+
+    try:
+        nested_key = create_s3_file_key(parse_science_filename, flat_path.name)
+    except Exception as exc:  # noqa: BLE001
+        log.warning(
+            f"Could not compute nested layout key for {flat_path.name!r}; "
+            f"keeping flat ({type(exc).__name__}: {exc})"
+        )
+        return flat_path
+
+    dest = output_dir / nested_key
+    if dest.resolve() == flat_path.resolve():
+        return flat_path
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    shutil.move(str(flat_path), dest)
+    log.debug(f"Relocated CDF to nested layout: {dest}")
+    return dest
+
+
 def run_process(
     config: ProcessRunConfig,
     *,
@@ -451,7 +489,7 @@ def run_process(
                     f"{date_iso}: process_file returned {len(produced)} paths; "
                     f"recording the first ({produced[0].name})"
                 )
-            cdf_path = Path(produced[0])
+            cdf_path = _relocate_to_nested_layout(Path(produced[0]), config.output_dir)
             cdf_size_mb = (
                 f"{cdf_path.stat().st_size / (1024 * 1024):.4f}"
                 if cdf_path.exists()
