@@ -122,14 +122,15 @@ def plot_region_contours(
     draw_coastlines: bool = True,
 ) -> Path | None:
     """Plot labeled line contours for the integer region-code grid."""
-    from swxsoc_reach.visualization.viz import plot_region_code_contours_on_geomap
+    from swxsoc_reach.visualization.viz import plot_geomap
 
     fig = plt.figure(figsize=(11.69, 8.27))
     ax: Any = plt.subplot(1, 1, 1, projection=ccrs.PlateCarree())
-    ax, contour = plot_region_code_contours_on_geomap(
+    ax, contour = plot_geomap(
         ax=ax,
         draw_coastlines=draw_coastlines,
         draw_gridlines=True,
+        draw_contours=True,
         label_contours=True,
     )
 

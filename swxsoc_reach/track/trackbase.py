@@ -14,7 +14,7 @@ from swxsoc_reach.geomap import GenericGeoMap
 from swxsoc_reach.util.enums import Flavor, Region, SensorId
 from swxsoc_reach.util.geom import load_region_contours, points_to_region_code
 from swxsoc_reach.util.schema import REACHDataSchema
-from swxsoc_reach.visualization.viz import plot_region_code_contours_on_geomap
+from swxsoc_reach.visualization.viz import plot_geomap
 
 
 class REACHTrack(SWXData):
@@ -291,7 +291,7 @@ class REACHTrack(SWXData):
 
         fig = plt.figure(figsize=(11, 6))
         ax = plt.axes(projection=ccrs.PlateCarree())
-        plot_region_code_contours_on_geomap(
+        plot_geomap(
             ax=ax,
             draw_coastlines=True,
             draw_gridlines=True,
@@ -457,16 +457,21 @@ class REACHTrack(SWXData):
             axis=0,
         )
 
+        if map_statistic == "count":
+            unit = u.count
+        else:
+            unit = u.rad / u.s
+
         # Define CDF Variables Dict.
         variables: dict[str, NDData] = {
             "map_data": NDData(
                 # NOTE: Expand first dimension for 1 time step to conform to CDF Format requirements.
                 data=np.expand_dims(m, axis=0),
-                unit=u.rad / u.s,
+                unit=unit,
                 meta={
                     "CATDESC": f"{map_statistic} dose rate",
                     "VAR_TYPE": "data",
-                    "UNITS": (u.rad / u.s).to_string(),
+                    "UNITS": unit.to_string(),
                     "DEPEND_0": "Epoch",
                     "DEPEND_1": "lat",
                     "DEPEND_2": "lon",
@@ -556,7 +561,7 @@ class REACHTrack(SWXData):
         meta["Data_version"] = "1.0.0"
         meta["Data_level"] = "l2"
         meta["Instrument_mode"] = str(flavor)
-        meta["Flavor"] = str(flavor)
+        meta["Flavor"] = str(flavor.name)
         meta["coordinate_system"] = "geodetic"
 
         # NOTE for GeoMap we want to override some Schema Requirements.

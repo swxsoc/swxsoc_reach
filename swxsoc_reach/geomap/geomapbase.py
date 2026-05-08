@@ -6,7 +6,7 @@ from astropy.coordinates import EarthLocation
 from swxsoc.swxdata import SWXData
 
 from swxsoc_reach.util.enums import Flavor, Region
-from swxsoc_reach.visualization.viz import plot_region_code_contours_on_geomap
+from swxsoc_reach.visualization.viz import plot_geomap
 
 
 class GenericGeoMap(SWXData):
@@ -52,7 +52,7 @@ class GenericGeoMap(SWXData):
 
     @property
     def flavor(self) -> Flavor:
-        return self.meta.get("Flavor", None)
+        return Flavor.from_str(self.meta.get("Flavor"))
 
     @property
     def shape(self) -> tuple[int, int]:
@@ -276,12 +276,14 @@ class GenericGeoMap(SWXData):
         *,
         add_colorbar: bool = True,
         color_by_region: bool = True,
+        log_scale: bool = True,
+        draw_regions: bool = True,
         **kwargs,
     ):
         """
         Plot the geospatial dose-rate map and return the axes and mesh artist.
 
-        Dose-rate values are displayed on a log10 scale. Region contours,
+        Dose-rate values are displayed on a log10 scale by default. Region contours,
         coastlines, and gridlines are always drawn. If cartopy is installed the
         axes will use a ``PlateCarree`` projection; otherwise a plain
         matplotlib axes is used.
@@ -301,6 +303,10 @@ class GenericGeoMap(SWXData):
             When ``False`` the full log10 map is plotted as a single
             ``pcolormesh`` using the ``viridis`` colormap and a single
             colorbar.
+        log_scale : bool, optional
+            When ``True`` (default) plot ``log10(map_data)`` (positive values
+            only) with fixed range ``[-7, -2]``. When ``False`` plot linear
+            ``map_data`` values and use matplotlib's default autoscaling.
         **kwargs
             Currently unused; reserved for future keyword arguments.
 
@@ -315,7 +321,8 @@ class GenericGeoMap(SWXData):
 
         Notes
         -----
-        - The color scale is fixed to ``[-7, -2]`` in log10(rad/s).
+                - With ``log_scale=True`` the color scale is fixed to ``[-7, -2]`` in
+                    log10(rad/s).
         - The figure title is formatted as
           ``"{start} - {end} - Flavor {flavor}"`` using the track time range
           and the ``Flavor`` metadata attribute.
@@ -334,8 +341,16 @@ class GenericGeoMap(SWXData):
         except Exception:
             has_cartopy = False
 
-        colorbarmax = -2
-        colorbarmin = -7
+        data_unit = self.support["map_data"].unit
+
+        if log_scale:
+            colorbarmax = -2
+            colorbarmin = -7
+            colorbar_label = f"log ({data_unit})"
+        else:
+            colorbarmax = None
+            colorbarmin = None
+            colorbar_label = f"{data_unit}"
 
         # Colorblind-friendly colormaps
         cdi = "#093145"
@@ -385,15 +400,16 @@ class GenericGeoMap(SWXData):
                 message="set_ticklabels\\(\\) should only be used with a fixed number",
                 category=UserWarning,
             )
-            plot_region_code_contours_on_geomap(
+            plot_geomap(
                 ax=ax,
                 draw_coastlines=True,
                 draw_gridlines=True,
-                label_contours=False,
+                draw_contours=False,
+                label_contours=draw_regions,
             )
 
         time_str = self.meta["Time_start"] + " - " + self.meta["Time_end"]
-        ax.set_title(f"{time_str} - Flavor {self.flavor}")
+        ax.set_title(f"{time_str} - Flavor {self.flavor.label}")
 
         if color_by_region:
             region_cmaps = {
@@ -410,12 +426,17 @@ class GenericGeoMap(SWXData):
             meshes = []
             for region, cmap, _ in regions:
                 region_data = np.where(region_mask[region.mask_index], _md, np.nan)
-                with np.errstate(divide="ignore", invalid="ignore"):
-                    log_data = np.where(region_data > 0, np.log10(region_data), np.nan)
+                if log_scale:
+                    with np.errstate(divide="ignore", invalid="ignore"):
+                        plot_data = np.where(
+                            region_data > 0, np.log10(region_data), np.nan
+                        )
+                else:
+                    plot_data = region_data
                 mesh = ax.pcolormesh(
                     xylon,
                     xylat,
-                    log_data,
+                    plot_data,
                     vmin=colorbarmin,
                     vmax=colorbarmax,
                     cmap=cmap,
@@ -423,8 +444,9 @@ class GenericGeoMap(SWXData):
                 meshes.append(mesh)
 
             if add_colorbar:
-                intticks = int(np.floor(colorbarmax - colorbarmin) + 1)
-                tickemptylabels = [" " for _ in range(intticks)]
+                if log_scale:
+                    intticks = int(np.floor(colorbarmax - colorbarmin) + 1)
+                    tickemptylabels = [" " for _ in range(intticks)]
 
                 pos = ax.get_position()
                 cbar_height = 0.03
@@ -447,31 +469,33 @@ class GenericGeoMap(SWXData):
                         fontsize=9,
                         weight="bold",
                     )
-                    if i < len(regions) - 1:
+                    if log_scale and i < len(regions) - 1:
                         cbar.ax.set_xticklabels(tickemptylabels)
                     else:
-                        cbar.set_label("log (rad/sec)", fontsize=10, labelpad=5)
+                        cbar.set_label(colorbar_label, fontsize=10, labelpad=5)
                         cbar.ax.xaxis.set_label_position("bottom")
                     cbar_y -= cbar_height
 
             last_mesh = meshes[-1]
         else:
-            with np.errstate(divide="ignore", invalid="ignore"):
-                log_data = np.where(_md > 0, np.log10(_md), np.nan)
+            if log_scale:
+                with np.errstate(divide="ignore", invalid="ignore"):
+                    plot_data = np.where(_md > 0, np.log10(_md), np.nan)
+            else:
+                plot_data = _md
             last_mesh = ax.pcolormesh(
                 xylon,
                 xylat,
-                log_data,
+                plot_data,
                 vmin=colorbarmin,
                 vmax=colorbarmax,
                 cmap="viridis",
             )
             if add_colorbar:
                 fig.colorbar(
-                    last_mesh, ax=ax, label="log (rad/sec)", orientation="horizontal"
+                    last_mesh, ax=ax, label=colorbar_label, orientation="horizontal"
                 )
 
-        plt.show()
         return ax, last_mesh
 
     def sum_per_region(self) -> dict[str, float]:

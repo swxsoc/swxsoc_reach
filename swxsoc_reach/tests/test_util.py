@@ -141,6 +141,35 @@ def test_plot_region_code_contours_on_geomap_returns_contour(monkeypatch):
     assert contour is not None
 
 
+def test_plot_geomap_without_contours_returns_none_contour(monkeypatch):
+    """plot_geomap should allow disabling contour drawing."""
+    pytest.importorskip("cartopy")
+    import matplotlib.pyplot as plt
+
+    monkeypatch.setattr(
+        util,
+        "load_regions",
+        lambda: (
+            np.array([-1.0, 0.0, -1.0, 0.0]),
+            np.array([-1.0, -1.0, 0.0, 0.0]),
+            np.array([1, 2, 3, 4]),
+        ),
+    )
+
+    fig = plt.figure()
+    ax = plt.subplot(1, 1, 1, projection=util.ccrs.PlateCarree())
+    out_ax, contour = viz.plot_geomap(
+        ax=ax,
+        draw_coastlines=False,
+        draw_gridlines=False,
+        draw_contours=False,
+        label_contours=False,
+    )
+
+    assert out_ax is ax
+    assert contour is None
+
+
 def test_contour_image_to_path_returns_mpath_object_per_level():
     """Low-level contour extraction should return one matplotlib Path per level."""
     image = np.array(
@@ -173,4 +202,3 @@ def test_contour_image_to_path_returns_requested_levels():
 
     assert set(contour_paths) == {1.0, 2.0}
     assert all(isinstance(path_obj, mpath.Path) for path_obj in contour_paths.values())
-

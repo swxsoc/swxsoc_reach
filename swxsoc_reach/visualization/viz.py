@@ -13,17 +13,18 @@ from swxsoc_reach import log
 from swxsoc_reach.util.enums import Region
 
 
-def plot_region_code_contours_on_geomap(
+def plot_geomap(
     ax: Any | None = None,
     *,
     draw_coastlines: bool = False,
     draw_gridlines: bool = False,
+    draw_contours: bool = True,
     contour_levels: Sequence[float] | None = None,
     contour_colors: Sequence[str] | None = None,
     linewidths: float = 1.2,
     label_contours: bool = False,
 ):
-    """Draw region-code contours on a global PlateCarree map axis."""
+    """Draw a global PlateCarree geomap base and optionally region contours."""
     from swxsoc_reach.util.util import load_regions
 
     lookuplon, lookuplat, glook = load_regions()
@@ -34,10 +35,8 @@ def plot_region_code_contours_on_geomap(
         contour_colors = Region.contour_colors()
 
     if ax is None:
-        fig = plt.figure(figsize=(11.69, 8.27))
+        plt.figure(figsize=(11.69, 8.27))
         ax = plt.subplot(1, 1, 1, projection=ccrs.PlateCarree())
-    else:
-        fig = ax.figure
 
     ax.set_global()
     if draw_coastlines:
@@ -68,20 +67,45 @@ def plot_region_code_contours_on_geomap(
     ):
         region_grid[lat_index[lat_value], lon_index[lon_value]] = region_code
 
-    contour = ax.contour(
-        lon_values,
-        lat_values,
-        region_grid,
-        levels=contour_levels,
-        colors=contour_colors,
-        linewidths=linewidths,
-        transform=ccrs.PlateCarree(),
-    )
+    contour = None
+    if draw_contours:
+        contour = ax.contour(
+            lon_values,
+            lat_values,
+            region_grid,
+            levels=contour_levels,
+            colors=contour_colors,
+            linewidths=linewidths,
+            transform=ccrs.PlateCarree(),
+        )
 
-    if label_contours:
-        ax.clabel(contour, contour.levels, inline=True, fmt="%d", fontsize=8)
+        if label_contours:
+            ax.clabel(contour, contour.levels, inline=True, fmt="%d", fontsize=8)
 
     return ax, contour
+
+
+def plot_region_code_contours_on_geomap(
+    ax: Any | None = None,
+    *,
+    draw_coastlines: bool = False,
+    draw_gridlines: bool = False,
+    contour_levels: Sequence[float] | None = None,
+    contour_colors: Sequence[str] | None = None,
+    linewidths: float = 1.2,
+    label_contours: bool = False,
+):
+    """Backward-compatible wrapper for :func:`plot_geomap`."""
+    return plot_geomap(
+        ax=ax,
+        draw_coastlines=draw_coastlines,
+        draw_gridlines=draw_gridlines,
+        draw_contours=True,
+        contour_levels=contour_levels,
+        contour_colors=contour_colors,
+        linewidths=linewidths,
+        label_contours=label_contours,
+    )
 
 
 def plot_mapdata(

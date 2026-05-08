@@ -249,9 +249,7 @@ def test_plotgeo_uses_region_contour_utility(reach_track, monkeypatch):
         calls["count"] += 1
         return kwargs["ax"], None
 
-    monkeypatch.setattr(
-        trackbase, "plot_region_code_contours_on_geomap", _mock_contours
-    )
+    monkeypatch.setattr(trackbase, "plot_geomap", _mock_contours)
     monkeypatch.setattr(plt, "show", lambda: None)
 
     reach_track.plotgeo(reach_id=SensorId.from_str(0))

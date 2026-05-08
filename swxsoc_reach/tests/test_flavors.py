@@ -1,8 +1,16 @@
 """Tests for the Flavor Flag enum."""
 
+import json
+from pathlib import Path
+
 import pytest
 
-from swxsoc_reach.util.enums import Flavor, SensorId
+from swxsoc_reach.util.enums import (
+    Flavor,
+    SensorId,
+    load_reach_id_dosimeter_relationship,
+    sensor_ids_for_flavor,
+)
 
 
 class TestFlavorMembers:
@@ -108,3 +116,81 @@ class TestSensorId:
     def test_unknown_sensor_raises_value_error(self):
         with pytest.raises(ValueError, match="Unknown sensor id"):
             SensorId.from_str("REACH-999")
+
+
+class TestReachIdDosimeterRelationshipCoverage:
+    @staticmethod
+    def _load_relationship_json() -> dict:
+        path = (
+            Path(__file__).resolve().parents[1]
+            / "data"
+            / "reach_id_dosimeter_relationship.json"
+        )
+        with path.open(encoding="utf-8") as f:
+            return json.load(f)
+
+    def test_sensor_ids_match_sensorid_enum(self):
+        relationship = self._load_relationship_json()
+
+        file_sensor_ids = set(relationship.keys())
+        enum_sensor_ids = {
+            str(sensor) for sensor in SensorId if sensor is not SensorId.ALL
+        }
+
+        assert file_sensor_ids == enum_sensor_ids
+
+    def test_flavors_match_flavor_enum(self):
+        relationship = self._load_relationship_json()
+
+        file_flavor_names = {
+            Flavor.from_str(flavor).name
+            for payload in relationship.values()
+            for flavor in payload["dosimeters"]
+        }
+        enum_flavor_names = {
+            flavor.name for flavor in Flavor if flavor is not Flavor.ALL
+        }
+
+        assert file_flavor_names == enum_flavor_names
+
+
+class TestReachIdDosimeterRelationshipLoader:
+    def test_loader_converts_strings_to_enums(self):
+        relationship = load_reach_id_dosimeter_relationship()
+
+        assert relationship
+        assert all(isinstance(sensor_id, SensorId) for sensor_id in relationship)
+        assert all(
+            isinstance(flavor, Flavor)
+            for dosimeters in relationship.values()
+            for flavor in dosimeters
+        )
+
+    def test_loader_sensor_coverage_matches_enum(self):
+        relationship = load_reach_id_dosimeter_relationship()
+
+        loaded_sensor_ids = set(relationship.keys())
+        enum_sensor_ids = {sensor for sensor in SensorId if sensor is not SensorId.ALL}
+
+        assert loaded_sensor_ids == enum_sensor_ids
+
+
+class TestSensorIdsForFlavor:
+    def test_returns_sensor_ids_for_flavor_enum(self):
+        sensors = sensor_ids_for_flavor(Flavor.Z)
+
+        expected = {
+            SensorId.REACH_169,
+            SensorId.REACH_170,
+            SensorId.REACH_171,
+            SensorId.REACH_172,
+            SensorId.REACH_180,
+            SensorId.REACH_181,
+        }
+        assert set(sensors) == expected
+
+    def test_accepts_string_flavor(self):
+        from_enum = sensor_ids_for_flavor(Flavor.V)
+        from_string = sensor_ids_for_flavor("Flavor V")
+
+        assert set(from_string) == set(from_enum)
