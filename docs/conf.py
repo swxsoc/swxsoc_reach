@@ -68,6 +68,9 @@ autodoc_default_options = {
 # This pattern also affects html_static_path and html_extra_path.
 exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 
+# List of directories to search for template files
+templates_path = ["_templates"]
+
 # The suffix(es) of source filenames.
 # You can specify multiple suffix as a list of string:
 source_suffix = ".rst"
@@ -122,6 +125,7 @@ intersphinx_mapping = {
 # a list of builtin themes.
 html_theme = "pydata_sphinx_theme"
 html_static_path = ["_static"]
+html_extra_path = ["logo"]
 # Keep the browser/tab and header title stable and short so long version
 # strings do not crowd the top bar layout.
 html_title = "swxsoc_reach"

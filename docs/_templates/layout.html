@@ -1,0 +1,11 @@
+{%- extends "pydata_sphinx_theme/layout.html" %}
+
+{%- block extrahead %}
+{{ super() }}
+<link rel="icon" type="image/png" sizes="16x16" href="{{ pathto('favicon-16x16.png', 1) }}">
+<link rel="icon" type="image/png" sizes="32x32" href="{{ pathto('favicon-32x32.png', 1) }}">
+<link rel="icon" type="image/png" sizes="64x64" href="{{ pathto('favicon-64x64.png', 1) }}">
+<link rel="icon" type="image/png" sizes="192x192" href="{{ pathto('favicon-192x192.png', 1) }}">
+<link rel="apple-touch-icon" sizes="180x180" href="{{ pathto('apple-touch-icon-180x180.png', 1) }}">
+<link rel="icon" href="{{ pathto('favicon.ico', 1) }}" sizes="any">
+{%- endblock %}
