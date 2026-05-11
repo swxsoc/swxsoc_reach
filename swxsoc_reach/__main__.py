@@ -331,6 +331,8 @@ def _run_download_command(args: argparse.Namespace) -> int:
         return 2
 
     config = _download_config_from_args(args, auth_token)
+    # Log the Config for visibility
+    log.info(f"Starting download with config: {config}")
     summary = run_download(config)
     log.info(
         f"Run {summary.run_id} complete: "
@@ -381,6 +383,8 @@ def _run_process_command(
         return 2
 
     config = _process_config_from_args(args)
+    # Log the Config for visibility
+    log.info(f"Starting process with config: {config}")
     summary = run_process(config)
     log.info(
         f"Run {summary.run_id} complete: "
