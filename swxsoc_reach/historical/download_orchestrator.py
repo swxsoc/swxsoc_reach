@@ -72,7 +72,7 @@ class DownloadRunConfig:
       ``output_dir``.
     - ``sensor_id`` (``str``, default ``"ALL"``): REACH sensor
       identifier or ``"ALL"``. Drives chunk size in
-      :func:`~swxsoc_reach.net.udl.get_reach_datetimelist` (10-min
+      :func:`~swxsoc_reach.net.udl.get_reach_datetimelist` (5-min
       chunks for ``ALL``, 6-hour chunks for a specific sensor) and the
       expected-records baseline used for ``availability_pct``.
     - ``descriptor`` (``str``, default ``"QUICKLOOK"``): UDL

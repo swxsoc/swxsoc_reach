@@ -6,8 +6,6 @@ build sparse time-aligned arrays, and assemble an SWXData object
 ready for CDF output.
 """
 
-import logging
-
 import astropy.units as u
 import numpy as np
 import pandas as pd
@@ -16,9 +14,9 @@ from astropy.time import Time
 from astropy.timeseries import TimeSeries
 from swxsoc.swxdata import SWXData
 
+from swxsoc_reach import log
 from swxsoc_reach.util.schema import REACHDataSchema
-
-log = logging.getLogger(__name__)
+from swxsoc_reach.util.util import get_reachid_lut
 
 __all__ = [
     "deduplicate_records",
@@ -56,6 +54,43 @@ def deduplicate_records(data: pd.DataFrame) -> pd.DataFrame:
     )
     after = len(data)
     log.info("Dropped %d duplicate records (%d → %d)", before - after, before, after)
+    return data
+
+
+def impute_sensor_metadata(data: pd.DataFrame) -> pd.DataFrame:
+    """
+    Impute missing sensor IDs from the REACH lookup table and drop unresolved rows.
+
+    Parameters
+    ----------
+    data : pd.DataFrame
+        DataFrame with potential missing values in ``idSensor``.
+
+    Returns
+    -------
+    pd.DataFrame
+        DataFrame with missing ``idSensor`` values imputed where possible.
+        Rows that still have missing ``idSensor`` values after imputation are
+        removed and the index is reset.
+    """
+    reachids = get_reachid_lut()
+    before = len(data)
+
+    # Apply the Lookup Table to Impute Missing idSensor Values
+    def impute_id_sensor(row):
+        if pd.isna(row["idSensor"]):
+            obs_name = row["observatoryName"]
+            if obs_name in reachids:
+                return reachids[obs_name]["reachid"]
+        return row["idSensor"]
+
+    data["idSensor"] = data.apply(impute_id_sensor, axis=1)
+    data = data.dropna(subset=["idSensor"]).reset_index(drop=True)
+
+    dropped = before - len(data)
+    if dropped > 0:
+        log.warning("Dropped %d rows with unresolved sensor metadata", dropped)
+
     return data
 
 
@@ -301,6 +336,9 @@ def build_swxdata(
         Fully assembled SWXData instance ready to be saved as CDF.
 
     """
+    # --- 0.5 Fix and drop NaNs in Sensor Metadata ----------------------------------------
+    data = impute_sensor_metadata(data)
+
     # --- 1. Deduplicate ------------------------------------------------
     data = deduplicate_records(data)
 

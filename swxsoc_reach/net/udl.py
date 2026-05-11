@@ -109,7 +109,7 @@ def get_reach_datetimelist(
         Inclusive end time of the requested observation window.
     sensor_id : str
         REACH sensor identifier. IDs beginning with ``REACH-`` use 6-hour
-        chunks; all other values use 10-minute chunks.
+        chunks; all other values use 5-minute chunks.
 
     Returns
     -------
@@ -117,7 +117,7 @@ def get_reach_datetimelist(
         List of ``obTime`` interval strings in UDL range format
         (``<start>..<end>``).
     """
-    timechunk = 21600 if sensor_id.startswith("REACH-") else 600
+    timechunk = 21600 if sensor_id.startswith("REACH-") else 300
     dtlist = []
     total_seconds = int(round((end_time - start_time).to_value("sec")))
 
@@ -614,7 +614,7 @@ def download_UDL_reach_window(
 
     if not urls:
         raise ValueError(
-            f"No records returned for sensor '{sensor_id}' between "
+            f"No URLs to download for sensor '{sensor_id}' between "
             f"{format_udl_timestamp(start_time)} and "
             f"{format_udl_timestamp(end_time)}."
         )
