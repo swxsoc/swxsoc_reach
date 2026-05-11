@@ -59,19 +59,22 @@ def deduplicate_records(data: pd.DataFrame) -> pd.DataFrame:
 
 def impute_sensor_metadata(data: pd.DataFrame) -> pd.DataFrame:
     """
-    Impute missing sensor metadata (idSensor, observatory name / description) using the REACH ID lookup table.
+    Impute missing sensor IDs from the REACH lookup table and drop unresolved rows.
 
     Parameters
     ----------
     data : pd.DataFrame
-        Deduplicated DataFrame with potential missing values in 'idSensor'
+        DataFrame with potential missing values in ``idSensor``.
 
     Returns
     -------
     pd.DataFrame
-        DataFrame with missing 'idSensor' values imputed where possible.
+        DataFrame with missing ``idSensor`` values imputed where possible.
+        Rows that still have missing ``idSensor`` values after imputation are
+        removed and the index is reset.
     """
     reachids = get_reachid_lut()
+    before = len(data)
 
     # Apply the Lookup Table to Impute Missing idSensor Values
     def impute_id_sensor(row):
@@ -82,6 +85,11 @@ def impute_sensor_metadata(data: pd.DataFrame) -> pd.DataFrame:
         return row["idSensor"]
 
     data["idSensor"] = data.apply(impute_id_sensor, axis=1)
+    data = data.dropna(subset=["idSensor"]).reset_index(drop=True)
+
+    dropped = before - len(data)
+    if dropped > 0:
+        log.warning("Dropped %d rows with unresolved sensor metadata", dropped)
 
     return data
 
