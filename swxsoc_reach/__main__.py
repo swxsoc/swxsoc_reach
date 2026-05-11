@@ -65,7 +65,7 @@ def _add_download_subparser(subparsers: argparse._SubParsersAction) -> None:
             "--output-dir plus telemetry rows in --telemetry-file. Reruns "
             "are idempotent: days already DOWNLOADED with their artifact "
             "on disk are skipped. Per-day request count: sensor_id=ALL "
-            "uses ~144 UDL requests/day (10-min chunks); a specific "
+            "uses ~288 UDL requests/day (5-min chunks); a specific "
             "sensor uses ~4/day (6-hour chunks)."
         ),
     )
