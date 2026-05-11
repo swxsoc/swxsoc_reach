@@ -1,7 +1,7 @@
 import pandas as pd
 import pytest
 
-from swxsoc_reach.calibration.transform import build_swxdata
+from swxsoc_reach.calibration import transform
 from swxsoc_reach.io.file_tools import read_udl_csv
 from swxsoc_reach import _test_files_directory
 
@@ -30,10 +30,33 @@ def _make_input_dataframe(descriptors: list[str]) -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
+def test_impute_sensor_metadata_fills_missing_ids_from_lookup(monkeypatch):
+    monkeypatch.setattr(
+        transform,
+        "get_reachid_lut",
+        lambda: {"Iridium-102": {"reachid": "REACH-101", "pod_model": "1"}},
+    )
+
+    data = pd.DataFrame(
+        [
+            {"idSensor": pd.NA, "observatoryName": "Iridium-102"},
+            {"idSensor": "REACH-999", "observatoryName": "Iridium-102"},
+            {"idSensor": pd.NA, "observatoryName": "Unknown-Sat"},
+        ]
+    )
+
+    result = transform.impute_sensor_metadata(data.copy())
+
+    assert len(result) == 2
+    assert result.loc[0, "idSensor"] == "REACH-101"
+    assert result.loc[1, "idSensor"] == "REACH-999"
+    assert "Unknown-Sat" not in result["observatoryName"].values
+
+
 def test_build_swxdata_sets_udl_source_from_descriptor():
     data = _make_input_dataframe(["QUICKLOOK", "QUICKLOOK"])
 
-    reach_data = build_swxdata(data, version="1.2.3")
+    reach_data = transform.build_swxdata(data, version="1.2.3")
 
     assert reach_data.meta["UDL_Source"] == "QUICKLOOK"
     assert reach_data.meta["Data_version"] == "1.2.3"
@@ -43,14 +66,14 @@ def test_build_swxdata_raises_without_descriptor_column():
     data = _make_input_dataframe(["QUICKLOOK"]).drop(columns=["descriptor"])
 
     with pytest.raises(ValueError, match="must contain a 'descriptor' column"):
-        build_swxdata(data)
+        transform.build_swxdata(data)
 
 
 def test_build_swxdata_raises_with_multiple_descriptors():
     data = _make_input_dataframe(["QUICKLOOK", "PROVISIONAL"])
 
     with pytest.raises(ValueError, match="Expected only one unique descriptor value"):
-        build_swxdata(data)
+        transform.build_swxdata(data)
 
 
 @pytest.mark.parametrize(
@@ -65,6 +88,6 @@ def test_build_swxdata_sets_udl_source_from_csv_fixture(
 ):
     data = read_udl_csv(_test_files_directory / input_filename)
 
-    reach_data = build_swxdata(data)
+    reach_data = transform.build_swxdata(data)
 
     assert reach_data.meta["UDL_Source"] == expected_source

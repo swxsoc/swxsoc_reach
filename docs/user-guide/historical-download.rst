@@ -80,7 +80,7 @@ Common options
    size in
    :func:`~swxsoc_reach.net.udl.get_reach_datetimelist`:
 
-   - ``ALL`` → ~144 UDL requests/day (10-minute chunks).
+   - ``ALL`` → ~288 UDL requests/day (5-minute chunks).
    - A specific sensor (e.g. ``REACH-1``) → ~4 UDL requests/day
      (6-hour chunks).
 
@@ -117,7 +117,7 @@ These knobs are forwarded to
 :func:`~swxsoc_reach.net.udl.download_UDL_reach_window` and tune the
 adaptive (Additive Increase / Multiplicative Decrease) request rate
 used by the per-day downloader. The defaults are the same as the
-Lambda path; an ``ALL`` historical backfill (≈144 req/day) typically
+Lambda path; an ``ALL`` historical backfill (≈288 req/day) typically
 benefits from raising ``--max-concurrent-requests`` and
 ``--initial-rate``.
 
