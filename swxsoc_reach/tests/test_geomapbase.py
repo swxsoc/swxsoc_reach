@@ -5,7 +5,6 @@ from astropy.coordinates import EarthLocation
 from astropy.nddata import NDData
 from astropy.timeseries import TimeSeries
 
-import swxsoc_reach.geomap.geomapbase as geomapbase
 from swxsoc_reach.geomap import GenericGeoMap
 from swxsoc_reach.util.schema import REACHDataSchema
 

@@ -1,13 +1,7 @@
-import csv
-import json
-from pathlib import Path
-
 import matplotlib.path as mpath
 import numpy as np
 import pytest
-from scipy.interpolate import splprep
 
-import swxsoc_reach.util.geom as geom_util
 import swxsoc_reach.util.util as util
 import swxsoc_reach.visualization.viz as viz
 from swxsoc_reach.util.enums import Region

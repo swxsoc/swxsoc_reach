@@ -175,7 +175,6 @@ def plot_region_contours(
     Path or None
         Path to the saved output file, or None if no contours were created.
     """
-    from swxsoc_reach.visualization.viz import plot_region_code_contours_on_geomap
 
     fig = plt.figure(figsize=(11.69, 8.27))
     ax: Any = plt.subplot(1, 1, 1, projection=ccrs.PlateCarree())
