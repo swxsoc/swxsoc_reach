@@ -27,7 +27,22 @@ __all__ = [
 def load_regions(
     file_path: str | Path | None = None,
 ) -> tuple[npt.NDArray[np.float64], npt.NDArray[np.float64], npt.NDArray[np.int_]]:
-    """Load region longitudes, latitudes, and integer region codes."""
+    """
+    Load region longitudes, latitudes, and integer region codes.
+
+    Parameters
+    ----------
+    file_path : str, Path, or None, optional
+        Path to the region CSV file. If None, uses the default region file in the data directory.
+
+    Returns
+    -------
+    tuple of (npt.NDArray[np.float64], npt.NDArray[np.float64], npt.NDArray[np.int_])
+        A tuple containing:
+        - Longitudes array (float64)
+        - Latitudes array (float64)
+        - Integer region codes array (int)
+    """
     region_file = (
         Path(file_path)
         if file_path is not None
@@ -60,7 +75,27 @@ def plot_regions(
     draw_coastlines: bool = True,
     region_names: tuple[str, ...] | None = None,
 ) -> Path | None:
-    """Plot the region map returned by :func:`load_regions` and save it."""
+    """
+    Plot the region map returned by :func:`load_regions` and save it.
+
+    Parameters
+    ----------
+    fileout : str or Path
+        Output file path where the plot will be saved.
+    show : bool, optional
+        If True, display the plot. Default is False.
+    title : str, optional
+        Title for the plot. Default is "REACH Region Map".
+    draw_coastlines : bool, optional
+        If True, draw coastlines on the map. Default is True.
+    region_names : tuple of str or None, optional
+        Names of specific regions to plot. If None, all regions are plotted. Default is None.
+
+    Returns
+    -------
+    Path or None
+        Path to the saved output file, or None if no data was available.
+    """
     lookuplon, lookuplat, glook = load_regions()
     if lookuplon.size == 0:
         return None
@@ -121,8 +156,26 @@ def plot_region_contours(
     title: str = "REACH Region Code Contours",
     draw_coastlines: bool = True,
 ) -> Path | None:
-    """Plot labeled line contours for the integer region-code grid."""
-    from swxsoc_reach.visualization.viz import plot_geomap
+    """
+    Plot labeled line contours for the integer region-code grid.
+
+    Parameters
+    ----------
+    fileout : str or Path
+        Output file path where the plot will be saved.
+    show : bool, optional
+        If True, display the plot. Default is False.
+    title : str, optional
+        Title for the plot. Default is "REACH Region Code Contours".
+    draw_coastlines : bool, optional
+        If True, draw coastlines on the map. Default is True.
+
+    Returns
+    -------
+    Path or None
+        Path to the saved output file, or None if no contours were created.
+    """
+    from swxsoc_reach.visualization.viz import plot_region_code_contours_on_geomap
 
     fig = plt.figure(figsize=(11.69, 8.27))
     ax: Any = plt.subplot(1, 1, 1, projection=ccrs.PlateCarree())
@@ -148,14 +201,17 @@ def plot_region_contours(
 
     plt.close(fig)
     return output_path
-def get_reachid_lut():
+
+
+def get_reachid_lut() -> dict[str, dict[str, str]]:
     """
-    Function to return a lookup table (dictionary) mapping Iridium satellite names to their corresponding REACH IDs and POD model numbers.
+    Return a lookup table mapping Iridium satellite names to REACH IDs and POD model numbers.
 
     Returns
     -------
-    dict
-        A dictionary where the keys are Iridium satellite names (e.g., 'Iridium-102') and the values are dictionaries containing 'reachid' and 'pod_model' keys with their corresponding values.
+    dict[str, dict[str, str]]
+        A dictionary where keys are Iridium satellite names (e.g., 'Iridium-102') and values are
+        dictionaries containing 'reachid' and 'pod_model' keys with their corresponding string values.
     """
 
     reachids = {
@@ -202,28 +258,29 @@ def create_reach_filename(
     version: str,
     mode: str = "",
     descriptor: str = "",
-):
-    """
-    Generate the REACH filename based on the provided parameters.
+) -> str:
+    """Generate the REACH filename based on the provided parameters.
 
     Parameters
     ----------
     time : str
-        The time associated with the data.
+        The time associated with the data in ISO format.
     level : str
         The data level (e.g., "L1", "L2").
     version : str
-        The version string (e.g., "0.0.1"). This should be in the format major.minor.patch.
-        This should come from the global attribute `Data_version`.
-    mode : str
-        The instrument mode (e.g., "all"). This should come from the global attribute `Instrument_mode`.
-    descriptor : str
-        The dataset descriptor (e.g., "prelim"). This should come from the global attribute `Data_type`.
+        The version string (e.g., "0.0.1") in major.minor.patch format.
+        Should come from the global attribute `Data_version`.
+    mode : str, optional
+        The instrument mode (e.g., "all"). Default is empty string.
+        Should come from the global attribute `Instrument_mode`.
+    descriptor : str, optional
+        The dataset descriptor (e.g., "prelim"). Default is empty string.
+        Should come from the global attribute `Data_type`.
 
     Returns
     -------
     str
-        The generated REACH filename.
+        The generated REACH filename in CDF format (e.g., "reach_all_L1_prelim_20250612T000000_v1.0.0.cdf").
     """
     # Define Static Parts
     instrument_shortname = "reach"
