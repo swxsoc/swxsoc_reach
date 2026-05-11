@@ -7,7 +7,6 @@ import tempfile
 from pathlib import Path
 
 import matplotlib.pyplot as plt
-from swxsoc.swxdata import SWXData
 from swxsoc.util.validation import validate
 
 from swxsoc_reach import log
@@ -16,7 +15,6 @@ from swxsoc_reach.io.file_tools import read_file
 from swxsoc_reach.track.trackbase import REACHTrack
 from swxsoc_reach.util.enums import Flavor
 from swxsoc_reach.util.schema import REACHDataSchema
-from swxsoc_reach.visualization.viz import plot_mapdata
 
 __all__ = [
     "process_file",
@@ -63,9 +61,6 @@ def process_file(
         log.info("Input file is already a CDF. Creating geomap CDFs and plots.")
         try:
             track = REACHTrack.load(file_path)
-            output_files.append(
-                file_path
-            )  # add the original CDF to the output files list
 
             # Get metadata for filename generation
             version = track.meta.get("Data_version", "1.0.0")

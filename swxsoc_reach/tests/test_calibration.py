@@ -7,11 +7,20 @@ import swxsoc_reach.calibration.calibration as calib
 from swxsoc_reach import _test_files_directory
 from swxsoc_reach.util.util import parse_science_filename
 
-test_file_paths = list(_test_files_directory.glob("REACH-*"))
+test_udl_file_paths = list(_test_files_directory.glob("REACH-*.csv"))
+target_udl_file_path = (
+    _test_files_directory / "REACH-TEST_20250904T000000_20250904T010000.csv"
+)
+target_l1c_file_path = (
+    _test_files_directory / "reach_all_l1c_prelim_20250904T000000_v1.0.0.cdf"
+)
+target_l2_file_path = (
+    _test_files_directory / "reach_flavor-v_l2_prelim_20250904T000000_v1.0.0.cdf"
+)
 
 
-@pytest.mark.parametrize("this_path", test_file_paths)
-def test_process_file(this_path, tmpdir, monkeypatch):
+@pytest.mark.parametrize("this_path", test_udl_file_paths)
+def test_l1_process_file(this_path, tmpdir, monkeypatch):
     # Set up the temporary directory as the current working directory
     monkeypatch.chdir(tmpdir)
     files = calib.process_file(this_path)
@@ -29,7 +38,40 @@ def test_process_file(this_path, tmpdir, monkeypatch):
     assert isinstance(data, swxdata.SWXData)
 
 
-@pytest.mark.parametrize("this_path", test_file_paths)
+def test_process_file_target(tmpdir, monkeypatch):
+    # Set up the temporary directory as the current working directory
+    monkeypatch.chdir(tmpdir)
+
+    files = calib.process_file(target_udl_file_path)
+    assert Path(files[0]).exists()
+
+    # Make sure the filename is correctly parsed and the output filename is correct
+    parsed_result = parse_science_filename(files[0])
+    assert parsed_result["instrument"] == "reach"
+    assert parsed_result["level"] == "l1c"
+    assert parsed_result["mode"] == "all"
+    assert parsed_result["version"] == "1.0.0"
+
+    # Compare CDF Content
+    from spacepy import pycdf
+
+    result_cdf = pycdf.CDF(str(files[0]))
+    target_cdf = pycdf.CDF(str(target_l1c_file_path))
+    assert result_cdf.keys() == target_cdf.keys(), "CDF variable keys should match"
+
+    # Process again to level 2 and compare with target level 2 file
+    level_2_files = calib.process_file(files[0])
+    assert len(level_2_files) > 0, "Should produce at least one level 2 file"
+
+    # Compare the first level 2 CDF with the target level 2 CDF
+    level_2_cdf = pycdf.CDF(str(level_2_files[0]))
+    target_level_2_cdf = pycdf.CDF(str(target_l2_file_path))
+    assert level_2_cdf.keys() == target_level_2_cdf.keys(), (
+        "Level 2 CDF variable keys should match"
+    )
+
+
+@pytest.mark.parametrize("this_path", test_udl_file_paths)
 def test_process_file_cdf_creates_geomaps(this_path, tmpdir, monkeypatch):
     """Test that processing a CDF file creates geomap CDFs and JPG plots for each flavor.
 
@@ -48,11 +90,8 @@ def test_process_file_cdf_creates_geomaps(this_path, tmpdir, monkeypatch):
     # Now process the CDF file to create geomaps
     geomap_files = calib.process_file(cdf_path)
 
-    # Should have: original CDF + geomap CDFs + JPG plots
-    assert len(geomap_files) >= 1  # At least the original CDF
-
-    # Verify original CDF is in output
-    assert cdf_path in geomap_files or cdf_path == Path(geomap_files[0])
+    # Should have: geomap CDFs + JPG plots
+    assert len(geomap_files) >= 1
 
     # Collect geomap CDFs and JPGs
     geomap_cdfs = [
