@@ -12,8 +12,8 @@ from swxsoc_reach.historical.telemetry import (
     HistoricalTelemetry,
     SCHEMA,
     STATUS_DOWNLOADED,
-    STATUS_FAILED,
     STATUS_DOWNLOAD_PENDING,
+    STATUS_FAILED,
     STATUS_SKIPPED_NO_DATA,
     TelemetryRow,
 )
@@ -28,6 +28,7 @@ def _row(**overrides) -> TelemetryRow:
         status=STATUS_DOWNLOAD_PENDING,
         sensor_id="REACH-1",
         descriptor="QUICKLOOK",
+        data_level="raw",
         output_format="csv",
         started_at_utc="2026-01-01T00:00:00.000000+00:00",
     )
@@ -117,10 +118,13 @@ def test_load_state_returns_most_recent_row_per_date(tmp_path):
 
     state = t.load_state()
 
-    assert set(state.keys()) == {date(2026, 1, 1), date(2026, 1, 2)}
-    assert state[date(2026, 1, 1)].status == STATUS_FAILED
-    assert state[date(2026, 1, 1)].error_message == "boom"
-    assert state[date(2026, 1, 2)].status == STATUS_SKIPPED_NO_DATA
+    assert set(state.keys()) == {
+        (date(2026, 1, 1), "raw"),
+        (date(2026, 1, 2), "raw"),
+    }
+    assert state[(date(2026, 1, 1), "raw")][0].status == STATUS_FAILED
+    assert state[(date(2026, 1, 1), "raw")][0].error_message == "boom"
+    assert state[(date(2026, 1, 2), "raw")][0].status == STATUS_SKIPPED_NO_DATA
 
 
 def test_load_state_skips_rows_with_unparseable_chunk_date(tmp_path):
@@ -138,7 +142,25 @@ def test_load_state_skips_rows_with_unparseable_chunk_date(tmp_path):
         writer.writerow(bad)
 
     state = t.load_state()
+    assert set(state.keys()) == {(date(2026, 1, 1), "raw")}
+
+
+def test_load_download_state_returns_latest_download_row_per_date(tmp_path):
+    t = HistoricalTelemetry(tmp_path / "t.csv")
+    t.append_row(_row(status=STATUS_DOWNLOAD_PENDING, data_level="raw"))
+    t.append_row(_row(status=STATUS_DOWNLOADED, data_level="raw"))
+    t.append_row(
+        _row(
+            status=STATUS_FAILED,
+            data_level="l1c",
+            cdf_path="/tmp/out.cdf",
+            process_seconds="1.0",
+        )
+    )
+
+    state = t.load_download_state()
     assert set(state.keys()) == {date(2026, 1, 1)}
+    assert state[date(2026, 1, 1)].status == STATUS_DOWNLOADED
 
 
 def test_iter_rows_returns_all_rows_in_order(tmp_path):
@@ -168,3 +190,119 @@ def test_utcnow_iso_returns_parseable_utc_timestamp():
     parsed = datetime.fromisoformat(s)
     assert parsed.utcoffset() is not None
     assert parsed.utcoffset().total_seconds() == 0
+
+
+# ---------------------------------------------------------------------------
+# Multi-level helpers
+# ---------------------------------------------------------------------------
+
+
+def test_valid_levels_from_swxsoc_config():
+    levels = tm.valid_levels()
+    assert "raw" in levels
+    assert "l1c" in levels
+    assert levels.index("raw") < levels.index("l1c")
+
+
+def test_level_order_is_index_into_valid_levels():
+    levels = tm.valid_levels()
+    for i, name in enumerate(levels):
+        assert tm.level_order(name) == i
+
+
+def test_prior_level_returns_predecessor_or_none():
+    levels = tm.valid_levels()
+    assert tm.prior_level(levels[0]) is None
+    assert tm.prior_level("l1c") == "raw"
+    if "l2" in levels:
+        assert tm.prior_level("l2") == "l1c"
+
+
+def test_append_row_rejects_unknown_data_level(tmp_path):
+    t = HistoricalTelemetry(tmp_path / "t.csv")
+    with pytest.raises(ValueError, match="data_level"):
+        t.append_row(_row(data_level="quantum"))
+
+
+# ---------------------------------------------------------------------------
+# Legacy schema synthesis & in-place upgrade
+# ---------------------------------------------------------------------------
+
+
+_LEGACY_SCHEMA = tuple(c for c in SCHEMA if c != "data_level")
+
+
+def _write_legacy_csv(path, rows):
+    """Write a CSV with the pre-data_level schema."""
+    import csv as _csv
+
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with open(path, "w", newline="", encoding="utf-8") as fh:
+        writer = _csv.DictWriter(fh, fieldnames=_LEGACY_SCHEMA)
+        writer.writeheader()
+        for row in rows:
+            writer.writerow({k: row.get(k, "") for k in _LEGACY_SCHEMA})
+
+
+def test_load_state_synthesizes_raw_from_legacy_csv_path(tmp_path):
+    path = tmp_path / "t.csv"
+    _write_legacy_csv(
+        path,
+        [
+            {
+                "run_id": "old-1",
+                "chunk_date_utc": "2026-01-01",
+                "status": STATUS_DOWNLOADED,
+                "csv_path": "/some/REACH-1_20260101T000000_20260102T000000.csv",
+                "started_at_utc": "2026-01-01T00:00:00+00:00",
+            }
+        ],
+    )
+    state = HistoricalTelemetry(path).load_state()
+    key = (date(2026, 1, 1), "raw")
+    assert key in state
+    assert state[key][0].status == STATUS_DOWNLOADED
+
+
+def test_load_state_synthesizes_l1c_from_legacy_cdf_path(tmp_path):
+    from swxsoc_reach.historical.telemetry import STATUS_PROCESSED
+
+    path = tmp_path / "t.csv"
+    _write_legacy_csv(
+        path,
+        [
+            {
+                "run_id": "old-2",
+                "chunk_date_utc": "2026-01-01",
+                "status": STATUS_PROCESSED,
+                "cdf_path": "/out/reach_all_l1c_prelim_20260101T000000_v1.0.0.cdf",
+                "started_at_utc": "2026-01-01T00:00:00+00:00",
+            }
+        ],
+    )
+    state = HistoricalTelemetry(path).load_state()
+    assert (date(2026, 1, 1), "l1c") in state
+
+
+def test_append_row_upgrades_legacy_schema_in_place(tmp_path):
+    """Appending after a legacy CSV rewrites it to the new schema."""
+    import csv as _csv
+
+    path = tmp_path / "t.csv"
+    _write_legacy_csv(
+        path,
+        [
+            {
+                "run_id": "old",
+                "chunk_date_utc": "2026-01-01",
+                "status": STATUS_DOWNLOADED,
+                "csv_path": "/x.csv",
+                "started_at_utc": "2026-01-01T00:00:00+00:00",
+            }
+        ],
+    )
+    HistoricalTelemetry(path).append_row(_row(chunk_date_utc="2026-01-02"))
+
+    with open(path, newline="", encoding="utf-8") as fh:
+        header = next(_csv.reader(fh))
+    assert header == list(SCHEMA)

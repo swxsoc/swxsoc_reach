@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import csv
 from datetime import date
 from pathlib import Path
 
@@ -129,6 +130,7 @@ def test_run_download_single_day_writes_telemetry_and_artifact(tmp_path):
     statuses = [r.status for r in rows]
     assert statuses == [STATUS_DOWNLOAD_PENDING, STATUS_DOWNLOADED]
     final = rows[-1]
+    assert final.data_level == "raw"
     assert final.records_downloaded == "10"
     assert final.expected_records == str(EXPECTED_RECORDS_SINGLE)
     assert final.csv_path
@@ -140,7 +142,7 @@ def test_run_download_multi_day_inclusive_range(tmp_path):
     cfg = _config(tmp_path, start_date=date(2026, 1, 1), end_date=date(2026, 1, 3))
     summary = run_download(cfg, download_fn=_make_csv_writer())
     assert summary.days_downloaded == 3
-    state = HistoricalTelemetry(cfg.telemetry_path).load_state()
+    state = HistoricalTelemetry(cfg.telemetry_path).load_download_state()
     assert set(state.keys()) == {
         date(2026, 1, 1),
         date(2026, 1, 2),
@@ -168,7 +170,7 @@ def test_run_download_redownloads_when_csv_missing(tmp_path):
     run_download(cfg, download_fn=_make_csv_writer())
 
     # Delete the CSV.
-    state = HistoricalTelemetry(cfg.telemetry_path).load_state()
+    state = HistoricalTelemetry(cfg.telemetry_path).load_download_state()
     Path(state[date(2026, 1, 1)].csv_path).unlink()
 
     summary = run_download(cfg, download_fn=_make_csv_writer())
@@ -227,7 +229,7 @@ def test_run_download_failure_classification(tmp_path):
     assert summary.days_skipped_no_data == 1
     assert summary.days_failed == 1
 
-    state = HistoricalTelemetry(cfg.telemetry_path).load_state()
+    state = HistoricalTelemetry(cfg.telemetry_path).load_download_state()
     assert state[date(2026, 1, 1)].status == STATUS_SKIPPED_NO_DATA
     assert state[date(2026, 1, 2)].status == STATUS_FAILED
     assert state[date(2026, 1, 2)].error_type == "RuntimeError"
@@ -267,7 +269,7 @@ def test_run_download_limit_days_counts_from_first_incomplete(tmp_path):
     assert summary.days_downloaded == 2
     assert summary.days_skipped_existing == 1
 
-    state = HistoricalTelemetry(cfg.telemetry_path).load_state()
+    state = HistoricalTelemetry(cfg.telemetry_path).load_download_state()
     assert set(state.keys()) == {
         date(2026, 1, 1),
         date(2026, 1, 2),
@@ -278,7 +280,7 @@ def test_run_download_limit_days_counts_from_first_incomplete(tmp_path):
 def test_run_download_uses_expected_records_for_all_sensor(tmp_path):
     cfg = _config(tmp_path, sensor_id="ALL")
     run_download(cfg, download_fn=_make_csv_writer())
-    state = HistoricalTelemetry(cfg.telemetry_path).load_state()
+    state = HistoricalTelemetry(cfg.telemetry_path).load_download_state()
     row = state[date(2026, 1, 1)]
     assert row.expected_records == str(EXPECTED_RECORDS_ALL)
 
@@ -312,3 +314,100 @@ def test_run_download_passes_aimd_and_window_args_through(tmp_path):
     # Day boundaries: 00:00:00 → next 00:00:00 (exclusive end)
     assert captured["start_time"].isot.startswith("2026-01-01T00:00:00")
     assert captured["end_time"].isot.startswith("2026-01-02T00:00:00")
+
+
+def test_run_download_ignores_process_rows_when_resuming(tmp_path):
+    cfg = _config(tmp_path)
+    cfg.output_dir.mkdir(parents=True, exist_ok=True)
+
+    telemetry = HistoricalTelemetry(cfg.telemetry_path)
+    telemetry.append_row(
+        TelemetryRow(
+            run_id="raw-r1",
+            chunk_date_utc="2026-01-01",
+            status=STATUS_FAILED,
+            sensor_id=cfg.sensor_id,
+            descriptor=cfg.descriptor,
+            data_level="raw",
+            output_format=cfg.output_format,
+            started_at_utc="2026-01-01T00:00:00+00:00",
+            finished_at_utc="2026-01-01T00:01:00+00:00",
+            error_type="RuntimeError",
+            error_message="download failed",
+        )
+    )
+    telemetry.append_row(
+        TelemetryRow(
+            run_id="l1c-r1",
+            chunk_date_utc="2026-01-01",
+            status="PROCESSED",
+            sensor_id=cfg.sensor_id,
+            descriptor=cfg.descriptor,
+            data_level="l1c",
+            output_format=cfg.output_format,
+            cdf_path=str(tmp_path / "out" / "x.cdf"),
+            started_at_utc="2026-01-01T00:02:00+00:00",
+            finished_at_utc="2026-01-01T00:03:00+00:00",
+        )
+    )
+
+    cfg_retry = _config(tmp_path, retry_failed=True)
+    summary = run_download(cfg_retry, download_fn=_make_csv_writer())
+    assert summary.days_downloaded == 1
+
+
+def test_run_download_legacy_csv_without_data_level_column(tmp_path):
+    cfg = _config(tmp_path)
+    cfg.output_dir.mkdir(parents=True, exist_ok=True)
+
+    legacy_cols = [
+        "run_id",
+        "chunk_date_utc",
+        "window_start_utc",
+        "window_end_utc",
+        "status",
+        "records_downloaded",
+        "expected_records",
+        "availability_pct",
+        "download_seconds",
+        "csv_size_mb",
+        "process_seconds",
+        "cdf_size_mb",
+        "upload_seconds",
+        "s3_bucket",
+        "s3_key",
+        "csv_path",
+        "sensor_id",
+        "descriptor",
+        "output_format",
+        "error_type",
+        "error_message",
+        "started_at_utc",
+        "finished_at_utc",
+    ]
+    legacy_row = {
+        "run_id": "legacy-r1",
+        "chunk_date_utc": "2026-01-01",
+        "window_start_utc": "2026-01-01T00:00:00+00:00",
+        "window_end_utc": "2026-01-02T00:00:00+00:00",
+        "status": STATUS_FAILED,
+        "sensor_id": cfg.sensor_id,
+        "descriptor": cfg.descriptor,
+        "output_format": cfg.output_format,
+        "error_type": "RuntimeError",
+        "error_message": "legacy failed",
+        "started_at_utc": "2026-01-01T00:00:00+00:00",
+        "finished_at_utc": "2026-01-01T00:01:00+00:00",
+    }
+
+    with open(cfg.telemetry_path, "w", newline="", encoding="utf-8") as fh:
+        writer = csv.DictWriter(fh, fieldnames=legacy_cols)
+        writer.writeheader()
+        writer.writerow(legacy_row)
+
+    summary = run_download(_config(tmp_path, retry_failed=True), download_fn=_make_csv_writer())
+    assert summary.days_downloaded == 1
+
+    rows = list(HistoricalTelemetry(cfg.telemetry_path).iter_rows())
+    assert rows[-1].status == STATUS_DOWNLOADED
+    assert rows[-1].data_level == "raw"

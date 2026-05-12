@@ -102,7 +102,7 @@ def test_match_csv_for_date_all_sensor(tmp_path):
 
 
 @pytest.mark.parametrize(
-    "prior_status,upload_to_s3,csv_available,retry_failed,cdf_exists,expected",
+    "prior_status,upload_to_s3,input_available,retry_failed,cdf_exists,expected",
     [
         # No prior row
         (None, False, True, False, False, "run_process"),
@@ -126,7 +126,7 @@ def test_match_csv_for_date_all_sensor(tmp_path):
         (STATUS_FAILED, False, True, False, False, "skip_failed"),
         (STATUS_FAILED, False, True, True, False, "run_process"),
         # SKIPPED_NO_INPUT
-        (STATUS_SKIPPED_NO_INPUT, False, False, False, False, "skip_terminal"),
+        (STATUS_SKIPPED_NO_INPUT, False, False, False, False, "skip_no_input"),
         (STATUS_SKIPPED_NO_INPUT, False, True, False, False, "run_process"),
         # Phase 1 statuses are treated as no prior process row
         (STATUS_DOWNLOADED, False, True, False, False, "run_process"),
@@ -136,25 +136,25 @@ def test_decide_process_action(
     tmp_path,
     prior_status,
     upload_to_s3,
-    csv_available,
+    input_available,
     retry_failed,
     cdf_exists,
     expected,
 ):
     if prior_status is None:
-        prior = None
+        prior_rows = []
     else:
         cdf_path = ""
         if cdf_exists:
             p = tmp_path / "x.cdf"
             p.write_bytes(b"x")
             cdf_path = str(p)
-        prior = TelemetryRow(status=prior_status, cdf_path=cdf_path)
+        prior_rows = [TelemetryRow(run_id="r-1", status=prior_status, cdf_path=cdf_path)]
     assert (
         _decide_process_action(
-            prior,
+            prior_rows,
             upload_to_s3=upload_to_s3,
-            csv_available=csv_available,
+            input_available=input_available,
             retry_failed=retry_failed,
         )
         == expected
@@ -194,7 +194,7 @@ def test_run_process_no_input_records_skipped(tmp_path):
     assert summary.days_processed == 0
 
     state = HistoricalTelemetry(cfg.telemetry_path).load_state()
-    assert state[date(2026, 1, 1)].status == STATUS_SKIPPED_NO_INPUT
+    assert state[(date(2026, 1, 1), "l1c")][0].status == STATUS_SKIPPED_NO_INPUT
 
 
 def test_run_process_skips_already_processed_local_only(tmp_path):
@@ -216,7 +216,7 @@ def test_run_process_reprocesses_when_cdf_missing(tmp_path):
     run_process(cfg, process_fn=_make_process_fn())
 
     state = HistoricalTelemetry(cfg.telemetry_path).load_state()
-    Path(state[date(2026, 1, 1)].cdf_path).unlink()
+    Path(state[(date(2026, 1, 1), "l1c")][0].cdf_path).unlink()
 
     summary = run_process(cfg, process_fn=_make_process_fn())
     assert summary.days_processed == 1
@@ -291,7 +291,7 @@ def test_run_process_failure_at_process_stage(tmp_path):
     assert summary.days_failed == 1
 
     state = HistoricalTelemetry(cfg.telemetry_path).load_state()
-    row = state[date(2026, 1, 1)]
+    row = state[(date(2026, 1, 1), "l1c")][0]
     assert row.status == STATUS_FAILED
     assert row.error_type == "RuntimeError"
     assert row.error_message == "boom"
@@ -549,7 +549,7 @@ def test_run_process_nested_layout_integration(tmp_path, monkeypatch):
     from swxsoc_reach.historical.telemetry import HistoricalTelemetry
 
     state = HistoricalTelemetry(cfg.telemetry_path).load_state()
-    row = state[date(2026, 1, 1)]
+    row = state[(date(2026, 1, 1), "l1c")][0]
     assert row.status == "PROCESSED"
 
     expected_path = cfg.output_dir / _NESTED_KEY

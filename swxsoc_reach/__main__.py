@@ -27,6 +27,7 @@ from swxsoc_reach.historical.process_orchestrator import (
     ProcessRunConfig,
     run_process,
 )
+from swxsoc_reach.historical.telemetry import valid_levels
 from swxsoc_reach.net.auth import resolve_udl_auth
 
 
@@ -226,6 +227,12 @@ def _add_process_subparser(subparsers: argparse._SubParsersAction) -> None:
         help="Input serialization format on disk (default: csv).",
     )
     pr.add_argument(
+        "--target-level",
+        choices=list(valid_levels()),
+        default="l1c",
+        help="Output data level to produce (default: l1c).",
+    )
+    pr.add_argument(
         "--retry-failed",
         action="store_true",
         help="Re-attempt days whose latest telemetry status is FAILED.",
@@ -391,6 +398,8 @@ def _run_process_command(
         f"planned={summary.days_planned} "
         f"processed={summary.days_processed} "
         f"uploaded={summary.days_uploaded} "
+        f"files_processed={summary.files_processed} "
+        f"files_uploaded={summary.files_uploaded} "
         f"skipped_existing={summary.days_skipped_existing} "
         f"skipped_no_input={summary.days_skipped_no_input} "
         f"failed={summary.days_failed}"

@@ -279,6 +279,8 @@ def test_main_process_returns_1_on_failure(tmp_path, monkeypatch):
             days_attempted=2,
             days_processed=1,
             days_uploaded=0,
+            files_processed=1,
+            files_uploaded=0,
             days_skipped_existing=0,
             days_skipped_no_input=0,
             days_failed=1,

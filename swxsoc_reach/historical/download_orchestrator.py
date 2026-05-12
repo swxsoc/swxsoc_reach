@@ -299,7 +299,7 @@ def run_download(
     run_id = str(uuid.uuid4())
     config.output_dir.mkdir(parents=True, exist_ok=True)
 
-    state = telemetry.load_state()
+    state = telemetry.load_download_state()
 
     all_dates = list(_iter_dates(config.start_date, config.end_date))
 
@@ -370,6 +370,7 @@ def run_download(
             window_end_utc=end_iso,
             sensor_id=config.sensor_id,
             descriptor=config.descriptor,
+            data_level="raw",
             output_format=config.output_format,
             expected_records=str(_expected_records(config.sensor_id)),
             started_at_utc=started,

@@ -178,8 +178,14 @@ Telemetry CSV schema
 ====================
 
 One row is appended per attempt. Older rows for the same date are
-preserved; ``HistoricalTelemetry.load_state`` returns the most-recent
-row per ``chunk_date_utc`` (file order breaks ties).
+preserved. The download CLI consults
+``HistoricalTelemetry.load_download_state()``, a downloader-scoped
+view that returns the most-recent ``raw``-level row per
+``chunk_date_utc`` (file order breaks ties). Phase 2 rows (``l1c``,
+``l2``, ...) coexist in the same CSV but are ignored by the
+downloader. See :ref:`historical-process` for the
+``(chunk_date_utc, data_level, output_basename)`` keying used by the
+process orchestrator.
 
 .. list-table::
    :header-rows: 1
@@ -216,6 +222,13 @@ row per ``chunk_date_utc`` (file order breaks ties).
      - Absolute path of the written artifact (``DOWNLOADED`` only).
    * - ``sensor_id``, ``descriptor``, ``output_format``
      - Echo of the run inputs.
+   * - ``data_level``
+     - Logical product level for the row. The download CLI always
+       writes ``raw`` for ``DOWNLOADED`` rows and leaves it empty
+       for ``SKIPPED_NO_DATA`` / ``FAILED`` rows. Phase 2 writes
+       ``l1c`` / ``l2`` / ... according to
+       ``swxsoc.config["mission"]["valid_data_levels"]``. See
+       :ref:`historical-process`.
    * - ``error_type``, ``error_message``
      - Populated on ``FAILED`` (and ``error_message`` on
        ``SKIPPED_NO_DATA``).
