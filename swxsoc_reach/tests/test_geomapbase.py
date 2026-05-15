@@ -6,6 +6,7 @@ from astropy.nddata import NDData
 from astropy.timeseries import TimeSeries
 
 from swxsoc_reach.geomap import GenericGeoMap
+from swxsoc_reach.util.enums import Flavor
 from swxsoc_reach.util.schema import REACHDataSchema
 
 
@@ -16,18 +17,55 @@ def _make_test_geomap(nx=10, ny=8) -> GenericGeoMap:
 
     lon_bins = np.linspace(-180, 180, nx)
     lat_bins = np.linspace(-90, 90, ny)
-    map_data = (
-        np.random.rand(2, ny, nx) * 10 + 1e-6
-    )  # Small positive values, 2 time samples
+    median_map = np.random.rand(6, ny, nx) * 10 + 1e-6
+    mean_map = np.random.rand(6, ny, nx) * 10 + 1e-6
+    count_map = np.random.randint(0, 10, size=(6, ny, nx))
+    min_map = np.random.rand(6, ny, nx) * 10 + 1e-6
+    max_map = min_map + np.random.rand(6, ny, nx)
+    std_map = np.random.rand(6, ny, nx) * 0.5
 
     variables = {
-        "map_data": NDData(
-            data=map_data,
+        "flavor_names": NDData(
+            data=np.array([flavor.name for flavor in Flavor.ordered()], dtype="U"),
+            meta={"CATDESC": "Flavor labels", "VAR_TYPE": "metadata"},
+        ),
+        "median_map": NDData(
+            data=median_map,
             unit=u.rad / u.s,
             meta={
-                "CATDESC": "Dose rate",
-                "VAR_TYPE": "data",
-                "DEPEND_0": "Epoch",
+                "CATDESC": "Median dose rate by flavor",
+                "VAR_TYPE": "support_data",
+                "DEPEND_0": "flavor_names",
+                "DEPEND_1": "lat",
+                "DEPEND_2": "lon",
+            },
+        ),
+        "mean_map": NDData(
+            data=mean_map,
+            unit=u.rad / u.s,
+            meta={"CATDESC": "Mean dose rate by flavor", "VAR_TYPE": "support_data"},
+        ),
+        "count_map": NDData(
+            data=count_map,
+            unit=u.count,
+            meta={"CATDESC": "Sample count by flavor", "VAR_TYPE": "support_data"},
+        ),
+        "min_map": NDData(
+            data=min_map,
+            unit=u.rad / u.s,
+            meta={"CATDESC": "Minimum dose rate by flavor", "VAR_TYPE": "support_data"},
+        ),
+        "max_map": NDData(
+            data=max_map,
+            unit=u.rad / u.s,
+            meta={"CATDESC": "Maximum dose rate by flavor", "VAR_TYPE": "support_data"},
+        ),
+        "std_map": NDData(
+            data=std_map,
+            unit=u.rad / u.s,
+            meta={
+                "CATDESC": "Standard deviation by flavor",
+                "VAR_TYPE": "support_data",
             },
         ),
         "lon": NDData(
@@ -48,7 +86,7 @@ def _make_test_geomap(nx=10, ny=8) -> GenericGeoMap:
 
     schema = REACHDataSchema()
     meta = dict(schema.default_global_attributes)
-    meta["Flavor"] = "test_flavor"
+    meta["Flavor"] = "ALL"
     meta["coordinate_system"] = "geodetic"
     # Ensure required SWXData fields are set
     meta["Data_level"] = "L2"
@@ -68,11 +106,10 @@ def test_geomap():
     return _make_test_geomap()
 
 
-def test_map_data_property_removes_singleton_time_axis(test_geomap):
-    """map_data should not squeeze non-singleton time dimension."""
-    # With 2 time samples, time axis is not singleton, so ndim should be 3
-    assert test_geomap.map_data.ndim == 3
-    assert test_geomap.map_data.shape == (2, 8, 10)
+def test_median_map_property_has_flavor_axis(test_geomap):
+    """median_map should include a flavor axis."""
+    assert test_geomap.median_map.ndim == 3
+    assert test_geomap.median_map.shape == (6, 8, 10)
 
 
 def test_shape_property(test_geomap):
@@ -96,7 +133,7 @@ def test_regions_property(test_geomap):
 
 def test_flavor_property(test_geomap):
     """flavor should return Flavor from metadata."""
-    assert test_geomap.flavor == "test_flavor"
+    assert test_geomap.flavor == Flavor.ALL
 
 
 def test_coordinate_system_property(test_geomap):
@@ -177,10 +214,42 @@ def test_lon_lat_grid_dimension_mismatch_1d(test_geomap):
     ts = TimeSeries(time=["2026-01-01T00:00:00", "2026-01-01T00:01:00"])
     ts.time.meta = {"CATDESC": "Observation Time", "VAR_TYPE": "support_data"}
     variables = {
-        "map_data": NDData(
-            data=np.random.rand(2, 8, 10),
+        "flavor_names": NDData(
+            data=np.array([flavor.name for flavor in Flavor.ordered()], dtype="U"),
+            meta={"CATDESC": "Flavor labels", "VAR_TYPE": "metadata"},
+        ),
+        "median_map": NDData(
+            data=np.random.rand(6, 8, 10),
             unit=u.rad / u.s,
-            meta={"CATDESC": "Dose rate", "VAR_TYPE": "data"},
+            meta={"CATDESC": "Median dose rate by flavor", "VAR_TYPE": "support_data"},
+        ),
+        "mean_map": NDData(
+            data=np.random.rand(6, 8, 10),
+            unit=u.rad / u.s,
+            meta={"CATDESC": "Mean dose rate by flavor", "VAR_TYPE": "support_data"},
+        ),
+        "count_map": NDData(
+            data=np.random.randint(0, 10, size=(6, 8, 10)),
+            unit=u.count,
+            meta={"CATDESC": "Sample count by flavor", "VAR_TYPE": "support_data"},
+        ),
+        "min_map": NDData(
+            data=np.random.rand(6, 8, 10),
+            unit=u.rad / u.s,
+            meta={"CATDESC": "Minimum dose rate by flavor", "VAR_TYPE": "support_data"},
+        ),
+        "max_map": NDData(
+            data=np.random.rand(6, 8, 10),
+            unit=u.rad / u.s,
+            meta={"CATDESC": "Maximum dose rate by flavor", "VAR_TYPE": "support_data"},
+        ),
+        "std_map": NDData(
+            data=np.random.rand(6, 8, 10),
+            unit=u.rad / u.s,
+            meta={
+                "CATDESC": "Standard deviation by flavor",
+                "VAR_TYPE": "support_data",
+            },
         ),
         "lon": NDData(
             data=np.linspace(-180, 180, 5),  # Wrong size

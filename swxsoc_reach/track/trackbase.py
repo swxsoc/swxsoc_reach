@@ -16,6 +16,15 @@ from swxsoc_reach.util.geom import load_region_contours, points_to_region_code
 from swxsoc_reach.util.schema import REACHDataSchema
 from swxsoc_reach.visualization.viz import plot_geomap
 
+_FLAVOR_ORDER: tuple[Flavor, ...] = (
+    Flavor.U,
+    Flavor.V,
+    Flavor.W,
+    Flavor.X,
+    Flavor.Y,
+    Flavor.Z,
+)
+
 
 class REACHTrack(SWXData):
     """
@@ -327,78 +336,41 @@ class REACHTrack(SWXData):
 
     def to_geomap(
         self,
-        flavor: Flavor,
         lon_resolution: float = 1.0,
         lat_resolution: float = 1.0,
-        map_statistic: str = "median",
     ) -> GenericGeoMap:
-        """Convert track observations into a gridded geospatial map.
+        """Convert track observations into stacked geospatial maps.
 
-        The selected dosimeter ``flavor`` values are aggregated onto a regular
-        geodetic longitude/latitude grid using a 2D binned statistic. Region
-        masks are derived from saved contour paths and included in the output
-        support variables.
+        The track is aggregated for every individual flavor and for every
+        supported statistic onto a regular geodetic longitude/latitude grid.
+        The resulting map arrays are stored in support data as stacked arrays
+        with shape ``(nflavors, nlat, nlon)``.
 
         Parameters
         ----------
-        flavor : Flavor
-            Dosimeter flavor (or bitwise combination of flavors) to include in
-            the map aggregation.
         lon_resolution : float, optional
             Longitude bin width in degrees. Default is 1.0.
         lat_resolution : float, optional
             Latitude bin width in degrees. Default is 1.0.
-        map_statistic : str, optional
-            Statistic passed to :func:`scipy.stats.binned_statistic_2d` for
-            per-bin aggregation. Supported values are ``"sum"``, ``"mean"``,
-            ``"median"``, ``"count"``, ``"min"``, ``"max"``, and ``"std"``.
-            Default is ``"median"``.
 
         Returns
         -------
         GenericGeoMap
-            A geospatial map object containing:
-
-            - ``map_data``: gridded dose-rate statistic on ``(lat, lon)``
-            - ``lon`` / ``lat``: grid-center coordinate vectors
-            - ``mask``: boolean region masks with shape
-              ``(nregions, nlat, nlon)``
-            - metadata describing level, version, flavor, and coordinate system
-
-        Raises
-        ------
-        ValueError
-            If ``map_statistic`` is not one of the supported statistics, or if
-            no data channels match the requested ``flavor``.
+            A geospatial map object containing stacked per-flavor statistic
+            arrays such as ``median_map``, ``mean_map``, and ``count_map``.
         """
 
-        # Input Validation
         valid_statistics = {"sum", "mean", "median", "count", "min", "max", "std"}
-        if map_statistic not in valid_statistics:
-            raise ValueError(
-                "map_statistic must be one of "
-                f"{sorted(valid_statistics)}; got '{map_statistic}'."
-            )
 
-        # Mask ~= (32 sensors x 2 dosimeter flavors) to select only the flavors requested by the caller.
-        flavor_mask = np.zeros(
-            shape=(
-                len(self["sensor_ids"].data),
-                len(self["dosimeter_flavor_ids"].data),
-            ),
-            dtype=np.bool_,
-        )
+        nsensors = len(self["sensor_ids"].data)
+        ndos = len(self["dosimeter_flavor_ids"].data)
 
-        # Populate Mask for each satellite and dosimeter flavor.
-        for this_dosimeter in self["dosimeter_flavor_ids"].data:  # check each dosimeter
-            for this_id in range(len(self["sensor_ids"].data)):  # check each sensor
-                this_flavor = Flavor.from_str(
+        dosimeter_flavor_grid = np.empty((nsensors, ndos), dtype=object)
+        for this_dosimeter in self["dosimeter_flavor_ids"].data:
+            for this_id in range(nsensors):
+                dosimeter_flavor_grid[this_id, this_dosimeter] = Flavor.from_str(
                     self["dosimeter_flavors"].data[this_id, this_dosimeter]
                 )
-                if this_flavor in flavor:
-                    flavor_mask[this_id, this_dosimeter] = True
-        if not np.any(flavor_mask):
-            raise ValueError(f"Flavor {flavor} not found in data observation_flavors.")
 
         lat = self["lat"].data * u.deg
         lon = self["lon"].data * u.deg
@@ -409,14 +381,8 @@ class REACHTrack(SWXData):
         lon_bins = 0.5 * (lon_edges[:-1] + lon_edges[1:])
         lat_bins = 0.5 * (lat_edges[:-1] + lat_edges[1:])
 
-        # Apply Mask to get only the flavors requested by the caller
-        flavor_data = (
-            self["dose_rate"].data * flavor_mask[None, :, :]
-        )  # [ntimes, nsats, ndos]
-
         lon_flat = lon.value.flatten()
         lat_flat = lat.value.flatten()
-        obs_flat = flavor_data.sum(axis=2).flatten()
 
         ts = TimeSeries(time=[self.time[0]])
         ts.time.meta = {
@@ -424,19 +390,52 @@ class REACHTrack(SWXData):
             "VAR_TYPE": "support_data",
         }
 
-        valid = np.isfinite(lon_flat) & np.isfinite(lat_flat) & np.isfinite(obs_flat)
-        statistic_data = binned_statistic_2d(
-            lon_flat[valid],
-            lat_flat[valid],
-            obs_flat[valid],
-            statistic=map_statistic,
-            bins=[lon_edges, lat_edges],
-        )
-        m = statistic_data.statistic.T
+        lon2d, lat2d = np.meshgrid(lon_bins, lat_bins)
+        grid_shape = lon2d.shape
+
+        statistic_maps: dict[str, list[np.ndarray]] = {
+            statistic: [] for statistic in valid_statistics
+        }
+
+        for flavor in _FLAVOR_ORDER:
+            flavor_mask = dosimeter_flavor_grid == flavor
+            if np.any(flavor_mask):
+                flavor_data = np.where(
+                    flavor_mask[None, :, :],
+                    self["dose_rate"].data,
+                    np.nan,
+                )
+                obs = np.nansum(flavor_data, axis=2)
+                has_selected_observation = np.any(np.isfinite(flavor_data), axis=2)
+                obs[~has_selected_observation] = np.nan
+                obs_flat = obs.flatten()
+                valid = (
+                    np.isfinite(lon_flat)
+                    & np.isfinite(lat_flat)
+                    & np.isfinite(obs_flat)
+                )
+
+                if np.any(valid):
+                    for statistic in valid_statistics:
+                        statistic_data = binned_statistic_2d(
+                            lon_flat[valid],
+                            lat_flat[valid],
+                            obs_flat[valid],
+                            statistic=statistic,
+                            bins=[lon_edges, lat_edges],
+                        )
+                        statistic_maps[statistic].append(statistic_data.statistic.T)
+                    continue
+
+            # No valid samples for this flavor; populate empty maps.
+            for statistic in valid_statistics:
+                if statistic == "count":
+                    statistic_maps[statistic].append(np.zeros(grid_shape))
+                else:
+                    statistic_maps[statistic].append(np.full(grid_shape, np.nan))
 
         # Build a region-code grid over the same lon/lat bins using the saved
         # contour paths, then derive per-region boolean masks.
-        lon2d, lat2d = np.meshgrid(lon_bins, lat_bins)  # both shape (nlat, nlon)
         grid_points = np.column_stack([lon2d.ravel(), lat2d.ravel()])
         contour_paths = load_region_contours()
         region_codes_flat = np.zeros(len(grid_points), dtype=int)
@@ -445,7 +444,7 @@ class REACHTrack(SWXData):
                 continue
             inside = path_obj.contains_points(grid_points)
             region_codes_flat[inside] = code
-        region_code_grid = region_codes_flat.reshape(m.shape)
+        region_code_grid = region_codes_flat.reshape(grid_shape)
 
         # Stack into a single (nregions, nlat, nlon) boolean array using
         # canonical Region enum order.
@@ -457,26 +456,25 @@ class REACHTrack(SWXData):
             axis=0,
         )
 
-        if map_statistic == "count":
-            unit = u.count
-        else:
-            unit = u.rad / u.s
+        flavor_names = np.asarray([flavor.name for flavor in _FLAVOR_ORDER], dtype="U")
+        flavor_labels = np.asarray(
+            [flavor.label for flavor in _FLAVOR_ORDER], dtype="U"
+        )
 
         # Define CDF Variables Dict.
         variables: dict[str, NDData] = {
-            "map_data": NDData(
-                # NOTE: Expand first dimension for 1 time step to conform to CDF Format requirements.
-                data=np.expand_dims(m, axis=0),
-                unit=unit,
+            "flavor_names": NDData(
+                data=flavor_names,
                 meta={
-                    "CATDESC": f"{map_statistic} dose rate",
-                    "VAR_TYPE": "data",
-                    "UNITS": unit.to_string(),
-                    "DEPEND_0": "Epoch",
-                    "DEPEND_1": "lat",
-                    "DEPEND_2": "lon",
-                    "LABL_PTR_1": "lat_label",
-                    "LABL_PTR_2": "lon_label",
+                    "CATDESC": "Flavor names",
+                    "VAR_TYPE": "metadata",
+                },
+            ),
+            "flavor_label": NDData(
+                data=flavor_labels,
+                meta={
+                    "CATDESC": "Flavor labels",
+                    "VAR_TYPE": "metadata",
                 },
             ),
             "lon": NDData(
@@ -550,6 +548,24 @@ class REACHTrack(SWXData):
             ),
         }
 
+        for statistic in valid_statistics:
+            unit = u.count if statistic == "count" else u.rad / u.s
+            variables[f"{statistic}_map"] = NDData(
+                data=np.stack(statistic_maps[statistic], axis=0),
+                unit=unit,
+                meta={
+                    "CATDESC": f"{statistic} dose rate",
+                    "VAR_TYPE": "support_data",
+                    "UNITS": unit.to_string(),
+                    "DEPEND_0": "flavor_names",
+                    "DEPEND_1": "lat",
+                    "DEPEND_2": "lon",
+                    "LABL_PTR_0": "flavor_names",
+                    "LABL_PTR_1": "lat_label",
+                    "LABL_PTR_2": "lon_label",
+                },
+            )
+
         schema = REACHDataSchema()
         meta = dict(schema.default_global_attributes)
 
@@ -560,8 +576,8 @@ class REACHTrack(SWXData):
 
         meta["Data_version"] = "1.0.0"
         meta["Data_level"] = "l2"
-        meta["Instrument_mode"] = str(flavor)
-        meta["Flavor"] = str(flavor.name)
+        meta["Instrument_mode"] = str(Flavor.ALL)
+        meta["Flavor"] = str(Flavor.ALL.name)
         meta["coordinate_system"] = "geodetic"
 
         # NOTE for GeoMap we want to override some Schema Requirements.

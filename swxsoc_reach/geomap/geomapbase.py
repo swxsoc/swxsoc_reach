@@ -16,18 +16,38 @@ class GenericGeoMap(SWXData):
 
     """
 
-    @property
-    def map_data(self) -> np.ndarray:
-        """2D geospatial data array.
+    def _statistic_map(self, statistic: str) -> np.ndarray:
+        return self.support[f"{statistic}_map"].data
 
-        If the stored data includes a leading singleton time axis (for
-        example ``(1, ny, nx)`` for CDF compliance), that axis is removed
-        before returning.
-        """
-        data = self.support["map_data"].data
-        if data.ndim >= 3 and data.shape[0] == 1:
-            return np.squeeze(data, axis=0)
-        return data
+    @property
+    def flavor_names(self) -> np.ndarray:
+        if "flavor_names" not in self.support:
+            return np.asarray([], dtype="U")
+        return self.support["flavor_names"].data
+
+    @property
+    def median_map(self) -> np.ndarray:
+        return self._statistic_map("median")
+
+    @property
+    def mean_map(self) -> np.ndarray:
+        return self._statistic_map("mean")
+
+    @property
+    def count_map(self) -> np.ndarray:
+        return self._statistic_map("count")
+
+    @property
+    def min_map(self) -> np.ndarray:
+        return self._statistic_map("min")
+
+    @property
+    def max_map(self) -> np.ndarray:
+        return self._statistic_map("max")
+
+    @property
+    def std_map(self) -> np.ndarray:
+        return self._statistic_map("std")
 
     @property
     def _lon(self) -> np.ndarray:
@@ -68,14 +88,7 @@ class GenericGeoMap(SWXData):
         tuple[int, int]
             The map dimensions as ``(num_latitude, num_longitude)``.
         """
-        # map_data shape is (ny, nx) if singleton time was squeezed, or (nt, ny, nx) otherwise
-        data = self.map_data
-        if data.ndim == 3:
-            # Multiple time samples, return spatial dimensions only
-            return data.shape[1:]
-        else:
-            # Single time sample (already squeezed), return full shape
-            return data.shape
+        return self.median_map.shape[1:]
 
     @property
     def dimensions(self) -> tuple[int, int]:
@@ -106,6 +119,29 @@ class GenericGeoMap(SWXData):
             float(self._lat.min()),
             float(self._lat.max()),
         )
+
+    def _flavor_index(self, flavor: Flavor | int) -> int:
+        flavor_order = Flavor.ordered()
+        flavor_values = [member.value for member in flavor_order]
+        if isinstance(flavor, int):
+            index = flavor
+        else:
+            if flavor.value not in flavor_values:
+                raise ValueError(
+                    f"Unsupported flavor {flavor!r}. Use one of {flavor_order}."
+                )
+            index = flavor_values.index(flavor.value)
+
+        if index < 0 or index >= len(flavor_order):
+            raise ValueError(f"Flavor index {index} is out of range.")
+        return index
+
+    def _selected_map(
+        self, statistic: str, flavor: Flavor | int
+    ) -> tuple[np.ndarray, Flavor]:
+        flavor_order = Flavor.ordered()
+        flavor_index = self._flavor_index(flavor)
+        return self._statistic_map(statistic)[flavor_index], flavor_order[flavor_index]
 
     def lon_lat_grid(self) -> tuple[np.ndarray, np.ndarray]:
         """
@@ -272,10 +308,12 @@ class GenericGeoMap(SWXData):
 
     def plot(
         self,
+        flavor: Flavor | int = Flavor.U,
         ax=None,
         *,
         add_colorbar: bool = True,
         color_by_region: bool = True,
+        statistic: str = "median",
         log_scale: bool = True,
         draw_regions: bool = True,
         **kwargs,
@@ -341,7 +379,8 @@ class GenericGeoMap(SWXData):
         except Exception:
             has_cartopy = False
 
-        data_unit = self.support["map_data"].unit
+        data_unit = self.support[f"{statistic}_map"].unit
+        _md, selected_flavor = self._selected_map(statistic, flavor)
 
         if log_scale:
             colorbarmax = -2
@@ -371,7 +410,6 @@ class GenericGeoMap(SWXData):
 
         # Split map data into per-region arrays using the pre-computed mask
         # stored by to_geomap(). Shape: (nregions, nlat, nlon).
-        _md = self.map_data
         xylon, xylat = self.lon_lat_grid()
 
         region_mask = self["mask"].data
@@ -409,7 +447,7 @@ class GenericGeoMap(SWXData):
             )
 
         time_str = self.meta["Time_start"] + " - " + self.meta["Time_end"]
-        ax.set_title(f"{time_str} - Flavor {self.flavor.label}")
+        ax.set_title(f"{time_str} - {selected_flavor.label}")
 
         if color_by_region:
             region_cmaps = {
@@ -514,7 +552,7 @@ class GenericGeoMap(SWXData):
             are excluded from the sum.
         """
         region_mask = self["mask"].data  # shape (nregions, nlat, nlon)
-        _md = self.map_data
+        _md = self.median_map[0]
 
         result: dict[str, float] = {}
         for region in Region.ordered():

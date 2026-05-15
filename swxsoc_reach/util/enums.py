@@ -91,6 +91,11 @@ class Flavor(Flag):
     Z = auto()
     ALL = U | V | W | X | Y | Z
 
+    @classmethod
+    def ordered(cls) -> tuple["Flavor", ...]:
+        """Return flavors in canonical axis order."""
+        return (cls.U, cls.V, cls.W, cls.X, cls.Y, cls.Z)
+
     @property
     def label(self) -> str:
         """Human-readable particle energy threshold label."""

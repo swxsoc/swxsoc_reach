@@ -31,8 +31,8 @@ def process_file(
     :class:`~swxsoc.swxdata.SWXData` object, writes a CDF file, and
     runs ISTP validation (logging warnings on any issues without raising).
 
-    For existing CDF files, creates geomap CDFs and JPG plots for all individual
-    flavors (U, V, W, X, Y, Z).
+    For existing CDF files, creates one combined geomap CDF and JPG plots for
+    all individual flavors (U, V, W, X, Y, Z).
 
     Parameters
     ----------
@@ -43,8 +43,8 @@ def process_file(
     -------
     list[Path]
         For UDL files: List containing the path to the output CDF file.
-        For CDF files: List containing the original CDF file plus geomap CDF files
-        and plot JPG files (one of each per flavor).
+        For CDF files: List containing the original CDF file plus one geomap CDF
+        and plot JPG files (one per flavor).
     """
     file_path = Path(filename)
     log.info(f"Processing file {file_path}.")
@@ -74,25 +74,24 @@ def process_file(
             else:
                 output_path = Path.cwd()  # Default to current working directory
 
+            geomap = track.to_geomap()
+
+            # Save the combined geomap once, then render one plot per flavor.
+            geomap_cdf_path = geomap.save(
+                output_path=output_path,
+                overwrite=True,
+            )
+            log.info(f"Saved geomap CDF to {geomap_cdf_path}")
+            output_files.append(geomap_cdf_path)
+
             # Iterate over all individual flavors (exclude ALL which is a combination)
             for flavor in Flavor:
                 if flavor == Flavor.ALL:
                     continue
                 try:
-                    # Create geomap
-                    geomap = track.to_geomap(flavor=flavor)
-
-                    # Save geomap as CDF
-                    geomap_cdf_path = geomap.save(
-                        output_path=output_path,
-                        overwrite=True,
-                    )
-                    log.info(f"Saved geomap CDF to {geomap_cdf_path}")
-                    output_files.append(geomap_cdf_path)
-
                     # Create and save plot as JPG
                     fig = plt.figure()
-                    ax, mesh = geomap.plot()
+                    ax, mesh = geomap.plot(flavor=flavor)
 
                     plot_jpg_filename = file_path.stem + f"_geomap_{flavor.name}.jpg"
                     plot_jpg_path = output_path / plot_jpg_filename
