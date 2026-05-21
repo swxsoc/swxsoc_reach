@@ -3,6 +3,7 @@
 import astropy.units as u
 import numpy as np
 from astropy.coordinates import EarthLocation
+from astropy.nddata import NDData
 from swxsoc.swxdata import SWXData
 
 from swxsoc_reach.util.enums import Flavor, Region
@@ -201,6 +202,16 @@ class GenericGeoMap(SWXData):
         lon2d, lat2d = np.meshgrid(lon_axis, lat_axis)
         return lon2d, lat2d
 
+    def resample(self, resolution: int) -> "GenericGeoMap":
+        """Return a new map on a coarser regular lon/lat grid.
+
+        The current implementation expects the existing grid to be evenly divisible
+        by ``resolution`` in both dimensions. Integer and boolean data are
+        aggregated by summing and logical OR respectively, while floating-point
+        arrays are aggregated by averaging.
+        """
+        raise NotImplementedError("resample() is not yet implemented.")
+
     def pixel_to_world(self, x: float, y: float):
         """Convert zero-based pixel coordinates to an EarthLocation on Earth's surface.
 
@@ -227,7 +238,7 @@ class GenericGeoMap(SWXData):
         ------
         ImportError
             If astropy.coordinates.EarthLocation or astropy.units is not available.
-
+                    not use_log_scale
         Notes
         -----
         Pixel coordinates are rounded to the nearest integer and clipped to ensure they
@@ -310,20 +321,21 @@ class GenericGeoMap(SWXData):
         self,
         flavor: Flavor | int = Flavor.U,
         ax=None,
-        *,
         add_colorbar: bool = True,
         color_by_region: bool = True,
         statistic: str = "median",
         log_scale: bool = True,
+        draw_contours: bool = False,
         draw_regions: bool = True,
-        **kwargs,
+        contour_blur_sigma: float = 1.0,
     ):
         """
         Plot the geospatial dose-rate map and return the axes and mesh artist.
 
         Dose-rate values are displayed on a log10 scale by default. Region contours,
-        coastlines, and gridlines are always drawn. If cartopy is installed the
-        axes will use a ``PlateCarree`` projection; otherwise a plain
+        coastlines, and gridlines are always drawn. When ``draw_contours=True``,
+        contour lines are overlaid from the plotted map data. If cartopy is installed
+        the axes will use a ``PlateCarree`` projection; otherwise a plain
         matplotlib axes is used.
 
         Parameters
@@ -345,8 +357,9 @@ class GenericGeoMap(SWXData):
             When ``True`` (default) plot ``log10(map_data)`` (positive values
             only) with fixed range ``[-7, -2]``. When ``False`` plot linear
             ``map_data`` values and use matplotlib's default autoscaling.
-        **kwargs
-            Currently unused; reserved for future keyword arguments.
+        draw_contours : bool, optional
+            When ``True`` draw contour lines from the plotted map data on top of
+            the filled mesh. Default is ``False``.
 
         Returns
         -------
@@ -381,15 +394,34 @@ class GenericGeoMap(SWXData):
 
         data_unit = self.support[f"{statistic}_map"].unit
         _md, selected_flavor = self._selected_map(statistic, flavor)
+        finite_values = _md[np.isfinite(_md)]
+        is_count = statistic == "count"
+        use_log_scale = log_scale and not is_count
 
-        if log_scale:
+        if is_count:
+            colorbar_label = f"{data_unit}"
+            contour_data = _md
+            contour_levels = None
+            if finite_values.size > 0:
+                colorbarmin = float(np.nanmin(finite_values))
+                colorbarmax = float(np.nanmax(finite_values))
+            else:
+                colorbarmin = 0.0
+                colorbarmax = 0.0
+        elif use_log_scale:
             colorbarmax = -2
             colorbarmin = -7
             colorbar_label = f"log ({data_unit})"
+            with np.errstate(divide="ignore", invalid="ignore"):
+                contour_data = np.where(_md > 0, np.log10(_md), np.nan)
+            # Plot contours only at 1e-6, 1e-5, 1e-4, 1e-3, 1e-2.
+            contour_levels = np.array([-6, -5, -4, -3, -2], dtype=float)
         else:
             colorbarmax = None
             colorbarmin = None
             colorbar_label = f"{data_unit}"
+            contour_data = _md
+            contour_levels = None
 
         # Colorblind-friendly colormaps
         cdi = "#093145"
@@ -446,6 +478,57 @@ class GenericGeoMap(SWXData):
                 label_contours=draw_regions,
             )
 
+        if draw_contours:
+            from scipy.ndimage import gaussian_filter
+
+            def _smooth_for_contours(data: np.ndarray) -> np.ndarray:
+                if contour_blur_sigma <= 0:
+                    return data
+                valid = np.isfinite(data)
+                if not np.any(valid):
+                    return data
+                # Smooth data and validity mask separately so NaNs do not bleed
+                # into surrounding regions during contour extraction.
+                filled = np.where(valid, data, 0.0)
+                weights = valid.astype(float)
+                smooth_num = gaussian_filter(filled, sigma=contour_blur_sigma)
+                smooth_den = gaussian_filter(weights, sigma=contour_blur_sigma)
+                with np.errstate(invalid="ignore", divide="ignore"):
+                    return np.where(smooth_den > 0, smooth_num / smooth_den, np.nan)
+
+            finite_contours = contour_data[np.isfinite(contour_data)]
+            if (
+                log_scale
+                and contour_levels is not None
+                and finite_contours.size > 1
+                and np.nanmin(finite_contours) < np.nanmax(finite_contours)
+            ):
+                # Draw contours at adaptive log-spaced levels
+                smoothed = _smooth_for_contours(contour_data)
+                contour_source = np.ma.masked_invalid(smoothed)
+                ax.contour(
+                    xylon,
+                    xylat,
+                    contour_source,
+                    levels=contour_levels,
+                    cmap="Reds",
+                    linewidths=0.8,
+                )
+            elif (
+                not log_scale
+                and finite_contours.size > 1
+                and np.nanmin(finite_contours) < np.nanmax(finite_contours)
+            ):
+                smoothed = _smooth_for_contours(contour_data)
+                contour_source = np.ma.masked_invalid(smoothed)
+                ax.contour(
+                    xylon,
+                    xylat,
+                    contour_source,
+                    cmap="Reds",
+                    linewidths=0.8,
+                )
+
         time_str = self.meta["Time_start"] + " - " + self.meta["Time_end"]
         ax.set_title(f"{time_str} - {selected_flavor.label}")
 
@@ -464,7 +547,7 @@ class GenericGeoMap(SWXData):
             meshes = []
             for region, cmap, _ in regions:
                 region_data = np.where(region_mask[region.mask_index], _md, np.nan)
-                if log_scale:
+                if use_log_scale:
                     with np.errstate(divide="ignore", invalid="ignore"):
                         plot_data = np.where(
                             region_data > 0, np.log10(region_data), np.nan
@@ -482,7 +565,7 @@ class GenericGeoMap(SWXData):
                 meshes.append(mesh)
 
             if add_colorbar:
-                if log_scale:
+                if use_log_scale:
                     intticks = int(np.floor(colorbarmax - colorbarmin) + 1)
                     tickemptylabels = [" " for _ in range(intticks)]
 
@@ -507,8 +590,30 @@ class GenericGeoMap(SWXData):
                         fontsize=9,
                         weight="bold",
                     )
-                    if log_scale and i < len(regions) - 1:
+                    if use_log_scale and i < len(regions) - 1:
                         cbar.ax.set_xticklabels(tickemptylabels)
+                    elif use_log_scale:
+                        # Set colorbar ticks and labels at each order of magnitude
+                        ticks = np.arange(colorbarmin, colorbarmax + 1)
+                        cbar.set_ticks(ticks)
+                        cbar.set_ticklabels([f"$10^{{{int(t)}}}$" for t in ticks])
+                        cbar.set_label(colorbar_label, fontsize=10, labelpad=5)
+                        cbar.ax.xaxis.set_label_position("bottom")
+                        if draw_contours and contour_levels is not None:
+                            contour_markers = contour_levels[
+                                (contour_levels >= colorbarmin)
+                                & (contour_levels <= colorbarmax)
+                            ]
+                            if contour_markers.size > 0:
+                                cbar.ax.vlines(
+                                    contour_markers,
+                                    0.0,
+                                    1.0,
+                                    transform=cbar.ax.get_xaxis_transform(),
+                                    colors="red",
+                                    linewidth=1.0,
+                                    alpha=0.9,
+                                )
                     else:
                         cbar.set_label(colorbar_label, fontsize=10, labelpad=5)
                         cbar.ax.xaxis.set_label_position("bottom")
@@ -516,11 +621,7 @@ class GenericGeoMap(SWXData):
 
             last_mesh = meshes[-1]
         else:
-            if log_scale:
-                with np.errstate(divide="ignore", invalid="ignore"):
-                    plot_data = np.where(_md > 0, np.log10(_md), np.nan)
-            else:
-                plot_data = _md
+            plot_data = contour_data
             last_mesh = ax.pcolormesh(
                 xylon,
                 xylat,
@@ -530,9 +631,28 @@ class GenericGeoMap(SWXData):
                 cmap="viridis",
             )
             if add_colorbar:
-                fig.colorbar(
+                cbar = fig.colorbar(
                     last_mesh, ax=ax, label=colorbar_label, orientation="horizontal"
                 )
+                if use_log_scale:
+                    ticks = np.arange(colorbarmin, colorbarmax + 1)
+                    cbar.set_ticks(ticks)
+                    cbar.set_ticklabels([f"$10^{{{int(t)}}}$" for t in ticks])
+                    if draw_contours and contour_levels is not None:
+                        contour_markers = contour_levels[
+                            (contour_levels >= colorbarmin)
+                            & (contour_levels <= colorbarmax)
+                        ]
+                        if contour_markers.size > 0:
+                            cbar.ax.vlines(
+                                contour_markers,
+                                0.0,
+                                1.0,
+                                transform=cbar.ax.get_xaxis_transform(),
+                                colors="red",
+                                linewidth=1.0,
+                                alpha=0.9,
+                            )
 
         return ax, last_mesh
 

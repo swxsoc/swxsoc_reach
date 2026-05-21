@@ -6,7 +6,7 @@ from astropy.nddata import NDData
 from astropy.timeseries import TimeSeries
 
 from swxsoc_reach.geomap import GenericGeoMap
-from swxsoc_reach.util.enums import Flavor
+from swxsoc_reach.util.enums import Flavor, Region
 from swxsoc_reach.util.schema import REACHDataSchema
 
 
@@ -82,6 +82,10 @@ def _make_test_geomap(nx=10, ny=8) -> GenericGeoMap:
             data=np.array(["SAA", "Polar Cap", "Outer Zone"], dtype="U"),
             meta={"CATDESC": "Region labels", "VAR_TYPE": "metadata"},
         ),
+        "mask": NDData(
+            data=np.ones((len(Region.ordered()), ny, nx), dtype=bool),
+            meta={"CATDESC": "Region mask", "VAR_TYPE": "support_data"},
+        ),
     }
 
     schema = REACHDataSchema()
@@ -92,6 +96,8 @@ def _make_test_geomap(nx=10, ny=8) -> GenericGeoMap:
     meta["Data_level"] = "L2"
     meta["Data_version"] = "1.0.0"
     meta["Descriptor"] = "test"
+    meta["Time_start"] = "2026-01-01T00:00:00"
+    meta["Time_end"] = "2026-01-01T00:01:00"
 
     return GenericGeoMap(
         timeseries=ts,
@@ -267,6 +273,59 @@ def test_lon_lat_grid_dimension_mismatch_1d(test_geomap):
     meta["Data_level"] = "L2"
     meta["Data_version"] = "1.0.0"
     meta["Descriptor"] = "test"
+    meta["Time_start"] = "2026-01-01T00:00:00"
+    meta["Time_end"] = "2026-01-01T00:01:00"
     geomap = GenericGeoMap(timeseries=ts, support=variables, meta=meta, schema=schema)
     with pytest.raises(ValueError, match="coordinate lengths must match"):
         geomap.lon_lat_grid()
+
+
+def test_plot_draw_contours_calls_contour(monkeypatch, test_geomap):
+    """plot(draw_contours=True) should overlay contour lines from the data."""
+    pytest.importorskip("cartopy")
+    import matplotlib.pyplot as plt
+    from cartopy import crs as ccrs
+
+    ax = plt.subplot(1, 1, 1, projection=ccrs.PlateCarree())
+
+    contour_calls = []
+
+    def fake_contour(*args, **kwargs):
+        contour_calls.append((args, kwargs))
+        return object()
+
+    monkeypatch.setattr(type(ax), "contour", fake_contour, raising=False)
+
+    out_ax, mesh = test_geomap.plot(
+        ax=ax,
+        draw_contours=True,
+        draw_regions=False,
+        add_colorbar=False,
+    )
+
+    assert out_ax is ax
+    assert mesh is not None
+    assert contour_calls
+
+
+def test_plot_count_uses_data_range_for_colorbar(test_geomap):
+    """count plots should use the finite data range for the color scale."""
+    pytest.importorskip("cartopy")
+
+    count_data = np.arange(8 * 10, dtype=float).reshape(8, 10)
+    count_map = test_geomap.support["count_map"]
+    test_geomap.support["count_map"] = NDData(
+        data=np.stack([count_data] * 6, axis=0),
+        unit=count_map.unit,
+        meta=dict(count_map.meta),
+    )
+
+    _, mesh = test_geomap.plot(
+        statistic="count",
+        color_by_region=False,
+        add_colorbar=False,
+        draw_contours=False,
+    )
+
+    assert mesh.norm.vmin == pytest.approx(float(np.nanmin(count_data)))
+    assert mesh.norm.vmax == pytest.approx(float(np.nanmax(count_data)))
