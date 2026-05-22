@@ -3,7 +3,6 @@
 import astropy.units as u
 import numpy as np
 from astropy.coordinates import EarthLocation
-from astropy.nddata import NDData
 from swxsoc.swxdata import SWXData
 
 from swxsoc_reach.util.enums import Flavor, Region
@@ -18,13 +17,16 @@ class GenericGeoMap(SWXData):
     """
 
     def _statistic_map(self, statistic: str) -> np.ndarray:
-        return self.support[f"{statistic}_map"].data
+        data = self.support[f"{statistic}_map"].data
+        if data.ndim >= 4 and data.shape[0] == 1:
+            return np.squeeze(data, axis=0)
+        return data
 
     @property
     def flavor_names(self) -> np.ndarray:
-        if "flavor_names" not in self.support:
+        if "dosimeter_flavor_names" not in self.support:
             return np.asarray([], dtype="U")
-        return self.support["flavor_names"].data
+        return self.support["dosimeter_flavor_names"].data
 
     @property
     def median_map(self) -> np.ndarray:

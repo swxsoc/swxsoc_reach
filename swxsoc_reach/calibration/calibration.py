@@ -52,28 +52,21 @@ def process_file(
     # Stub Output Files
     output_files = []
 
-    # Read and transform
+    # Check if the LAMBDA_ENVIRONMENT environment variable is set
+    lambda_environment = os.getenv("LAMBDA_ENVIRONMENT")
+    if lambda_environment:
+        output_path = Path(tempfile.gettempdir())
+    else:
+        output_path = Path.cwd()  # Default to current working directory
 
-    # *****************************
     # CHECK FILE TYPE; IF CDF THEN CREATE MAP CDF.
-
     if file_path.suffix.lower() == ".cdf":  # TODO also check that data level is l1c
         log.info("Input file is already a CDF. Creating geomap CDFs and plots.")
         try:
+            # Load the L1C CDF file into a REACHTrack object
             track = REACHTrack.load(file_path)
 
-            # Get metadata for filename generation
-            version = track.meta.get("Data_version", "1.0.0")
-            time_obj = track.time[0]  # Get first time from track
-            time_str = time_obj.strftime("%Y%m%dT%H%M%S")  # Format as YYYYMMDDTHHMMSS
-
-            # Check if the LAMBDA_ENVIRONMENT environment variable is set
-            lambda_environment = os.getenv("LAMBDA_ENVIRONMENT")
-            if lambda_environment:
-                output_path = Path(tempfile.gettempdir())
-            else:
-                output_path = Path.cwd()  # Default to current working directory
-
+            # Convert the track to a geomap object (this will combine all flavors into one geomap)
             geomap = track.to_geomap()
 
             # Save the combined geomap once, then render one plot per flavor.
@@ -113,18 +106,14 @@ def process_file(
             log.warning(f"Could not create geomaps and plots: {e}")
 
         return output_files
+    # Otherwise, assume it's a raw CSV/JSON file that needs to be processed into a CDF.
     else:
         log.info("Input file is not a CDF. Processing as UDL file.")
 
+        # Read the Raw JSON/CSV file and build the SWXData object
         data = read_file(file_path)
         reach_data = build_swxdata(data)
 
-        # Check if the LAMBDA_ENVIRONMENT environment variable is set
-        lambda_environment = os.getenv("LAMBDA_ENVIRONMENT")
-        if lambda_environment:
-            output_path = Path(tempfile.gettempdir())
-        else:
-            output_path = Path.cwd()  # Default to current working directory
         # Write CDF
         cdf_path = reach_data.save(output_path=output_path, overwrite=True)
         log.info(f"Saved CDF to {cdf_path}")

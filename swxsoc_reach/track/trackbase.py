@@ -1,6 +1,7 @@
 """Generic geospatial map container with SunPy-like map helpers."""
 
 from copy import deepcopy
+from pathlib import Path
 
 import astropy.units as u
 import numpy as np
@@ -10,6 +11,7 @@ from astropy.timeseries import TimeSeries
 from scipy.stats import binned_statistic_2d
 from swxsoc.swxdata import SWXData
 
+from swxsoc_reach import log
 from swxsoc_reach.geomap import GenericGeoMap
 from swxsoc_reach.util.enums import Flavor, Region, SensorId
 from swxsoc_reach.util.geom import load_region_contours, points_to_region_code
@@ -393,46 +395,55 @@ class REACHTrack(SWXData):
         lon2d, lat2d = np.meshgrid(lon_bins, lat_bins)
         grid_shape = lon2d.shape
 
+        # Stub out a dictionary to hold lists of per-flavor statistic maps, which we will stack at the end.
         statistic_maps: dict[str, list[np.ndarray]] = {
             statistic: [] for statistic in valid_statistics
         }
 
         for flavor in _FLAVOR_ORDER:
             flavor_mask = dosimeter_flavor_grid == flavor
-            if np.any(flavor_mask):
-                flavor_data = np.where(
-                    flavor_mask[None, :, :],
-                    self["dose_rate"].data,
-                    np.nan,
-                )
-                obs = np.nansum(flavor_data, axis=2)
-                has_selected_observation = np.any(np.isfinite(flavor_data), axis=2)
-                obs[~has_selected_observation] = np.nan
-                obs_flat = obs.flatten()
-                valid = (
-                    np.isfinite(lon_flat)
-                    & np.isfinite(lat_flat)
-                    & np.isfinite(obs_flat)
-                )
 
-                if np.any(valid):
-                    for statistic in valid_statistics:
-                        statistic_data = binned_statistic_2d(
-                            lon_flat[valid],
-                            lat_flat[valid],
-                            obs_flat[valid],
-                            statistic=statistic,
-                            bins=[lon_edges, lat_edges],
-                        )
-                        statistic_maps[statistic].append(statistic_data.statistic.T)
-                    continue
+            # Skip if no observations for this flavor
+            if not np.any(flavor_mask):
+                log.warning(
+                    f"No observations found for flavor {flavor.name}. Skipping."
+                )
+                continue
 
-            # No valid samples for this flavor; populate empty maps.
-            for statistic in valid_statistics:
-                if statistic == "count":
-                    statistic_maps[statistic].append(np.zeros(grid_shape))
-                else:
-                    statistic_maps[statistic].append(np.full(grid_shape, np.nan))
+            # Slice out the dose_rate data for this flavor
+            flavor_data = np.where(
+                flavor_mask[None, :, :],
+                self["dose_rate"].data,
+                np.nan,
+            )
+            # Sum over the dosimeter axis to combine multiple dosimeters of the same flavor, then flatten for binning.
+            obs = np.nansum(flavor_data, axis=2)
+            has_selected_observation = np.any(np.isfinite(flavor_data), axis=2)
+            obs[~has_selected_observation] = np.nan
+            obs_flat = obs.flatten()
+            valid = (
+                np.isfinite(lon_flat) & np.isfinite(lat_flat) & np.isfinite(obs_flat)
+            )
+
+            # If there are valid, finite observations for this flavor, compute statistics and append to maps.
+            if np.any(valid):
+                for statistic in valid_statistics:
+                    statistic_data = binned_statistic_2d(
+                        lon_flat[valid],
+                        lat_flat[valid],
+                        obs_flat[valid],
+                        statistic=statistic,
+                        bins=[lon_edges, lat_edges],
+                    )
+                    statistic_maps[statistic].append(statistic_data.statistic.T)
+            # If there are no valid observations for this flavor, populate empty maps with NaNs (or zeros for count)
+            else:
+                # No valid samples for this flavor; populate empty maps.
+                for statistic in valid_statistics:
+                    if statistic == "count":
+                        statistic_maps[statistic].append(np.zeros(grid_shape))
+                    else:
+                        statistic_maps[statistic].append(np.full(grid_shape, np.nan))
 
         # Build a region-code grid over the same lon/lat bins using the saved
         # contour paths, then derive per-region boolean masks.
@@ -456,24 +467,36 @@ class REACHTrack(SWXData):
             axis=0,
         )
 
-        flavor_names = np.asarray([flavor.name for flavor in _FLAVOR_ORDER], dtype="U")
-        flavor_labels = np.asarray(
+        dosimeter_flavor_names = np.asarray(
+            [flavor.name for flavor in _FLAVOR_ORDER], dtype="U"
+        )
+        dosimeter_flavor_ids = np.array(
+            [i for i in range(len(_FLAVOR_ORDER))], dtype=int
+        )
+        dosimeter_flavor_labels = np.asarray(
             [flavor.label for flavor in _FLAVOR_ORDER], dtype="U"
         )
 
         # Define CDF Variables Dict.
         variables: dict[str, NDData] = {
-            "flavor_names": NDData(
-                data=flavor_names,
+            "dosimeter_flavor_names": NDData(
+                data=dosimeter_flavor_names,
                 meta={
-                    "CATDESC": "Flavor names",
+                    "CATDESC": "Human-Readable Names for dosimeter flavors dimension",
                     "VAR_TYPE": "metadata",
                 },
             ),
-            "flavor_label": NDData(
-                data=flavor_labels,
+            "dosimeter_flavor_ids": NDData(
+                data=dosimeter_flavor_ids,
                 meta={
-                    "CATDESC": "Flavor labels",
+                    "CATDESC": "ID for dosimeter flavors dimension",
+                    "VAR_TYPE": "metadata",
+                },
+            ),
+            "dosimeter_flavor_labels": NDData(
+                data=dosimeter_flavor_labels,
+                meta={
+                    "CATDESC": "Label for dosimeter flavors dimension",
                     "VAR_TYPE": "metadata",
                 },
             ),
@@ -550,19 +573,22 @@ class REACHTrack(SWXData):
 
         for statistic in valid_statistics:
             unit = u.count if statistic == "count" else u.rad / u.s
+            flavor_maps = np.stack(statistic_maps[statistic], axis=0)
             variables[f"{statistic}_map"] = NDData(
-                data=np.stack(statistic_maps[statistic], axis=0),
+                # NOTE: Expand first dimension for 1 time step to conform to CDF Format requirements.
+                data=np.expand_dims(flavor_maps, axis=0),
                 unit=unit,
                 meta={
                     "CATDESC": f"{statistic} dose rate",
-                    "VAR_TYPE": "support_data",
+                    "VAR_TYPE": "data",
                     "UNITS": unit.to_string(),
-                    "DEPEND_0": "flavor_names",
-                    "DEPEND_1": "lat",
-                    "DEPEND_2": "lon",
-                    "LABL_PTR_0": "flavor_names",
-                    "LABL_PTR_1": "lat_label",
-                    "LABL_PTR_2": "lon_label",
+                    "DEPEND_0": "Epoch",
+                    "DEPEND_1": "dosimeter_flavor_ids",
+                    "DEPEND_2": "lat",
+                    "DEPEND_3": "lon",
+                    "LABL_PTR_1": "dosimeter_flavor_labels",
+                    "LABL_PTR_2": "lat_label",
+                    "LABL_PTR_3": "lon_label",
                 },
             )
 
@@ -591,6 +617,53 @@ class REACHTrack(SWXData):
         return GenericGeoMap(
             timeseries=ts,
             support=variables,
+            meta=meta,
+            schema=schema,
+        )
+
+    @classmethod
+    def load(cls, file_path: Path):
+        """
+        Load data from a file.
+
+        Parameters
+        ----------
+        file_path : `pathlib.Path`
+            A fully specified file path of the data file to load.
+
+        Returns
+        -------
+        data : `SWXData`
+            A `SWXData` object containing the loaded data.
+
+        Raises
+        ------
+        ValueError: If the file type is not recognized as a file type that can be loaded.
+
+        """
+        from swxsoc.util.io import CDFHandler
+
+        # Ensure file_path is a Path object
+        file_path = Path(file_path)
+
+        # Determine the file type
+        file_extension = file_path.suffix
+
+        # Create the appropriate handler object based on file type
+        if file_extension == ".cdf":
+            handler = CDFHandler()
+        else:
+            raise ValueError(f"Unsupported file type: {file_extension}")
+
+        # Use our Custom Schema
+        schema = REACHDataSchema()
+
+        # Load data using the handler and return a REACHTrack object
+        timeseries, support, spectra, meta = handler.load_data(file_path)
+        return cls(
+            timeseries=timeseries,
+            support=support,
+            spectra=spectra,
             meta=meta,
             schema=schema,
         )
