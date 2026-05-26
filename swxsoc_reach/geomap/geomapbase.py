@@ -1,23 +1,76 @@
 """Generic geospatial map container with SunPy-like map helpers."""
 
+import warnings
+from pathlib import Path
+
 import astropy.units as u
+import matplotlib as mpl
+import matplotlib.pyplot as plt
 import numpy as np
 from astropy.coordinates import EarthLocation
+from cartopy import crs as ccrs
 from swxsoc.swxdata import SWXData
 
 from swxsoc_reach.util.enums import Flavor, Region
+from swxsoc_reach.util.schema import REACHDataSchema
 from swxsoc_reach.visualization.viz import plot_geomap
+
+# REACH dose data routinely contains zeros / non-positive values; log10 of
+# these is mathematically undefined but expected, so silence the resulting
+# RuntimeWarnings for this module only.
+warnings.filterwarnings(
+    "ignore",
+    message="divide by zero encountered in log10",
+    category=RuntimeWarning,
+    module=__name__,
+)
+warnings.filterwarnings(
+    "ignore",
+    message="invalid value encountered in log10",
+    category=RuntimeWarning,
+    module=__name__,
+)
+# Matplotlib emits this when set_xticklabels() is called without a matching
+# FixedLocator; we intentionally do that to blank out tick labels on stacked
+# per-region colorbars, so the warning is noise here.
+warnings.filterwarnings(
+    "ignore",
+    message=r"set_ticklabels\(\) should only be used with a fixed number of ticks",
+    category=UserWarning,
+    module=__name__,
+)
 
 
 class GenericGeoMap(SWXData):
     """A generic 2D geospatial map object.
 
-    This class provides a compact, SunPy-like API for geospatial grids:
+    Provides a compact, SunPy-like API for geospatial dose-rate grids:
+    per-statistic map accessors (``median_map``, ``mean_map``, ...),
+    coordinate grid construction (``lon_lat_grid``), pixel/world
+    conversions (``pixel_to_world``, ``world_to_pixel``), an aggregated
+    plotter (``plot``), and per-region summaries (``sum_per_region``).
 
+    The underlying storage is an :class:`swxsoc.swxdata.SWXData` container
+    populated by
+    :meth:`swxsoc_reach.track.trackbase.REACHTrack.to_geomap`. Each
+    statistic map has shape ``(nflavors, ny, nx)``.
     """
 
     def _statistic_map(self, statistic: str) -> np.ndarray:
-        data = self.support[f"{statistic}_map"].data
+        """Return the requested statistic map with a leading singleton time axis squeezed.
+
+        Parameters
+        ----------
+        statistic : str
+            Statistic name. One of ``"median"``, ``"mean"``, ``"count"``,
+            ``"min"``, ``"max"``, or ``"std"``.
+
+        Returns
+        -------
+        numpy.ndarray
+            Array of shape ``(nflavors, ny, nx)``.
+        """
+        data = self[f"{statistic}_map"].data
         if data.ndim >= 4 and data.shape[0] == 1:
             return np.squeeze(data, axis=0)
         return data
@@ -30,51 +83,61 @@ class GenericGeoMap(SWXData):
 
     @property
     def median_map(self) -> np.ndarray:
+        """Per-flavor median dose-rate map of shape ``(nflavors, ny, nx)``."""
         return self._statistic_map("median")
 
     @property
     def mean_map(self) -> np.ndarray:
+        """Per-flavor mean dose-rate map of shape ``(nflavors, ny, nx)``."""
         return self._statistic_map("mean")
 
     @property
     def count_map(self) -> np.ndarray:
+        """Per-flavor sample-count map of shape ``(nflavors, ny, nx)``."""
         return self._statistic_map("count")
 
     @property
     def min_map(self) -> np.ndarray:
+        """Per-flavor minimum dose-rate map of shape ``(nflavors, ny, nx)``."""
         return self._statistic_map("min")
 
     @property
     def max_map(self) -> np.ndarray:
+        """Per-flavor maximum dose-rate map of shape ``(nflavors, ny, nx)``."""
         return self._statistic_map("max")
 
     @property
     def std_map(self) -> np.ndarray:
+        """Per-flavor sample standard-deviation map of shape ``(nflavors, ny, nx)``."""
         return self._statistic_map("std")
 
     @property
-    def _lon(self) -> np.ndarray:
-        """Longitude coordinate array (1D or 2D) in degrees, or None if not provided."""
+    def _lon(self) -> np.ndarray | None:
+        """Longitude coordinate array (1D or 2D) in degrees, or ``None`` if not provided."""
         if "lon" in self.support:
             return self.support["lon"].data
         return None
 
     @property
-    def _lat(self) -> np.ndarray:
-        """Latitude coordinate array (1D or 2D) in degrees, or None if not provided."""
+    def _lat(self) -> np.ndarray | None:
+        """Latitude coordinate array (1D or 2D) in degrees, or ``None`` if not provided."""
         if "lat" in self.support:
             return self.support["lat"].data
         return None
 
     @property
-    def regions(self) -> list[str]:
-        """List of region names corresponding to the map's regions variable."""
+    def regions(self) -> np.ndarray:
+        """Array of region names corresponding to the map's regions variable.
+
+        Returns an empty list when no ``regions`` support variable is present.
+        """
         if "regions" not in self.support:
             return []
         return self.support["regions"].data
 
     @property
     def flavor(self) -> Flavor:
+        """:class:`~swxsoc_reach.util.enums.Flavor` parsed from the ``Flavor`` metadata key."""
         return Flavor.from_str(self.meta.get("Flavor"))
 
     @property
@@ -124,6 +187,25 @@ class GenericGeoMap(SWXData):
         )
 
     def _flavor_index(self, flavor: Flavor | int) -> int:
+        """Resolve a :class:`Flavor` (or integer index) to its position in :meth:`Flavor.ordered`.
+
+        Parameters
+        ----------
+        flavor : Flavor or int
+            Either a :class:`~swxsoc_reach.util.enums.Flavor` member, or an
+            integer index into :meth:`Flavor.ordered`.
+
+        Returns
+        -------
+        int
+            Zero-based index into the ordered flavor list.
+
+        Raises
+        ------
+        ValueError
+            If ``flavor`` is an unrecognized :class:`Flavor`, or if the
+            resolved integer index is out of range.
+        """
         flavor_order = Flavor.ordered()
         flavor_values = [member.value for member in flavor_order]
         if isinstance(flavor, int):
@@ -142,6 +224,21 @@ class GenericGeoMap(SWXData):
     def _selected_map(
         self, statistic: str, flavor: Flavor | int
     ) -> tuple[np.ndarray, Flavor]:
+        """Return the 2D slice of ``statistic`` for the requested flavor.
+
+        Parameters
+        ----------
+        statistic : str
+            Statistic name; see :meth:`_statistic_map`.
+        flavor : Flavor or int
+            Flavor selector; see :meth:`_flavor_index`.
+
+        Returns
+        -------
+        tuple[numpy.ndarray, Flavor]
+            A ``(map2d, flavor)`` pair, where ``map2d`` has shape ``(ny, nx)``
+            and ``flavor`` is the resolved :class:`Flavor` member.
+        """
         flavor_order = Flavor.ordered()
         flavor_index = self._flavor_index(flavor)
         return self._statistic_map(statistic)[flavor_index], flavor_order[flavor_index]
@@ -204,17 +301,7 @@ class GenericGeoMap(SWXData):
         lon2d, lat2d = np.meshgrid(lon_axis, lat_axis)
         return lon2d, lat2d
 
-    def resample(self, resolution: int) -> "GenericGeoMap":
-        """Return a new map on a coarser regular lon/lat grid.
-
-        The current implementation expects the existing grid to be evenly divisible
-        by ``resolution`` in both dimensions. Integer and boolean data are
-        aggregated by summing and logical OR respectively, while floating-point
-        arrays are aggregated by averaging.
-        """
-        raise NotImplementedError("resample() is not yet implemented.")
-
-    def pixel_to_world(self, x: float, y: float):
+    def pixel_to_world(self, x: float, y: float) -> EarthLocation:
         """Convert zero-based pixel coordinates to an EarthLocation on Earth's surface.
 
         This method takes pixel coordinates from an image and converts them to geographic
@@ -240,7 +327,7 @@ class GenericGeoMap(SWXData):
         ------
         ImportError
             If astropy.coordinates.EarthLocation or astropy.units is not available.
-                    not use_log_scale
+
         Notes
         -----
         Pixel coordinates are rounded to the nearest integer and clipped to ensure they
@@ -263,7 +350,7 @@ class GenericGeoMap(SWXData):
 
     def world_to_pixel(
         self,
-        location_or_lon,
+        location_or_lon: EarthLocation | float,
         lat: float | None = None,
     ) -> tuple[int, int]:
         """
@@ -322,7 +409,7 @@ class GenericGeoMap(SWXData):
     def plot(
         self,
         flavor: Flavor | int = Flavor.U,
-        ax=None,
+        ax: "plt.Axes | None" = None,
         add_colorbar: bool = True,
         color_by_region: bool = True,
         statistic: str = "median",
@@ -330,21 +417,24 @@ class GenericGeoMap(SWXData):
         draw_contours: bool = False,
         draw_regions: bool = True,
         contour_blur_sigma: float = 1.0,
-    ):
+    ) -> tuple["plt.Axes", "mpl.collections.QuadMesh"]:
         """
         Plot the geospatial dose-rate map and return the axes and mesh artist.
 
         Dose-rate values are displayed on a log10 scale by default. Region contours,
         coastlines, and gridlines are always drawn. When ``draw_contours=True``,
-        contour lines are overlaid from the plotted map data. If cartopy is installed
-        the axes will use a ``PlateCarree`` projection; otherwise a plain
-        matplotlib axes is used.
+        contour lines are overlaid from the plotted map data. The axes use a
+        cartopy ``PlateCarree`` projection.
 
         Parameters
         ----------
+        flavor : Flavor or int, optional
+            Which dosimeter flavor to plot. May be a :class:`Flavor` member or
+            an integer index into :meth:`Flavor.ordered`. Default is
+            ``Flavor.U``.
         ax : matplotlib.axes.Axes, optional
             Axes to draw into.  When ``None`` (default) a new figure and axes
-            are created.
+            are created with a ``PlateCarree`` projection.
         add_colorbar : bool, optional
             Whether to add a colorbar to the figure.  Default is ``True``.
         color_by_region : bool, optional
@@ -355,13 +445,25 @@ class GenericGeoMap(SWXData):
             When ``False`` the full log10 map is plotted as a single
             ``pcolormesh`` using the ``viridis`` colormap and a single
             colorbar.
+        statistic : str, optional
+            Which statistic map to plot. One of ``"median"`` (default),
+            ``"mean"``, ``"count"``, ``"min"``, ``"max"``, or ``"std"``.
+            When ``"count"``, the color scale is linear regardless of
+            ``log_scale``.
         log_scale : bool, optional
             When ``True`` (default) plot ``log10(map_data)`` (positive values
             only) with fixed range ``[-7, -2]``. When ``False`` plot linear
             ``map_data`` values and use matplotlib's default autoscaling.
+            Ignored when ``statistic="count"``.
         draw_contours : bool, optional
             When ``True`` draw contour lines from the plotted map data on top of
             the filled mesh. Default is ``False``.
+        draw_regions : bool, optional
+            When ``True`` (default) label the region contours drawn by
+            :func:`~swxsoc_reach.visualization.viz.plot_geomap`.
+        contour_blur_sigma : float, optional
+            Gaussian blur sigma (in pixels) applied to the map before contour
+            extraction. Set to ``0`` to disable smoothing. Default is ``1.0``.
 
         Returns
         -------
@@ -374,27 +476,17 @@ class GenericGeoMap(SWXData):
 
         Notes
         -----
-                - With ``log_scale=True`` the color scale is fixed to ``[-7, -2]`` in
-                    log10(rad/s).
-        - The figure title is formatted as
-          ``"{start} - {end} - Flavor {flavor}"`` using the track time range
-          and the ``Flavor`` metadata attribute.
+        - With ``log_scale=True`` the color scale is fixed to ``[-7, -2]`` in
+          log10(rad/s).
+        - The figure title is formatted as ``"{Time_start} - {Time_end} - {flavor_label}"``
+          using the track time range and the selected flavor's label.
         - When ``color_by_region=True`` the per-region colorbars are placed
           below the map axes using absolute figure coordinates; callers
           adjusting the axes position after calling ``plot`` may need to
           reposition them.
         """
-        import matplotlib as mpl
-        import matplotlib.pyplot as plt
 
-        try:
-            from cartopy import crs as ccrs
-
-            has_cartopy = True
-        except Exception:
-            has_cartopy = False
-
-        data_unit = self.support[f"{statistic}_map"].unit
+        data_unit = self[f"{statistic}_map"].unit
         _md, selected_flavor = self._selected_map(statistic, flavor)
         finite_values = _md[np.isfinite(_md)]
         is_count = statistic == "count"
@@ -414,8 +506,7 @@ class GenericGeoMap(SWXData):
             colorbarmax = -2
             colorbarmin = -7
             colorbar_label = f"log ({data_unit})"
-            with np.errstate(divide="ignore", invalid="ignore"):
-                contour_data = np.where(_md > 0, np.log10(_md), np.nan)
+            contour_data = np.where(_md > 0, np.log10(_md), np.nan)
             # Plot contours only at 1e-6, 1e-5, 1e-4, 1e-3, 1e-2.
             contour_levels = np.array([-6, -5, -4, -3, -2], dtype=float)
         else:
@@ -450,35 +541,22 @@ class GenericGeoMap(SWXData):
 
         if ax is None:
             fig = plt.figure(figsize=(11.69, 8.27))
-            if has_cartopy:
-                ax = plt.subplot(
-                    1,
-                    1,
-                    1,
-                    projection=ccrs.PlateCarree(central_longitude=0),
-                )
-            else:
-                ax = plt.subplot(1, 1, 1)
+            ax = plt.subplot(
+                1,
+                1,
+                1,
+                projection=ccrs.PlateCarree(central_longitude=0),
+            )
         else:
             fig = ax.figure
 
-        import warnings
-
-        # Cartopy's GridLiner calls set_ticklabels() without a FixedLocator,
-        # which produces a UserWarning in recent matplotlib versions.  Suppress it.
-        with warnings.catch_warnings():
-            warnings.filterwarnings(
-                "ignore",
-                message="set_ticklabels\\(\\) should only be used with a fixed number",
-                category=UserWarning,
-            )
-            plot_geomap(
-                ax=ax,
-                draw_coastlines=True,
-                draw_gridlines=True,
-                draw_contours=False,
-                label_contours=draw_regions,
-            )
+        plot_geomap(
+            ax=ax,
+            draw_coastlines=True,
+            draw_gridlines=True,
+            draw_contours=False,
+            label_contours=draw_regions,
+        )
 
         if draw_contours:
             from scipy.ndimage import gaussian_filter
@@ -550,10 +628,7 @@ class GenericGeoMap(SWXData):
             for region, cmap, _ in regions:
                 region_data = np.where(region_mask[region.mask_index], _md, np.nan)
                 if use_log_scale:
-                    with np.errstate(divide="ignore", invalid="ignore"):
-                        plot_data = np.where(
-                            region_data > 0, np.log10(region_data), np.nan
-                        )
+                    plot_data = np.where(region_data > 0, np.log10(region_data), np.nan)
                 else:
                     plot_data = region_data
                 mesh = ax.pcolormesh(
@@ -681,3 +756,57 @@ class GenericGeoMap(SWXData):
             masked = np.where(region_mask[region.mask_index], _md, np.nan)
             result[region.key] = float(np.nansum(masked))
         return result
+
+    @classmethod
+    def load(cls, file_path: Path):
+        """
+        Load data from a file.
+
+        Parameters
+        ----------
+        file_path : `pathlib.Path`
+            A fully specified file path of the data file to load.
+
+        Returns
+        -------
+        data : `SWXData`
+            A `SWXData` object containing the loaded data.
+
+        Raises
+        ------
+        ValueError: If the file type is not recognized as a file type that can be loaded.
+
+        """
+        from swxsoc.util.io import CDFHandler
+
+        # Ensure file_path is a Path object
+        file_path = Path(file_path)
+
+        # Determine the file type
+        file_extension = file_path.suffix
+
+        # Create the appropriate handler object based on file type
+        if file_extension == ".cdf":
+            handler = CDFHandler()
+        else:
+            raise ValueError(f"Unsupported file type: {file_extension}")
+
+        # Use our Custom Schema
+        schema = REACHDataSchema()
+        # NOTE for GeoMap we want to override some Schema Requirements.
+        # If this gets very ugly in the future we can consider a separate schema just for GeoMaps.
+        # ===
+        # We don't want to derive the resolution for the Epoch coordinate since it's not a regular time series, it's just a single timestamp representing the map time.
+        schema.variable_attribute_schema["attribute_key"]["RESOLUTION"]["derived"] = (
+            False
+        )
+
+        # Load data using the handler and return a REACHTrack object
+        timeseries, support, spectra, meta = handler.load_data(file_path)
+        return cls(
+            timeseries=timeseries,
+            support=support,
+            spectra=spectra,
+            meta=meta,
+            schema=schema,
+        )
