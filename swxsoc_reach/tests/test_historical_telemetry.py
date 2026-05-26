@@ -9,12 +9,12 @@ import pytest
 
 from swxsoc_reach.historical import telemetry as tm
 from swxsoc_reach.historical.telemetry import (
-    HistoricalTelemetry,
     SCHEMA,
+    STATUS_DOWNLOAD_PENDING,
     STATUS_DOWNLOADED,
     STATUS_FAILED,
-    STATUS_DOWNLOAD_PENDING,
     STATUS_SKIPPED_NO_DATA,
+    HistoricalTelemetry,
     TelemetryRow,
 )
 

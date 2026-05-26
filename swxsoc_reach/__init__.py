@@ -15,6 +15,7 @@ os.environ["SWXSOC_MISSION"] = SWXSOC_MISSION
 
 from swxsoc import config as swxsoc_config  # noqa: E402
 from swxsoc import log as swxsoc_log
+
 from swxsoc_reach.util.enums import load_reach_id_dosimeter_relationship
 
 # Load user configuration

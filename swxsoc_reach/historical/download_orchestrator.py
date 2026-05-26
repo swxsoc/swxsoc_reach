@@ -26,11 +26,11 @@ from astropy.time import Time
 from swxsoc_reach import log
 from swxsoc_reach.historical._dates import iter_dates as _iter_dates
 from swxsoc_reach.historical.telemetry import (
-    HistoricalTelemetry,
     STATUS_DOWNLOAD_PENDING,
     STATUS_DOWNLOADED,
     STATUS_FAILED,
     STATUS_SKIPPED_NO_DATA,
+    HistoricalTelemetry,
     TelemetryRow,
     utcnow_iso,
 )

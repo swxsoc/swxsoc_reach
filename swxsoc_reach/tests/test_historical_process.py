@@ -22,7 +22,6 @@ from swxsoc_reach.historical.process_orchestrator import (
     run_process,
 )
 from swxsoc_reach.historical.telemetry import (
-    HistoricalTelemetry,
     STATUS_DOWNLOADED,
     STATUS_FAILED,
     STATUS_PROCESS_PENDING,
@@ -30,9 +29,9 @@ from swxsoc_reach.historical.telemetry import (
     STATUS_SKIPPED_NO_INPUT,
     STATUS_UPLOAD_PENDING,
     STATUS_UPLOADED,
+    HistoricalTelemetry,
     TelemetryRow,
 )
-
 
 # --- helpers ---
 

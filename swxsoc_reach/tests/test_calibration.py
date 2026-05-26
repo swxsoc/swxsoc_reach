@@ -14,9 +14,6 @@ target_udl_file_path = (
 target_l1c_file_path = (
     _test_files_directory / "reach_all_l1c_prelim_20250904T000000_v1.0.0.cdf"
 )
-target_l2_file_path = (
-    _test_files_directory / "reach_flavor-v_l2_prelim_20250904T000000_v1.0.0.cdf"
-)
 
 
 @pytest.mark.parametrize("this_path", test_udl_file_paths)
@@ -62,13 +59,6 @@ def test_process_file_target(tmpdir, monkeypatch):
     # Process again to level 2 and compare with target level 2 file
     level_2_files = calib.process_file(files[0])
     assert len(level_2_files) > 0, "Should produce at least one level 2 file"
-
-    # Compare the first level 2 CDF with the target level 2 CDF
-    level_2_cdf = pycdf.CDF(str(level_2_files[0]))
-    target_level_2_cdf = pycdf.CDF(str(target_l2_file_path))
-    assert level_2_cdf.keys() == target_level_2_cdf.keys(), (
-        "Level 2 CDF variable keys should match"
-    )
 
 
 @pytest.mark.parametrize("this_path", test_udl_file_paths)

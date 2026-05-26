@@ -23,10 +23,7 @@ from swxsoc_reach.historical.download_orchestrator import (
     DownloadRunConfig,
     run_download,
 )
-from swxsoc_reach.historical.process_orchestrator import (
-    ProcessRunConfig,
-    run_process,
-)
+from swxsoc_reach.historical.process_orchestrator import ProcessRunConfig, run_process
 from swxsoc_reach.net.auth import resolve_udl_auth
 
 

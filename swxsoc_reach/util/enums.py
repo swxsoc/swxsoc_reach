@@ -74,7 +74,7 @@ class Flavor(Flag):
     Examples
     --------
     >>> Flavor.W.label
-    'W $\\geq$ 12 MeV $p^{+}$'
+    'W $\\\geq$ 12 MeV $p^{+}$'
     >>> Flavor.from_str("w")
     <Flavor.W: 4>
     >>> Flavor.U | Flavor.W

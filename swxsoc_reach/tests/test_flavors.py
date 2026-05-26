@@ -126,7 +126,7 @@ class TestReachIdDosimeterRelationshipCoverage:
             / "data"
             / "reach_id_dosimeter_relationship.json"
         )
-        with path.open(encoding="utf-8") as f:
+        with path.open(encoding="utf-8-sig") as f:
             return json.load(f)
 
     def test_sensor_ids_match_sensorid_enum(self):

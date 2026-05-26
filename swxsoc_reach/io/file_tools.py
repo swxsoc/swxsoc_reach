@@ -12,7 +12,7 @@ from swxsoc.swxdata import SWXData
 __all__ = ["read_file", "read_udl_json", "read_udl_csv"]
 
 
-def read_file(file_path: Path) -> [pd.DataFrame, SWXData]:
+def read_file(file_path: Path) -> pd.DataFrame | SWXData:
     """
     Reads a file and returns a pandas DataFrame or SWXData object.
 
@@ -23,7 +23,7 @@ def read_file(file_path: Path) -> [pd.DataFrame, SWXData]:
 
     Returns
     -------
-    pd.DataFrame or SWXData
+    pd.DataFrame | SWXData
         A DataFrame or SWXData object containing the data from the file.
     """
     if not isinstance(file_path, Path):

@@ -1,5 +1,6 @@
 """A module for visualizing REACH data, including plotting functions and utilities."""
 
+import warnings
 from pathlib import Path
 from typing import Any, Sequence
 
@@ -11,6 +12,157 @@ from swxsoc.swxdata import SWXData
 
 from swxsoc_reach import log
 from swxsoc_reach.util.enums import Region
+from swxsoc_reach.util.util import load_regions
+
+# REACH dose data routinely contains zeros / non-positive values; log10 of
+# these is mathematically undefined but expected, so silence the resulting
+# RuntimeWarnings for this module only.
+warnings.filterwarnings(
+    "ignore",
+    message="divide by zero encountered in log10",
+    category=RuntimeWarning,
+    module=__name__,
+)
+warnings.filterwarnings(
+    "ignore",
+    message="invalid value encountered in log10",
+    category=RuntimeWarning,
+    module=__name__,
+)
+
+
+def plot_regions(
+    fileout: str | Path,
+    show: bool = False,
+    title: str = "REACH Region Map",
+    draw_coastlines: bool = True,
+    region_names: tuple[str, ...] | None = None,
+) -> Path | None:
+    """
+    Plot the region map returned by :func:`load_regions` and save it.
+
+    Parameters
+    ----------
+    fileout : str or Path
+        Output file path where the plot will be saved.
+    show : bool, optional
+        If True, display the plot. Default is False.
+    title : str, optional
+        Title for the plot. Default is "REACH Region Map".
+    draw_coastlines : bool, optional
+        If True, draw coastlines on the map. Default is True.
+    region_names : tuple of str or None, optional
+        Names of specific regions to plot. If None, all regions are plotted. Default is None.
+
+    Returns
+    -------
+    Path or None
+        Path to the saved output file, or None if no data was available.
+    """
+    lookuplon, lookuplat, glook = load_regions()
+    if lookuplon.size == 0:
+        return None
+
+    region_specs = [
+        (region.label, region.signed_codes, region.color) for region in Region.ordered()
+    ]
+    selected_names = None
+    if region_names is not None:
+        selected_names = {name.casefold() for name in region_names}
+
+    fig = plt.figure(figsize=(11.69, 8.27))
+    ax: Any = plt.subplot(1, 1, 1, projection=ccrs.PlateCarree())
+    ax.set_global()
+    if draw_coastlines:
+        ax.coastlines()
+
+    ax.gridlines(
+        draw_labels=True,
+        xlocs=np.arange(-180, 181, 30),
+        ylocs=np.arange(-90, 91, 10),
+        color="gray",
+        linestyle="--",
+    )
+
+    for label, codes, color in region_specs:
+        if selected_names is not None and label.casefold() not in selected_names:
+            continue
+        mask = np.isin(glook, codes)
+        if np.any(mask):
+            ax.scatter(
+                lookuplon[mask],
+                lookuplat[mask],
+                s=8,
+                c=color,
+                label=label,
+                linewidths=0,
+                alpha=0.85,
+                transform=ccrs.PlateCarree(),
+            )
+
+    ax.set_title(title, fontdict={"fontsize": 15})
+    ax.legend(loc="lower left", frameon=True)
+
+    output_path = Path(fileout)
+    fig.savefig(output_path, orientation="landscape", bbox_inches="tight")
+
+    if show:
+        plt.show()
+
+    plt.close(fig)
+    return output_path
+
+
+def plot_region_contours(
+    fileout: str | Path,
+    show: bool = False,
+    title: str = "REACH Region Code Contours",
+    draw_coastlines: bool = True,
+) -> Path | None:
+    """
+    Plot labeled line contours for the integer region-code grid.
+
+    Parameters
+    ----------
+    fileout : str or Path
+        Output file path where the plot will be saved.
+    show : bool, optional
+        If True, display the plot. Default is False.
+    title : str, optional
+        Title for the plot. Default is "REACH Region Code Contours".
+    draw_coastlines : bool, optional
+        If True, draw coastlines on the map. Default is True.
+
+    Returns
+    -------
+    Path or None
+        Path to the saved output file, or None if no contours were created.
+    """
+
+    fig = plt.figure(figsize=(11.69, 8.27))
+    ax: Any = plt.subplot(1, 1, 1, projection=ccrs.PlateCarree())
+    ax, contour = plot_geomap(
+        ax=ax,
+        draw_coastlines=draw_coastlines,
+        draw_gridlines=True,
+        draw_contours=True,
+        label_contours=True,
+    )
+
+    if contour is None:
+        plt.close(fig)
+        return None
+
+    ax.set_title(title, fontdict={"fontsize": 15})
+
+    output_path = Path(fileout)
+    fig.savefig(output_path, orientation="landscape", bbox_inches="tight")
+
+    if show:
+        plt.show()
+
+    plt.close(fig)
+    return output_path
 
 
 def plot_geomap(
@@ -131,34 +283,34 @@ def plot_mapdata(
 
     # Make the colorblind friendly colormaps
     # These colors work well for all be true black white colorblind
-    cdi = "#093145"
-    cli = "#3c6478"
-    cda = "#107896"
-    cla = "#43abc9"
-    cdk = "#829356"
-    clk = "#b5c689"
-    cdd = "#bca136"
-    cld = "#efd469"
-    cdc = "#c2571a"
-    clc = "#f58b4c"
-    cdr = "#9a2617"
-    clr = "#cd594a"
-    clg = "#F3F4F6"
-    cdg = "#8B8E95"
+    cdi = "#093145"  # noqa: F841
+    cli = "#3c6478"  # noqa: F841
+    cda = "#107896"  # noqa: F841
+    cla = "#43abc9"  # noqa: F841
+    cdk = "#829356"  # noqa: F841
+    clk = "#b5c689"  # noqa: F841
+    cdd = "#bca136"  # noqa: F841
+    cld = "#efd469"  # noqa: F841
+    cdc = "#c2571a"  # noqa: F841
+    clc = "#f58b4c"  # noqa: F841
+    cdr = "#9a2617"  # noqa: F841
+    clr = "#cd594a"  # noqa: F841
+    clg = "#F3F4F6"  # noqa: F841
+    cdg = "#8B8E95"  # noqa: F841
 
-    greycolors = [clg, cdg]
-    greencolors = [clg, clk, cdk]
-    yellowcolors = [clg, cld, cdd]
-    redcolors = [clg, clr, cdr]
-    hotcolors = [cld, cdd, cdc, cdr]
-    colors = [cdi, cdk, cld, cdc, cdr]
-    bluecolors = [clg, cla, cda, cdi]
+    greycolors = [clg, cdg]  # noqa: F841
+    greencolors = [clg, clk, cdk]  # noqa: F841
+    yellowcolors = [clg, cld, cdd]  # noqa: F841
+    redcolors = [clg, clr, cdr]  # noqa: F841
+    hotcolors = [cld, cdd, cdc, cdr]  # noqa: F841
+    colors = [cdi, cdk, cld, cdc, cdr]  # noqa: F841
+    bluecolors = [clg, cla, cda, cdi]  # noqa: F841
 
-    bluemap = mpl.colors.LinearSegmentedColormap.from_list("", bluecolors)
-    pltmap = mpl.colors.LinearSegmentedColormap.from_list("", hotcolors)
-    greenmap = mpl.colors.LinearSegmentedColormap.from_list("", greencolors)
-    yellowmap = mpl.colors.LinearSegmentedColormap.from_list("", yellowcolors)
-    redmap = mpl.colors.LinearSegmentedColormap.from_list("", redcolors)
+    bluemap = mpl.colors.LinearSegmentedColormap.from_list("", bluecolors)  # noqa: F841
+    pltmap = mpl.colors.LinearSegmentedColormap.from_list("", hotcolors)  # noqa: F841
+    greenmap = mpl.colors.LinearSegmentedColormap.from_list("", greencolors)  # noqa: F841
+    yellowmap = mpl.colors.LinearSegmentedColormap.from_list("", yellowcolors)  # noqa: F841
+    redmap = mpl.colors.LinearSegmentedColormap.from_list("", redcolors)  # noqa: F841
 
     xylon = newv["xylon"]
     xylat = newv["xylat"]
@@ -206,12 +358,11 @@ def plot_mapdata(
         }
         region_meshes: dict[Region, Any] = {}
         for region in Region.ordered():
-            with np.errstate(divide="ignore", invalid="ignore"):
-                log_data = np.where(
-                    region_data_by_enum[region] > 0,
-                    np.log10(region_data_by_enum[region]),
-                    np.nan,
-                )
+            log_data = np.where(
+                region_data_by_enum[region] > 0,
+                np.log10(region_data_by_enum[region]),
+                np.nan,
+            )
             region_meshes[region] = ax.pcolormesh(
                 xylon,
                 xylat,

@@ -1,16 +1,12 @@
 import csv
 from pathlib import Path
-from typing import Any
 
-import matplotlib.pyplot as plt
 import numpy as np
 import numpy.typing as npt
 from astropy.time import Time
-from cartopy import crs as ccrs
 from swxsoc.util.util import TIME_FORMAT, parse_science_filename
 
 from swxsoc_reach import _data_directory
-from swxsoc_reach.util.enums import Region
 from swxsoc_reach.util.geom import contour_image_to_path  # noqa: F401
 
 __all__ = [
@@ -18,8 +14,6 @@ __all__ = [
     "create_reach_filename",
     "load_regions",
     "parse_science_filename",
-    "plot_region_contours",
-    "plot_regions",
     "TIME_FORMAT",
 ]
 
@@ -66,140 +60,6 @@ def load_regions(
         np.array(lookuplat, dtype=float),
         np.array(glook, dtype=int),
     )
-
-
-def plot_regions(
-    fileout: str | Path,
-    show: bool = False,
-    title: str = "REACH Region Map",
-    draw_coastlines: bool = True,
-    region_names: tuple[str, ...] | None = None,
-) -> Path | None:
-    """
-    Plot the region map returned by :func:`load_regions` and save it.
-
-    Parameters
-    ----------
-    fileout : str or Path
-        Output file path where the plot will be saved.
-    show : bool, optional
-        If True, display the plot. Default is False.
-    title : str, optional
-        Title for the plot. Default is "REACH Region Map".
-    draw_coastlines : bool, optional
-        If True, draw coastlines on the map. Default is True.
-    region_names : tuple of str or None, optional
-        Names of specific regions to plot. If None, all regions are plotted. Default is None.
-
-    Returns
-    -------
-    Path or None
-        Path to the saved output file, or None if no data was available.
-    """
-    lookuplon, lookuplat, glook = load_regions()
-    if lookuplon.size == 0:
-        return None
-
-    region_specs = [
-        (region.label, region.signed_codes, region.color) for region in Region.ordered()
-    ]
-    selected_names = None
-    if region_names is not None:
-        selected_names = {name.casefold() for name in region_names}
-
-    fig = plt.figure(figsize=(11.69, 8.27))
-    ax: Any = plt.subplot(1, 1, 1, projection=ccrs.PlateCarree())
-    ax.set_global()
-    if draw_coastlines:
-        ax.coastlines()
-
-    ax.gridlines(
-        draw_labels=True,
-        xlocs=np.arange(-180, 181, 30),
-        ylocs=np.arange(-90, 91, 10),
-        color="gray",
-        linestyle="--",
-    )
-
-    for label, codes, color in region_specs:
-        if selected_names is not None and label.casefold() not in selected_names:
-            continue
-        mask = np.isin(glook, codes)
-        if np.any(mask):
-            ax.scatter(
-                lookuplon[mask],
-                lookuplat[mask],
-                s=8,
-                c=color,
-                label=label,
-                linewidths=0,
-                alpha=0.85,
-                transform=ccrs.PlateCarree(),
-            )
-
-    ax.set_title(title, fontdict={"fontsize": 15})
-    ax.legend(loc="lower left", frameon=True)
-
-    output_path = Path(fileout)
-    fig.savefig(output_path, orientation="landscape", bbox_inches="tight")
-
-    if show:
-        plt.show()
-
-    plt.close(fig)
-    return output_path
-
-
-def plot_region_contours(
-    fileout: str | Path,
-    show: bool = False,
-    title: str = "REACH Region Code Contours",
-    draw_coastlines: bool = True,
-) -> Path | None:
-    """
-    Plot labeled line contours for the integer region-code grid.
-
-    Parameters
-    ----------
-    fileout : str or Path
-        Output file path where the plot will be saved.
-    show : bool, optional
-        If True, display the plot. Default is False.
-    title : str, optional
-        Title for the plot. Default is "REACH Region Code Contours".
-    draw_coastlines : bool, optional
-        If True, draw coastlines on the map. Default is True.
-
-    Returns
-    -------
-    Path or None
-        Path to the saved output file, or None if no contours were created.
-    """
-
-    fig = plt.figure(figsize=(11.69, 8.27))
-    ax: Any = plt.subplot(1, 1, 1, projection=ccrs.PlateCarree())
-    ax, contour = plot_geomap(
-        ax=ax,
-        draw_coastlines=draw_coastlines,
-        draw_gridlines=True,
-        draw_contours=True,
-        label_contours=True,
-    )
-
-    if contour is None:
-        plt.close(fig)
-        return None
-
-    ax.set_title(title, fontdict={"fontsize": 15})
-
-    output_path = Path(fileout)
-    fig.savefig(output_path, orientation="landscape", bbox_inches="tight")
-
-    if show:
-        plt.show()
-
-    plt.close(fig)
-    return output_path
 
 
 def get_reachid_lut() -> dict[str, dict[str, str]]:
