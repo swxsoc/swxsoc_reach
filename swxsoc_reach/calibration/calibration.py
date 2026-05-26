@@ -83,8 +83,8 @@ def process_file(
                     continue
                 try:
                     # Create and save plot as JPG
-                    fig = plt.figure()
                     ax, mesh = geomap.plot(flavor=flavor)
+                    fig = ax.figure
 
                     plot_jpg_filename = file_path.stem + f"_geomap_{flavor.name}.jpg"
                     plot_jpg_path = output_path / plot_jpg_filename
