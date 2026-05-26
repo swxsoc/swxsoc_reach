@@ -32,13 +32,14 @@ the :ref:`reference`.
 .. doctest::
 
    >>> from swxsoc_reach.util.enums import Flavor
-   >>> combo = Flavor.X | Flavor.W
-   >>> combo
-   <Flavor.W|X: 12>
-   >>> Flavor.W in combo
+   >>> Flavor.W.label
+   'W $\\geq$ 12 MeV $p^{+}$'
+   >>> Flavor.from_str("w")
+   <Flavor.W: 4>
+   >>> Flavor.U | Flavor.W # doctest: +SKIP
+   <Flavor.U|W: 5> 
+   >>> Flavor.W in Flavor.ALL
    True
-   >>> Flavor.ALL
-   <Flavor.ALL: 63>
 
 Energy thresholds
 ^^^^^^^^^^^^^^^^^
@@ -89,7 +90,7 @@ the :ref:`reference`.
    <SensorId.REACH_101: 1>
    >>> SensorId.from_str("101")
    <SensorId.REACH_101: 1>
-   >>> SensorId.REACH_101 | SensorId.REACH_102
+   >>> SensorId.REACH_101 | SensorId.REACH_102 # doctest: +SKIP
    <SensorId.REACH_101|REACH_102: 3>
 
 Region

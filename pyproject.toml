@@ -14,7 +14,7 @@ authors = [
   {name = "Alexa Halford", email="alexa.j.halford@nasa.gov"},
 ]
 license = {file = "LICENSE.rst"}
-requires-python = ">=3.12"
+requires-python = ">=3.10"
 keywords = ["nasa", "space weather"]
 classifiers = [
   "Development Status :: 3 - Alpha",

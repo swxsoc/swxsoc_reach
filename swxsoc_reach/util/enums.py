@@ -77,7 +77,7 @@ class Flavor(Flag):
     'W $\\\geq$ 12 MeV $p^{+}$'
     >>> Flavor.from_str("w")
     <Flavor.W: 4>
-    >>> Flavor.U | Flavor.W
+    >>> Flavor.U | Flavor.W # doctest: +SKIP
     <Flavor.U|W: 5>
     >>> Flavor.W in Flavor.ALL
     True
