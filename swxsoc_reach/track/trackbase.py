@@ -1,9 +1,12 @@
 """Generic geospatial map container with SunPy-like map helpers."""
 
+import warnings
 from copy import deepcopy
 from pathlib import Path
 
 import astropy.units as u
+import cartopy.crs as ccrs
+import matplotlib.pyplot as plt
 import numpy as np
 from astropy.nddata import NDData
 from astropy.time import Time
@@ -17,6 +20,22 @@ from swxsoc_reach.util.enums import Flavor, Region, SensorId
 from swxsoc_reach.util.geom import load_region_contours, points_to_region_code
 from swxsoc_reach.util.schema import REACHDataSchema
 from swxsoc_reach.visualization.viz import plot_geomap
+
+# REACH dose data routinely contains zeros / non-positive values; log10 of
+# these is mathematically undefined but expected, so silence the resulting
+# RuntimeWarnings for this module only.
+warnings.filterwarnings(
+    "ignore",
+    message="divide by zero encountered in log10",
+    category=RuntimeWarning,
+    module=__name__,
+)
+warnings.filterwarnings(
+    "ignore",
+    message="invalid value encountered in log10",
+    category=RuntimeWarning,
+    module=__name__,
+)
 
 _FLAVOR_ORDER: tuple[Flavor, ...] = (
     Flavor.U,
@@ -261,20 +280,11 @@ class REACHTrack(SWXData):
 
         Raises
         ------
-        ImportError
-            If ``cartopy`` is not installed.
         ValueError
             If ``color_by`` is not ``"dose0"``, ``"dose1"``, or
             ``"region_code"``, or if any :class:`ValueError` raised by
             :meth:`get_track` propagates.
         """
-        import matplotlib.pyplot as plt
-
-        try:
-            import cartopy.crs as ccrs
-        except ImportError as exc:
-            raise ImportError("plotgeo requires cartopy to be installed.") from exc
-
         # Get Specific Track TimeSeries for the Given Sensor and Dosimeter
         ts = self.get_track(reach_id=reach_id)
         lon = ts["longitude"]
@@ -282,12 +292,12 @@ class REACHTrack(SWXData):
 
         # Verify Color Mapping and Prepare Color Values
         if color_by == "dose0":
-            dose_data = ts["dose0"].quantity
+            dose_data = ts["dose0"]
             values = np.log10(dose_data.value)
             colorbar_label = f"Dose0 (log10 {dose_data.unit})"
             cmap = "viridis"
         elif color_by == "dose1":
-            dose_data = ts["dose1"].quantity
+            dose_data = ts["dose1"]
             values = np.log10(dose_data.value)
             colorbar_label = f"Dose1 (log10 {dose_data.unit})"
             cmap = "viridis"
@@ -378,8 +388,12 @@ class REACHTrack(SWXData):
         lon = self["lon"].data * u.deg
 
         # Histogram bins are defined by edges, while the map stores center coordinates.
-        lon_edges = np.arange(-180.0, 180.0 + lon_resolution, lon_resolution)
-        lat_edges = np.arange(-90.0, 90.0 + lat_resolution, lat_resolution)
+        lon_edges = np.arange(
+            -180.0, 180.0 + lon_resolution, lon_resolution, dtype=np.float16
+        )
+        lat_edges = np.arange(
+            -90.0, 90.0 + lat_resolution, lat_resolution, dtype=np.float16
+        )
         lon_bins = 0.5 * (lon_edges[:-1] + lon_edges[1:])
         lat_bins = 0.5 * (lat_edges[:-1] + lat_edges[1:])
 
@@ -465,6 +479,7 @@ class REACHTrack(SWXData):
                 for region in Region.ordered()
             ],
             axis=0,
+            dtype=np.uint8,
         )
 
         dosimeter_flavor_names = np.asarray(
@@ -573,7 +588,7 @@ class REACHTrack(SWXData):
 
         for statistic in valid_statistics:
             unit = u.count if statistic == "count" else u.rad / u.s
-            flavor_maps = np.stack(statistic_maps[statistic], axis=0)
+            flavor_maps = np.stack(statistic_maps[statistic], axis=0, dtype=np.float32)
             variables[f"{statistic}_map"] = NDData(
                 # NOTE: Expand first dimension for 1 time step to conform to CDF Format requirements.
                 data=np.expand_dims(flavor_maps, axis=0),
