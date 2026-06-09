@@ -10,7 +10,7 @@ Overview
     * - docs
       - |docs| |rtd|
     * - build status
-      - |testing| |codestyle| |coverage|
+      - |testing| |codestyle| |coverage
 
 .. |rtd| image:: https://readthedocs.org/projects/swxsoc-reach/badge/?version=latest
     :target: https://swxsoc-reach.readthedocs.io/en/latest/?badge=latest
@@ -40,8 +40,13 @@ Documentation
 -------------
 Documentation is available at https://swxsoc-reach.readthedocs.io/en/latest/
 
+Data
+----
+REACH data is made available on NASA SPDF at https://spdf.gsfc.nasa.gov/pub/data/reach/dosimeter/l1c/all/. New data is made available every day with a data latency of ~2 days.
+
 Acknowledgements
 ----------------
+We would like to thank the `Aerospace Corporation <https://aerospace.org/>`_ for making these data available and for their support.
 The package template used by this package is based on the one developed by the
 `NASA Space Weather Science Operations Center (SWxSOC) <https://swxsoc.github.io>`_ which is based on those provided by
 `OpenAstronomy community <https://openastronomy.org>`_ and the `SunPy Project <https://sunpy.org/>`_.
