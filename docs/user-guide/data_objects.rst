@@ -139,11 +139,15 @@ map:
 
 - ``color_by_region=True`` (default): draws each region with its own colormap.
 - ``color_by_region=False``: draws one continuous colormap for full-map context.
+- ``draw_contours=True``: overlays contour lines from the plotted data.
 
 .. code-block:: python
 
    # Region-aware rendering (default)
    geomap.plot()
+
+   # Overlay contour lines on the plotted data
+   geomap.plot(draw_contours=True)
 
    # Single-colormap rendering
    geomap.plot(color_by_region=False)
