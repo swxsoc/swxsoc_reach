@@ -60,10 +60,13 @@ Documentation
 -------------
 Documentation is available at https://swxsoc-reach.readthedocs.io/en/latest/
 
+Data
+----
+REACH data is made available on NASA SPDF at https://spdf.gsfc.nasa.gov/pub/data/reach/dosimeter/l1c/all/. New data is made available every day with a data latency of ~2 days.
+
 Acknowledgements
 ----------------
-Thank you to the Aerospace Corporation for providing the REACH dosimeter data.
-
+We would like to thank the `Aerospace Corporation <https://aerospace.org/>`_ for making these data available and for their support.
 The package template used by this package is based on the one developed by the
 `NASA Space Weather Science Operations Center (SWxSOC) <https://swxsoc.github.io>`_ which is based on those provided by
 `OpenAstronomy community <https://openastronomy.org>`_ and the `SunPy Project <https://sunpy.org/>`_.
