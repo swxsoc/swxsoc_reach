@@ -554,7 +554,7 @@ class GenericGeoMap(SWXData):
             ax=ax,
             draw_coastlines=True,
             draw_gridlines=True,
-            draw_contours=False,
+            draw_contours=draw_regions,
             label_contours=draw_regions,
         )
 

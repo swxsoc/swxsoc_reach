@@ -6,6 +6,7 @@ from typing import Any, Sequence
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
+from matplotlib.path import Path as MplPath
 import numpy as np
 from cartopy import crs as ccrs
 from swxsoc.swxdata import SWXData
@@ -13,6 +14,7 @@ from swxsoc.swxdata import SWXData
 from swxsoc_reach import log
 from swxsoc_reach.util.enums import Region
 from swxsoc_reach.util.util import load_regions
+from swxsoc_reach.util.geom import load_region_contours
 
 # REACH dose data routinely contains zeros / non-positive values; log10 of
 # these is mathematically undefined but expected, so silence the resulting
@@ -177,9 +179,7 @@ def plot_geomap(
     label_contours: bool = False,
 ):
     """Draw a global PlateCarree geomap base and optionally region contours."""
-    from swxsoc_reach.util.util import load_regions
-
-    lookuplon, lookuplat, glook = load_regions()
+    contour_paths = load_region_contours()
 
     if contour_levels is None:
         contour_levels = Region.contour_levels()
@@ -202,37 +202,84 @@ def plot_geomap(
             linestyle="--",
         )
 
-    if lookuplon.size == 0:
-        return ax, None
-
-    lon_values = np.unique(lookuplon)
-    lat_values = np.unique(lookuplat)
-    region_grid = np.full((lat_values.size, lon_values.size), np.nan)
-
-    lon_index = {value: index for index, value in enumerate(lon_values)}
-    lat_index = {value: index for index, value in enumerate(lat_values)}
-    for lon_value, lat_value, region_code in zip(
-        lookuplon,
-        lookuplat,
-        glook,
-        strict=False,
-    ):
-        region_grid[lat_index[lat_value], lon_index[lon_value]] = region_code
-
     contour = None
     if draw_contours:
-        contour = ax.contour(
-            lon_values,
-            lat_values,
-            region_grid,
-            levels=contour_levels,
-            colors=contour_colors,
-            linewidths=linewidths,
-            transform=ccrs.PlateCarree(),
-        )
+        contour_lines = []
+        for level, color in zip(contour_levels, contour_colors, strict=False):
+            path_obj = contour_paths.get(int(level))
+            if path_obj is None:
+                continue
 
-        if label_contours:
-            ax.clabel(contour, contour.levels, inline=True, fmt="%d", fontsize=8)
+            vertices = np.asarray(path_obj.vertices, dtype=float)
+            codes = path_obj.codes
+
+            if codes is None:
+                finite_vertices = vertices[np.all(np.isfinite(vertices), axis=1)]
+                if finite_vertices.shape[0] >= 2:
+                    line = ax.plot(
+                        finite_vertices[:, 0],
+                        finite_vertices[:, 1],
+                        color=color,
+                        linewidth=linewidths,
+                        transform=ccrs.PlateCarree(),
+                    )
+                    contour_lines.extend(line)
+            else:
+                segment_vertices: list[np.ndarray] = []
+                for vertex, code in zip(vertices, codes, strict=False):
+                    if code == MplPath.MOVETO:
+                        if len(segment_vertices) >= 2:
+                            seg = np.asarray(segment_vertices, dtype=float)
+                            line = ax.plot(
+                                seg[:, 0],
+                                seg[:, 1],
+                                color=color,
+                                linewidth=linewidths,
+                                transform=ccrs.PlateCarree(),
+                            )
+                            contour_lines.extend(line)
+                        segment_vertices = [vertex]
+                    elif code == MplPath.CLOSEPOLY:
+                        if len(segment_vertices) >= 2:
+                            seg = np.asarray(segment_vertices, dtype=float)
+                            line = ax.plot(
+                                seg[:, 0],
+                                seg[:, 1],
+                                color=color,
+                                linewidth=linewidths,
+                                transform=ccrs.PlateCarree(),
+                            )
+                            contour_lines.extend(line)
+                        segment_vertices = []
+                    else:
+                        segment_vertices.append(vertex)
+
+                if len(segment_vertices) >= 2:
+                    seg = np.asarray(segment_vertices, dtype=float)
+                    line = ax.plot(
+                        seg[:, 0],
+                        seg[:, 1],
+                        color=color,
+                        linewidth=linewidths,
+                        transform=ccrs.PlateCarree(),
+                    )
+                    contour_lines.extend(line)
+
+            if label_contours:
+                finite_vertices = vertices[np.all(np.isfinite(vertices), axis=1)]
+                if finite_vertices.size > 0:
+                    centroid = np.mean(finite_vertices, axis=0)
+                    ax.text(
+                        float(centroid[0]),
+                        float(centroid[1]),
+                        f"{int(level)}",
+                        fontsize=8,
+                        ha="center",
+                        va="center",
+                        transform=ccrs.PlateCarree(),
+                    )
+
+        contour = contour_lines if contour_lines else None
 
     return ax, contour
 

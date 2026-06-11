@@ -329,3 +329,26 @@ def test_plot_count_uses_data_range_for_colorbar(test_geomap):
 
     assert mesh.norm.vmin == pytest.approx(float(np.nanmin(count_data)))
     assert mesh.norm.vmax == pytest.approx(float(np.nanmax(count_data)))
+
+
+def test_plot_draw_regions_enables_geomap_contours(monkeypatch, test_geomap):
+    """draw_regions should request base geomap region contours."""
+    pytest.importorskip("cartopy")
+
+    calls = []
+
+    def fake_plot_geomap(*args, **kwargs):
+        calls.append(kwargs)
+        return kwargs.get("ax"), None
+
+    monkeypatch.setattr("swxsoc_reach.geomap.geomapbase.plot_geomap", fake_plot_geomap)
+
+    test_geomap.plot(
+        draw_regions=True,
+        draw_contours=False,
+        add_colorbar=False,
+    )
+
+    assert calls
+    assert calls[-1]["draw_contours"] is True
+    assert calls[-1]["label_contours"] is True

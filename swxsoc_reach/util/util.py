@@ -1,4 +1,3 @@
-import csv
 from pathlib import Path
 
 import numpy as np
@@ -7,6 +6,7 @@ from astropy.time import Time
 from swxsoc.util.util import TIME_FORMAT, parse_science_filename
 
 from swxsoc_reach import _data_directory
+from swxsoc_reach.util.geom import load_region_contours
 from swxsoc_reach.util.geom import contour_image_to_path  # noqa: F401
 
 __all__ = [
@@ -27,7 +27,8 @@ def load_regions(
     Parameters
     ----------
     file_path : str, Path, or None, optional
-        Path to the region CSV file. If None, uses the default region file in the data directory.
+        Path to the combined contour NPZ file. If None, uses the default
+        contour file in the data directory.
 
     Returns
     -------
@@ -37,23 +38,28 @@ def load_regions(
         - Latitudes array (float64)
         - Integer region codes array (int)
     """
-    region_file = (
+    contour_file = (
         Path(file_path)
         if file_path is not None
-        else _data_directory / "region_file.csv"
+        else _data_directory / "region_contour_paths.npz"
     )
 
     lookuplon: list[float] = []
     lookuplat: list[float] = []
     glook: list[int] = []
 
-    with region_file.open("r", encoding="utf-8") as f:
-        reader = csv.reader(f)
-        next(reader)  # skip header
-        for row in reader:
-            lookuplon.append(float(row[2]))
-            lookuplat.append(float(row[1]))
-            glook.append(int(row[10]))
+    contour_map = load_region_contours(contour_file=contour_file)
+    for region_code, path_obj in contour_map.items():
+        vertices = np.asarray(path_obj.vertices, dtype=float)
+        if vertices.size == 0:
+            continue
+        finite_vertices = vertices[np.all(np.isfinite(vertices), axis=1)]
+        if finite_vertices.size == 0:
+            continue
+
+        lookuplon.extend(finite_vertices[:, 0].tolist())
+        lookuplat.extend(finite_vertices[:, 1].tolist())
+        glook.extend([int(region_code)] * finite_vertices.shape[0])
 
     return (
         np.array(lookuplon, dtype=float),
