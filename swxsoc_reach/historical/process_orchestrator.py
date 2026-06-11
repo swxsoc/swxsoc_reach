@@ -32,7 +32,6 @@ from typing import Callable
 from swxsoc_reach import log
 from swxsoc_reach.historical._dates import iter_dates as _iter_dates
 from swxsoc_reach.historical.telemetry import (
-    HistoricalTelemetry,
     STATUS_DOWNLOAD_PENDING,
     STATUS_DOWNLOADED,
     STATUS_FAILED,
@@ -42,6 +41,7 @@ from swxsoc_reach.historical.telemetry import (
     STATUS_SKIPPED_NO_INPUT,
     STATUS_UPLOAD_PENDING,
     STATUS_UPLOADED,
+    HistoricalTelemetry,
     TelemetryRow,
     utcnow_iso,
 )

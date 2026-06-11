@@ -11,6 +11,9 @@ For more details checkout the :ref:`reference`.
    :maxdepth: 2
 
    overview
+   constellation
+   geom
+   data_objects
    logger
    customization
    historical-download

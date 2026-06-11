@@ -11,7 +11,9 @@ Development Lead
 
 * `Andrew Robbertz <https://github.com/Alrobbertz>`_
 
-Contributors
-------------
+Developers
+----------
 
-None so far.
+* `Andrew Robbertz <https://github.com/Alrobbertz>`_
+* `Aaron Breneman <https://github.com/awbrenem>`_
+* `Alexa Halford <https://github.com/AJHalford>`_
