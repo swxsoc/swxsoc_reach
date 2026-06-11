@@ -40,7 +40,7 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = [
-  "swxsoc_reach[docs, test, style, net]"
+  "swxsoc_reach[docs, test, style, net, other]"
 ]
 
 net = [
@@ -65,6 +65,8 @@ test = [
 ]
 
 style = ['ruff']
+
+other = ['pre-commit']
 
 [tool.setuptools.package-data]
 "swxsoc_reach.data" = ["**"]
