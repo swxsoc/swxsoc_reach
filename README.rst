@@ -42,7 +42,7 @@ Documentation is available at https://swxsoc-reach.readthedocs.io/en/latest/
 
 Data
 ----
-REACH data is made available on NASA SPDF at https://spdf.gsfc.nasa.gov/pub/data/reach/dosimeter/l1c/all/. New data is made available every day with a data latency of ~2 days.
+REACH data is made available on NASA SPDF at https://spdf.gsfc.nasa.gov/pub/data/reach/dosimeter/l1c/all_satellites/prelim/. New data is made available every day with a data latency of ~2 days.
 
 Acknowledgements
 ----------------
