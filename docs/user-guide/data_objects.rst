@@ -20,6 +20,8 @@ That object stores gridded data in ``support`` variables:
 - ``lat``: 1D latitude bin centers.
 - ``mask``: 3D boolean array with shape ``(nregions, nlat, nlon)``.
 
+****AARON COMMENT: WE MAY NEED TO DEFINE "NREGIONS" ABOVE ****
+
 The mask axis uses the canonical :class:`swxsoc_reach.util.enums.Region`
 ordering:
 
@@ -39,7 +41,7 @@ Quick start
    from swxsoc_reach.util.enums import Flavor
 
    track = REACHTrack.load(Path("path/to/file.cdf"))
-   geomap = track.to_geomap(flavor=Flavor.ALL)
+   geomap = track.to_geomap()
 
    print(geomap.map_data.shape)
    print(geomap["mask"].data.shape)
@@ -75,7 +77,7 @@ Typical workflow:
    print(ts.colnames)
 
    # Convert to 2D gridded map object
-   geomap = track.to_geomap(flavor=Flavor.ALL)
+   geomap = track.to_geomap()
 
 Key ``REACHTrack`` methods:
 
