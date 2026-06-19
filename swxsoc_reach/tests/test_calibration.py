@@ -4,7 +4,8 @@ import pytest
 from swxsoc import swxdata
 
 import swxsoc_reach.calibration.calibration as calib
-from swxsoc_reach import _test_files_directory
+from swxsoc_reach import _test_file_track, _test_files_directory
+from swxsoc_reach.util.enums import Flavor
 from swxsoc_reach.util.util import parse_science_filename
 
 test_udl_file_paths = list(_test_files_directory.glob("REACH-*.csv"))
@@ -61,9 +62,8 @@ def test_process_file_target(tmpdir, monkeypatch):
     assert len(level_2_files) > 0, "Should produce at least one level 2 file"
 
 
-@pytest.mark.parametrize("this_path", test_udl_file_paths)
-def test_process_file_cdf_creates_geomaps(this_path, tmpdir, monkeypatch):
-    """Test that processing a CDF file creates geomap CDFs and JPG plots for each flavor.
+def test_process_file_cdf_creates_geomaps(tmpdir, monkeypatch):
+    """Test that processing a CDF file creates geomap CDFs and png plots for each flavor.
 
     Note: This test expects at least some geomap products to be created. If no geomaps
     can be created due to data quality issues (e.g., empty flavor values), the test is skipped.
@@ -72,42 +72,35 @@ def test_process_file_cdf_creates_geomaps(this_path, tmpdir, monkeypatch):
     monkeypatch.chdir(tmpdir)
 
     # First, process the UDL file to create a CDF
-    cdf_files = calib.process_file(this_path)
-    assert len(cdf_files) > 0
-    cdf_path = Path(cdf_files[0])
+    output_files = calib.process_file(_test_file_track)
+    assert len(output_files) > 0
+    cdf_path = Path(output_files[0])
     assert cdf_path.exists()
 
-    # Now process the CDF file to create geomaps
-    geomap_files = calib.process_file(cdf_path)
+    # Should have: geomap CDFs + png plots
+    assert len(output_files) >= 1
+    valid_statistics = ("sum", "mean", "median", "count", "min", "max", "std")
 
-    # Should have: geomap CDFs + JPG plots
-    assert len(geomap_files) >= 1
-
-    # Collect geomap CDFs and JPGs
+    # Collect geomap CDFs and pngs
     geomap_cdfs = [
         f
-        for f in geomap_files
+        for f in output_files
         if isinstance(f, (str, Path))
         and "l2" in str(f).lower()
         and str(f).endswith(".cdf")
     ]
-    geomap_jpgs = [
+
+    assert len(geomap_cdfs) == 1, (
+        "Should create exactly one geomap CDF for the level 2 product"
+    )
+
+    geomap_pngs = [
         f
-        for f in geomap_files
+        for f in output_files
         if isinstance(f, (str, Path))
         and "geomap" in str(f).lower()
-        and str(f).endswith(".jpg")
+        and str(f).endswith(".png")
     ]
-
-    # If no geomap products were created, skip this test (may be due to data quality issues)
-    if len(geomap_cdfs) == 0:
-        pytest.skip(
-            "No geomap CDFs created for this file (possibly due to data quality issues)"
-        )
-
-    assert len(geomap_jpgs) > 0, (
-        "Should create at least one geomap JPG plot when CDFs are created"
-    )
 
     # Verify geomap CDFs exist and have content
     for geomap_cdf in geomap_cdfs:
@@ -125,13 +118,18 @@ def test_process_file_cdf_creates_geomaps(this_path, tmpdir, monkeypatch):
             f"Geomap CDF should have l2 in filename: {cdf_path_obj.name}"
         )
 
-    # Verify all JPG plots exist and have content
-    for geomap_jpg in geomap_jpgs:
-        jpg_path = Path(geomap_jpg)
-        assert jpg_path.exists(), f"Geomap JPG should exist: {geomap_jpg}"
-        assert jpg_path.suffix.lower() == ".jpg", (
-            f"Geomap file should be .jpg: {geomap_jpg}"
+    num_statistics = len(valid_statistics)
+    num_flavors = len(Flavor) - 1  # Exclude ALL flavor
+    expected_num_plots = num_statistics * num_flavors
+    assert len(geomap_pngs) >= expected_num_plots
+
+    # Verify all png plots exist and have content
+    for geomap_png in geomap_pngs:
+        png_path = Path(geomap_png)
+        assert png_path.exists(), f"Geomap png should exist: {geomap_png}"
+        assert png_path.suffix.lower() == ".png", (
+            f"Geomap file should be .png: {geomap_png}"
         )
-        assert jpg_path.stat().st_size > 0, (
-            f"Geomap JPG should have content: {geomap_jpg}"
+        assert png_path.stat().st_size > 0, (
+            f"Geomap png should have content: {geomap_png}"
         )

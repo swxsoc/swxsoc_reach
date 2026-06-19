@@ -16,7 +16,7 @@ from swxsoc.swxdata import SWXData
 
 from swxsoc_reach import log
 from swxsoc_reach.geomap import GenericGeoMap
-from swxsoc_reach.util.enums import Flavor, Region, SensorId
+from swxsoc_reach.util.enums import Flavor, SensorId
 from swxsoc_reach.util.geom import load_region_contours, points_to_region_code
 from swxsoc_reach.util.schema import REACHDataSchema
 from swxsoc_reach.visualization.viz import plot_geomap
@@ -328,8 +328,8 @@ class REACHTrack(SWXData):
 
     def to_geomap(
         self,
-        lon_resolution: float = 1.0,
-        lat_resolution: float = 1.0,
+        lon_resolution: 1.0 * u.deg = 1.0 * u.deg,
+        lat_resolution: 1.0 * u.deg = 1.0 * u.deg,
     ) -> GenericGeoMap:
         """Convert track observations into stacked geospatial maps.
 
@@ -340,10 +340,10 @@ class REACHTrack(SWXData):
 
         Parameters
         ----------
-        lon_resolution : float, optional
-            Longitude bin width in degrees. Default is 1.0.
-        lat_resolution : float, optional
-            Latitude bin width in degrees. Default is 1.0.
+        lon_resolution : `~astropy.units.Quantity`, optional
+            Longitude bin width. Default is 1.0 deg.
+        lat_resolution : `~astropy.units.Quantity`, optional
+            Latitude bin width. Default is 1.0 deg.
 
         Returns
         -------
@@ -352,7 +352,7 @@ class REACHTrack(SWXData):
             arrays such as ``median_map``, ``mean_map``, and ``count_map``.
         """
 
-        valid_statistics = {"sum", "mean", "median", "count", "min", "max", "std"}
+        valid_statistics = ("sum", "mean", "median", "count", "min", "max", "std")
 
         nsensors = len(self["sensor_ids"].data)
         ndos = len(self["dosimeter_flavor_ids"].data)
@@ -368,11 +368,13 @@ class REACHTrack(SWXData):
         lon = self["lon"].data * u.deg
 
         # Histogram bins are defined by edges, while the map stores center coordinates.
+        lon_resolution_deg = lon_resolution.to(u.deg).value
+        lat_resolution_deg = lat_resolution.to(u.deg).value
         lon_edges = np.arange(
-            -180.0, 180.0 + lon_resolution, lon_resolution, dtype=np.float16
+            -180.0, 180.0 + lon_resolution_deg, lon_resolution_deg, dtype=np.float16
         )
         lat_edges = np.arange(
-            -90.0, 90.0 + lat_resolution, lat_resolution, dtype=np.float16
+            -90.0, 90.0 + lat_resolution_deg, lat_resolution_deg, dtype=np.float16
         )
         lon_bins = 0.5 * (lon_edges[:-1] + lon_edges[1:])
         lat_bins = 0.5 * (lat_edges[:-1] + lat_edges[1:])
@@ -439,29 +441,6 @@ class REACHTrack(SWXData):
                     else:
                         statistic_maps[statistic].append(np.full(grid_shape, np.nan))
 
-        # Build a region-code grid over the same lon/lat bins using the saved
-        # contour paths, then derive per-region boolean masks.
-        grid_points = np.column_stack([lon2d.ravel(), lat2d.ravel()])
-        contour_paths = load_region_contours()
-        region_codes_flat = np.zeros(len(grid_points), dtype=int)
-        for code, path_obj in contour_paths.items():
-            if path_obj is None:
-                continue
-            inside = path_obj.contains_points(grid_points)
-            region_codes_flat[inside] = code
-        region_code_grid = region_codes_flat.reshape(grid_shape)
-
-        # Stack into a single (nregions, nlat, nlon) boolean array using
-        # canonical Region enum order.
-        region_mask = np.stack(
-            [
-                np.isin(region_code_grid, region.signed_codes)
-                for region in Region.ordered()
-            ],
-            axis=0,
-            dtype=np.uint8,
-        )
-
         dosimeter_flavor_names = np.asarray(
             [flavor.name for flavor in _FLAVOR_ORDER], dtype="U"
         )
@@ -492,6 +471,13 @@ class REACHTrack(SWXData):
                 data=dosimeter_flavor_labels,
                 meta={
                     "CATDESC": "Label for dosimeter flavors dimension",
+                    "VAR_TYPE": "metadata",
+                },
+            ),
+            "statistics": NDData(
+                data=np.asarray(list(valid_statistics), dtype="U"),
+                meta={
+                    "CATDESC": "Supported statistics for geospatial maps",
                     "VAR_TYPE": "metadata",
                 },
             ),
@@ -533,37 +519,6 @@ class REACHTrack(SWXData):
                     "VAR_TYPE": "metadata",
                 },
             ),
-            "regions": NDData(
-                data=np.asarray(
-                    [region.label for region in Region.ordered()], dtype="U"
-                ),
-                meta={
-                    "CATDESC": "Region labels corresponding to mask axis-0",
-                    "VAR_TYPE": "metadata",
-                },
-            ),
-            "mask": NDData(
-                data=region_mask,
-                meta={
-                    "CATDESC": (
-                        "Boolean region masks, shape (nregions, nlat, nlon). "
-                        "Axis-0 order: "
-                        + ", ".join(
-                            [
-                                f"{region.mask_index}={region.label} (+/-{region.code})"
-                                for region in Region.ordered()
-                            ]
-                        )
-                    ),
-                    "VAR_TYPE": "support_data",
-                    "DEPEND_0": "regions",
-                    "DEPEND_1": "lat",
-                    "DEPEND_2": "lon",
-                    "LABL_PTR_1": "regions",
-                    "LABL_PTR_2": "lat_label",
-                    "LABL_PTR_3": "lon_label",
-                },
-            ),
         }
 
         for statistic in valid_statistics:
@@ -597,8 +552,12 @@ class REACHTrack(SWXData):
 
         meta["Data_version"] = "1.0.0"
         meta["Data_level"] = "l2"
-        meta["Instrument_mode"] = str(Flavor.ALL)
-        meta["Flavor"] = str(Flavor.ALL.name)
+        meta["Instrument_mode"] = str(
+            Flavor.ALL
+        )  # TODO: Should not be hardcoded; should be derived from the data.
+        meta["Flavor"] = str(
+            Flavor.ALL.name
+        )  # TODO: Should not be hardcoded; should be derived from the data.
         meta["coordinate_system"] = "geodetic"
 
         # NOTE for GeoMap we want to override some Schema Requirements.

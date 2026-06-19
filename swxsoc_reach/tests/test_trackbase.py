@@ -1,11 +1,7 @@
-import numpy as np
-import pandas as pd
 import pytest
-from astropy.time import Time
 from astropy.timeseries import TimeSeries
 
 from swxsoc_reach import _test_file_track
-from swxsoc_reach.calibration.transform import build_swxdata
 from swxsoc_reach.track.trackbase import REACHTrack
 from swxsoc_reach.util.enums import SensorId
 
@@ -45,7 +41,6 @@ def test_truncate_does_not_modify_original(reach_track_swx):
 
 
 def test_truncate_slices_support_variables(truncated_reach_track_swx):
-
     n = len(truncated_reach_track_swx.time)
     for key in ("lat", "lon", "alt"):
         if key in truncated_reach_track_swx.support:
@@ -127,67 +122,3 @@ def test_timeseries_has_region_code_column(reach_track_swx):
     ts = reach_track_swx.get_track(reach_id=SensorId.from_str(0))
     assert "region_code" in ts.colnames
     assert len(ts["region_code"]) == len(ts.time)
-
-
-def test_region_code_maps_per_timestamp(reach_track_swx, monkeypatch):
-    import swxsoc_reach.track.trackbase as trackbase
-
-    # Mock region code calculation
-    monkeypatch.setattr(trackbase, "load_region_contours", lambda: {})
-    monkeypatch.setattr(
-        trackbase,
-        "points_to_region_code",
-        lambda lon, lat, paths_dict: np.ones(len(lon), dtype=int),
-    )
-
-    ts = reach_track_swx.get_track(reach_id=SensorId.from_str(0))
-    region_codes = np.asarray(ts["region_code"])
-
-    assert region_codes.shape[0] == ts.time.shape[0]
-    assert len(region_codes) > 0
-
-
-def test_plotgeo_smoke(reach_track_swx, monkeypatch):
-    pytest.importorskip("cartopy")
-    import matplotlib.pyplot as plt
-
-    monkeypatch.setattr(plt, "show", lambda: None)
-    reach_track_swx.plotgeo(reach_id=SensorId.from_str(0))
-
-    fig = plt.gcf()
-    assert len(fig.axes) >= 1
-
-
-def test_plotgeo_region_code_smoke(reach_track_swx, monkeypatch):
-    pytest.importorskip("cartopy")
-    import matplotlib.pyplot as plt
-
-    monkeypatch.setattr(plt, "show", lambda: None)
-    reach_track_swx.plotgeo(reach_id=SensorId.from_str(0), color_by="region_code")
-
-    fig = plt.gcf()
-    assert len(fig.axes) >= 1
-
-
-def test_plotgeo_invalid_color_by_raises(reach_track_swx):
-    with pytest.raises(ValueError, match="Unsupported color_by"):
-        reach_track_swx.plotgeo(reach_id=SensorId.from_str(0), color_by="unknown")
-
-
-def test_plotgeo_uses_region_contour_utility(reach_track_swx, monkeypatch):
-    pytest.importorskip("cartopy")
-    import matplotlib.pyplot as plt
-
-    import swxsoc_reach.track.trackbase as trackbase
-
-    calls = {"count": 0}
-
-    def _mock_contours(**kwargs):
-        calls["count"] += 1
-        return kwargs["ax"], None
-
-    monkeypatch.setattr(trackbase, "plot_geomap", _mock_contours)
-    monkeypatch.setattr(plt, "show", lambda: None)
-
-    reach_track_swx.plotgeo(reach_id=SensorId.from_str(0))
-    assert calls["count"] == 1

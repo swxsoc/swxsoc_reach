@@ -25,7 +25,7 @@ log = swxsoc_log
 _package_directory = Path(__file__).parent
 _data_directory = _package_directory / "data"
 _test_files_directory = _package_directory / "data" / "test"
-_test_file_track = _test_files_directory / "reach_all_l1c_prelim_20250904T000000_v1.0.0.cdf"
+_test_file_track = _test_files_directory / "reach_all_l1c_prelim_20260115T000000_v1.0.0.cdf"
 
 REACH_ID_DOSIMETER_RELATIONSHIP = load_reach_id_dosimeter_relationship()
 

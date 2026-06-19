@@ -198,3 +198,8 @@ junit.xml
 # do not commit local vscode settings
 .vscode/settings.json
 /.vscode
+
+*.cdf
+*.png
+
+.vscode/settings.json

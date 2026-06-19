@@ -26,36 +26,36 @@ Each satellite has two dosimeters, so the returned time series contains two dose
    >>> import swxsoc_reach
    >>> from swxsoc_reach.track.trackbase import REACHTrack
    >>> from swxsoc_reach.util.enums import SensorId
-   >>> from swxsoc_reach import test_track_file
+   >>> from swxsoc_reach import _test_file_track
 
-   >>> track = REACHTrack.load(test_track_file)
+   >>> track = REACHTrack.load(_test_file_track)
    >>> ts = track.get_track(reach_id=SensorId.REACH_101)
    >>> print(ts.colnames)
    ['time', 'dose0', 'dose1', 'longitude', 'latitude', 'altitude', 'region_code']
    >>> len(ts)
-   1440
+   17255
 
 To get the flavor for dosimeters for this specific satellite, check the meta data of the track object:
 
 .. doctest::
 
-   >>> track.meta['flavors']
+   >>> ts.meta['flavors']
    [<Flavor.X: 8>, <Flavor.W: 4>]
 
 These are returned as a list of :class:`swxsoc_reach.util.enums.Flavor` objects, which can be used to identify the dosimeter type for each column in the time series.
+Refer to :ref:`_constellation-guide` for a complete list of all dosimeter flavors and their corresponding sensor IDs.
 
 You can also truncate the track to a specific time range using :meth:`REACHTrack.truncate`, which returns a new ``REACHTrack`` object containing only data within the specified time window.
 
 .. doctest::
 
-   >>> from astropy.time import Time
-   >>> start = Time("2025-01-01T00:00:00")
-   >>> end = Time("2025-01-01T01:00:00")
+   >>> start = track.time[0]  # Start from the first timestamp
+   >>> end = track.time[100]
    >>> truncated = track.truncate(start, end)
    >>> print(f"Original length: {len(track.get_track(SensorId.REACH_101))}")
-   Original length: 1440
+   Original length: 17255
    >>> print(f"Truncated length: {len(truncated.get_track(SensorId.REACH_101))}")
-   Truncated length: 60
+   Truncated length: 101
 
 There are also a couple of built-in plotting methods for quick-look visualization of the track data:
 
@@ -66,161 +66,69 @@ There are also a couple of built-in plotting methods for quick-look visualizatio
    >>> track.plotgeo(reach_id=SensorId.REACH_101)  # doctest: +SKIP
      # This will show a global map of the satellite's track colored by dose rate or region code.
 
+GeoMaps
+=======
 
-Key ``REACHTrack`` methods:
-
-- ``get_track(reach_id)``: returns a time-ordered
-  :class:`astropy.timeseries.TimeSeries` including ``dose0``, ``dose1``,
-  ``longitude``, ``latitude``, ``altitude``, and ``region_code``.
-- ``plot(reach_id)``: quick-look parameter-vs-time plotting.
-- ``plotgeo(color_by="dose0" | "region_code")``: global track visualization.
-- ``truncate(start_time, end_time)``: returns a new ``REACHTrack`` object
-  containing only data within the specified time range.
-- ``to_geomap(...)``: creates the map object used by the mask-based APIs on
-  this page.
-
-Truncating track data by time
-=============================
-
-Use :meth:`swxsoc_reach.track.trackbase.REACHTrack.truncate` to extract a
-subset of track data within a specified time window. This creates a new
-``REACHTrack`` object with all time-indexed data (dose rates, coordinates,
-quality flags, and sensor positions) properly sliced.
-
-.. code-block:: python
-
-   from pathlib import Path
-   import swxsoc_reach
-   from astropy.time import Time
-   from swxsoc_reach.track.trackbase import REACHTrack
-
-   sample_cdf = (
-       Path(swxsoc_reach.__file__).resolve().parent
-       / "data"
-       / "test"
-       / "reach_all_l1c_prelim_20250904T000000_v1.0.0.cdf"
-   )
-   track = REACHTrack.load(sample_cdf)
-
-   # Extract data for a specific time interval
-   start = Time("2025-01-01T00:00:00")
-   end = Time("2025-01-01T01:00:00")
-   truncated = track.truncate(start, end)
-
-   # Original track is unchanged
-   print(f"Original length: {len(track.time)}")
-   print(f"Truncated length: {len(truncated.time)}")
-
-
-
-What ``to_geomap`` returns
-==========================
-
+It is frequently useful to visualize the spatial distribution of dose rates across the globe for a given time window.
 The :meth:`swxsoc_reach.track.trackbase.REACHTrack.to_geomap` method returns a
 :class:`swxsoc_reach.geomap.geomapbase.GenericGeoMap` object.
+This object contains gridded spatial data for the entire time window of the track data.
+The resolution of the grid can be controlled by the ``lat_bins`` and ``lon_bins`` parameters of the ``to_geomap`` method, which specify the number of latitude and longitude bins to use for the grid.
+The :func:`scipy.stats.binned_statistic_2d` function from SciPy is used under the hood to perform the gridding and calculation of statistics.
+It calculates every statistic (sum, mean, median, count, min, max, std) for each flavor, so all of these are available as attributes of the returned ``GenericGeoMap`` object.
 
-The time array is stored in track_data[0].data['timeseries']
-
-- 
-
-That object stores gridded data in ``support`` variables:
-
-- ``median_map``: 3D median dose-rate array with shape
-   ``(nflavors, nlat, nlon)``.
-- ``mean_map`` / ``count_map`` / ``min_map`` / ``max_map`` / ``std_map``:
-   additional per-flavor statistics with the same shape.
-- ``lon``: 1D longitude bin centers.
-- ``lat``: 1D latitude bin centers.
-- ``mask``: 3D boolean array with shape ``(nregions, nlat, nlon)``, where
-   ``nregions`` is the number of region families in
-   :class:`swxsoc_reach.util.enums.Region` (currently 4).
-
-The mask axis uses the canonical :class:`swxsoc_reach.util.enums.Region`
-ordering:
-
-- axis 0 index 0: SAA and Inner Zone (codes ``+/-1``)
-- axis 0 index 1: Polar Cap (codes ``+/-2``)
-- axis 0 index 2: Outer Zone (codes ``+/-3``)
-- axis 0 index 3: Slot (codes ``+/-4``)
-
-Quick start
-===========
+To create a ``GenericGeoMap`` object, call the ``to_geomap`` method on a ``REACHTrack`` object:
 
 .. doctest::
 
-   >>> from pathlib import Path
-   >>> import swxsoc_reach
-   >>> from swxsoc_reach.track.trackbase import REACHTrack
-
-   >>> sample_cdf = (
-   ...     Path(swxsoc_reach.__file__).resolve().parent
-   ...     / "data"
-   ...     / "test"
-   ...     / "reach_all_l1c_prelim_20250904T000000_v1.0.0.cdf"
-   ... )
-   >>> track = REACHTrack.load(sample_cdf)
    >>> geomap = track.to_geomap()
 
-   >>> geomap.median_map.shape
-   (6, 180, 360)
-   >>> geomap["mask"].data.shape
-   (4, 180, 360)
+The default gridding uses 180 latitude bins and 360 longitude bins, which corresponds to a 1-degree grid.
+You can then access the gridded data for a specific statistic and flavor using the ``map_data`` method:
 
-Reading region masks
-====================
+.. doctest::
 
-Use the :class:`swxsoc_reach.util.enums.Region` enum to index mask planes
-safely instead of hard-coding integers.
+   >>> from swxsoc_reach.util.enums import Flavor
+   >>> median_map_U = geomap.map_data("median", Flavor.U)
+   >>> print(median_map_U.shape)
+   (180, 360)
 
-.. code-block:: python
+To check how many times each grid cell was sampled, use the ``count_map`` statistic:
 
-   import numpy as np
-   from swxsoc_reach.util.enums import Region
+.. doctest::
 
-   data = geomap.median_map[0]
-   mask = geomap["mask"].data
+   >>> count_map_U = geomap.map_data("count", Flavor.U)
+   >>> print(count_map_U.max())
+   13.0
 
-   saa_plane = mask[Region.SAA.mask_index]
-   saa_values = np.where(saa_plane, data, np.nan)
-   print(np.nansum(saa_values))
+Some flavors are more common than others, so the count map can be used to identify which flavors have sufficient data for analysis.
 
-Plotting options
-================
+To generate a coarser map, you can specify the number of latitude and longitude bins when calling ``to_geomap``:
+
+.. doctest::
+
+   >>> import astropy.units as u
+   >>> geomap_coarse = track.to_geomap(lat_resolution=10.0*u.deg, lon_resolution=10.0*u.deg)
+   >>> median_map_U_coarse = geomap_coarse.map_data("median", Flavor.U)
+   >>> print(median_map_U_coarse.shape)
+   (18, 36)
+
+Plotting
+========
 
 Use :meth:`swxsoc_reach.geomap.geomapbase.GenericGeoMap.plot` to visualize the
 map:
 
-- ``color_by_region=True`` (default): draws each region with its own colormap.
-- ``color_by_region=False``: draws one continuous colormap for full-map context.
-- ``draw_contours=True``: overlays contour lines from the plotted data.
-
-.. code-block:: python
+.. doctest::
 
    # Region-aware rendering (default)
-   geomap.plot()
+   >>> geomap.plot(Flavor.X, statistic='median')  # doctest: +SKIP
 
    # Overlay contour lines on the plotted data
-   geomap.plot(draw_contours=True)
+   >>> geomap.plot(Flavor.X, statistic='count')  # doctest: +SKIP
 
    # Single-colormap rendering
-   geomap.plot(color_by_region=False)
+   >>> geomap.plot(Flavor.X, statistic='median')  # doctest: +SKIP
 
-Map properties
-==============
-
-The ``GenericGeoMap`` object provides several useful properties:
-
-- ``median_map``: 3D spatial data array with shape ``(nflavors, nlat, nlon)``.
-- ``shape`` or ``dimensions``: Returns ``(nlat, nlon)`` - the spatial dimensions only,
-  regardless of whether time-indexed data is present.
-- ``extent``: Returns ``(lon_min, lon_max, lat_min, lat_max)`` in degrees.
-- ``coordinate_system``: Returns the coordinate system label (typically "geodetic").
-- ``flavor``: Returns the data flavor/type associated with the map.
-
-.. code-block:: python
-
-   nlat, nlon = geomap.shape
-   print(f"Map dimensions: {nlat} latitude bins x {nlon} longitude bins")
-   
-   lon_min, lon_max, lat_min, lat_max = geomap.extent
-   print(f"Map covers {lat_min} to {lat_max} deg latitude")
+The ``plot`` method has a number of options for customizing the plot, including the ability to overlay contour lines, change the color scale, and add a colorbar.
+Check the docstring of the :meth:`swxsoc_reach.geomap.geomapbase.GenericGeoMap.plot` method for a complete list of options.

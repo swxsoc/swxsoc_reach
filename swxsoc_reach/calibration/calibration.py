@@ -6,7 +6,9 @@ import os
 import tempfile
 from pathlib import Path
 
+import astropy.units as u
 import matplotlib.pyplot as plt
+from swxsoc.util.util import parse_science_filename
 from swxsoc.util.validation import validate
 
 from swxsoc_reach import log
@@ -59,15 +61,21 @@ def process_file(
     else:
         output_path = Path.cwd()  # Default to current working directory
 
+    tokens = parse_science_filename(file_path)
+
     # CHECK FILE TYPE; IF CDF THEN CREATE MAP CDF.
-    if file_path.suffix.lower() == ".cdf":  # TODO also check that data level is l1c
-        log.info("Input file is already a CDF. Creating geomap CDFs and plots.")
+    if file_path.suffix.lower() == ".cdf" or tokens["level"] == "l1c":
+        log.info(
+            f"Processing file of level {tokens['level']}. Creating geomaps and plots."
+        )
         try:
             # Load the L1C CDF file into a REACHTrack object
             track = REACHTrack.load(file_path)
 
             # Convert the track to a geomap object (this will combine all flavors into one geomap)
-            geomap = track.to_geomap()
+            geomap = track.to_geomap(
+                lon_resolution=5.0 * u.deg, lat_resolution=5.0 * u.deg
+            )
 
             # Save the combined geomap once, then render one plot per flavor.
             geomap_cdf_path = geomap.save(
@@ -82,14 +90,33 @@ def process_file(
                 if flavor == Flavor.ALL:
                     continue
                 try:
+                    for this_statistic in geomap.support["statistics"].data:
+                        # Create and save plot as JPG
+                        ax, mesh = geomap.plot(flavor=flavor, statistic=this_statistic)
+                        fig = ax.figure
+
+                        plot_jpg_filename = (
+                            file_path.stem
+                            + f"_geomap_{flavor.name}_{this_statistic}.png"
+                        )
+                        plot_jpg_path = output_path / plot_jpg_filename
+                        fig.savefig(
+                            str(plot_jpg_path),
+                            format="png",
+                            dpi=150,
+                            bbox_inches="tight",
+                        )
+                        plt.close(fig)
+                        log.info(f"Saved geomap plot to {plot_jpg_path}")
+                        output_files.append(plot_jpg_path)
                     # Create and save plot as JPG
                     ax, mesh = geomap.plot(flavor=flavor)
                     fig = ax.figure
 
-                    plot_jpg_filename = file_path.stem + f"_geomap_{flavor.name}.jpg"
+                    plot_jpg_filename = file_path.stem + f"_geomap_{flavor.name}.png"
                     plot_jpg_path = output_path / plot_jpg_filename
                     fig.savefig(
-                        str(plot_jpg_path), format="jpg", dpi=150, bbox_inches="tight"
+                        str(plot_jpg_path), format="png", dpi=150, bbox_inches="tight"
                     )
                     plt.close(fig)
                     log.info(f"Saved geomap plot to {plot_jpg_path}")
