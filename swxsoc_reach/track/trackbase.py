@@ -140,48 +140,42 @@ class REACHTrack(SWXData):
         -------
         REACHTrack
             A new ``REACHTrack`` object containing the time-sliced data.
-            The original object remains unchanged.
+
+        Raises
+        ------
+        ValueError
+            If no observations are found within the specified time range.
         """
-        mask = (self.time >= start_time) & (self.time <= end_time)
-        # Avoid deepcopy(self): SWXData may contain NDCollection objects that
-        # intentionally reject item assignment during deepcopy reconstruction.
+        time_mask = (self.time >= start_time) & (self.time <= end_time)
+        if not np.any(time_mask):
+            raise ValueError(
+                f"No observations found in the specified time range {start_time} to {end_time}."
+            )
         default_key = self._default_timeseries_key
-        truncated_timeseries = self._timeseries[default_key][mask]
+        truncated_timeseries = self._timeseries[default_key][time_mask]
 
-        # Preserve non-time-indexed support variables by reference and replace
-        # only variables that depend on Epoch.
-        truncated_support = dict(self.support)
+        support_truncated = {}
+        for this_key in self.data["support"].keys():
+            support_truncated[this_key] = self.data["support"][this_key]
 
-        for key in ("dose_rate",):
-            if key in self.support:
-                orig = self[key]
-                truncated_support[key] = NDData(
-                    data=orig.data[mask, :, :],
-                    unit=orig.unit,
-                    meta=orig.meta,
+        for this_key in self.data["spectra"].keys():
+            if len(self.data["spectra"][this_key].data.shape) == 2:
+                data = self.data["spectra"][this_key].data[time_mask, :]
+            elif len(self.data["spectra"][this_key].data.shape) == 3:
+                data = self.data["spectra"][this_key].data[time_mask, :, :]
+            else:
+                raise ValueError(
+                    f"Unexpected number of dimensions for spectra data: {self.data['spectra'][this_key].data.shape}"
                 )
-
-        for key in (
-            "lat",
-            "lon",
-            "alt",
-            "obQuality",
-            "senPos0",
-            "senPos1",
-            "senPos2",
-        ):
-            if key in self.support:
-                orig = self[key]
-                truncated_support[key] = NDData(
-                    data=orig.data[mask, :],
-                    unit=orig.unit,
-                    meta=orig.meta,
-                )
+            these_data = NDData(
+                data=data,
+                meta=deepcopy(self.data["spectra"][this_key].meta),
+            )
+            support_truncated[this_key] = these_data
 
         return REACHTrack(
             timeseries=truncated_timeseries,
-            support=truncated_support,
-            spectra=self.spectra,
+            support=support_truncated,
             meta=deepcopy(self.meta),
             schema=self.schema,
         )
@@ -260,9 +254,7 @@ class REACHTrack(SWXData):
         fig.tight_layout()
         plt.show()
 
-    def plotgeo(
-        self, reach_id: SensorId | int, dose_index: int = 0
-    ) -> None:
+    def plotgeo(self, reach_id: SensorId | int, dose_index: int = 0) -> None:
         """Plot the track on a global geomap.
 
         Displays track observations as points and lines on a global map with
@@ -299,9 +291,7 @@ class REACHTrack(SWXData):
             values = np.log10(dose_data.value)
             colorbar_label = f"Dose1 (log10 {dose_data.unit})"
         else:
-            raise ValueError(
-                f"Unsupported dose_index {dose_index!r}. Use 0 or 1."
-            )
+            raise ValueError(f"Unsupported dose_index {dose_index!r}. Use 0 or 1.")
 
         fig = plt.figure(figsize=(11, 6))
         ax = plt.axes(projection=ccrs.PlateCarree())

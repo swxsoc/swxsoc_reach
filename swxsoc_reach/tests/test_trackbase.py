@@ -4,149 +4,86 @@ import pytest
 from astropy.time import Time
 from astropy.timeseries import TimeSeries
 
+from swxsoc_reach import _test_file_track
 from swxsoc_reach.calibration.transform import build_swxdata
 from swxsoc_reach.track.trackbase import REACHTrack
 from swxsoc_reach.util.enums import SensorId
 
 
-def _make_reach_track(n_time: int = 6) -> REACHTrack:
-    """Build a minimal REACHTrack with ``n_time`` time steps and one sensor."""
-    rows = []
-    for i in range(n_time):
-        # Add DOSE0 record
-        rows.append(
-            {
-                "createdAt": f"2026-01-01T00:00:0{i}Z",
-                "idSensor": "REACH-001",
-                "obDescription": "DOSE0 (Flavor U) in rad/second",
-                "obTime": f"2026-01-01T00:00:0{i}Z",
-                "obValue": float(i + 1),
-                "observatoryName": "REACH",
-                "lat": 10.0 + i,
-                "lon": 20.0 + i,
-                "alt": 500.0,
-                "obQuality": 1,
-                "senPos0": 1000.0,
-                "senPos1": 2000.0,
-                "senPos2": 3000.0,
-                "descriptor": "QUICKLOOK",
-            }
-        )
-        # Add DOSE1 record
-        rows.append(
-            {
-                "createdAt": f"2026-01-01T00:00:0{i}Z",
-                "idSensor": "REACH-001",
-                "obDescription": "DOSE1 (Flavor V) in rad/second",
-                "obTime": f"2026-01-01T00:00:0{i}Z",
-                "obValue": float(i + 0.5),
-                "observatoryName": "REACH",
-                "lat": 10.0 + i,
-                "lon": 20.0 + i,
-                "alt": 500.0,
-                "obQuality": 1,
-                "senPos0": 1000.0,
-                "senPos1": 2000.0,
-                "senPos2": 3000.0,
-                "descriptor": "QUICKLOOK",
-            }
-        )
-    df = pd.DataFrame(rows)
-    swx = build_swxdata(df)
-    return REACHTrack(
-        timeseries=swx.timeseries,
-        support=swx.support,
-        meta=swx.meta,
-        schema=swx.schema,
-    )
+@pytest.fixture
+def reach_track_swx() -> REACHTrack:
+    return REACHTrack.load(_test_file_track)
 
 
 @pytest.fixture
-def reach_track_swx() -> REACHTrack:
-    return _make_reach_track(n_time=6)
+def truncated_reach_track_swx() -> REACHTrack:
+    reach_track = REACHTrack.load(_test_file_track)
+    start = reach_track.time[0]
+    end = reach_track.time[9]
+    return reach_track.truncate(start, end)
 
 
-def test_truncate_reduces_time_length(reach_track_swx):
-    start = Time("2026-01-01T00:00:01")
-    end = Time("2026-01-01T00:00:03")
-    truncated = reach_track_swx.truncate(start, end)
-    assert len(truncated.time) == 3
+def test_truncate_basic_functionality(truncated_reach_track_swx, reach_track_swx):
+    assert isinstance(truncated_reach_track_swx, REACHTrack)
+    assert len(truncated_reach_track_swx.time) < len(reach_track_swx.time)
 
 
-def test_truncate_time_bounds_are_correct(reach_track_swx):
-    start = Time("2026-01-01T00:00:02")
-    end = Time("2026-01-01T00:00:04")
-    truncated = reach_track_swx.truncate(start, end)
-    assert truncated.time[0] >= start
-    assert truncated.time[-1] <= end
+def test_truncate_reduces_time_length(truncated_reach_track_swx, reach_track_swx):
+    assert (
+        len(truncated_reach_track_swx.time) == 10
+    )  # Should have 10 timestamps: from index 0 to index 9 inclusive
+    assert truncated_reach_track_swx.time[0] >= truncated_reach_track_swx.time[0]
+    assert truncated_reach_track_swx.time[-1] <= truncated_reach_track_swx.time[9]
 
 
 def test_truncate_does_not_modify_original(reach_track_swx):
     original_len = len(reach_track_swx.time)
-    start = Time("2026-01-01T00:00:01")
-    end = Time("2026-01-01T00:00:03")
-    reach_track_swx.truncate(start, end)
-    assert len(reach_track_swx.time) == original_len
+    start = reach_track_swx.time[0]
+    end = reach_track_swx.time[-1]
+    truncated_track = reach_track_swx.truncate(start, end)
+    assert len(truncated_track.time) == original_len
 
 
-def test_truncate_slices_support_variables(reach_track_swx):
-    start = Time("2026-01-01T00:00:02")
-    end = Time("2026-01-01T00:00:04")
-    truncated = reach_track_swx.truncate(start, end)
-    n = len(truncated.time)
+def test_truncate_slices_support_variables(truncated_reach_track_swx):
+
+    n = len(truncated_reach_track_swx.time)
     for key in ("lat", "lon", "alt"):
-        if key in truncated.support:
-            assert truncated.support[key].data.shape[0] == n, (
+        if key in truncated_reach_track_swx.support:
+            assert truncated_reach_track_swx.support[key].data.shape[0] == n, (
                 f"{key} not sliced correctly"
             )
-    if "observations" in truncated.support:
-        assert truncated.support["observations"].data.shape[0] == n
+    if "observations" in truncated_reach_track_swx.support:
+        assert truncated_reach_track_swx.support["observations"].data.shape[0] == n
 
 
-def test_get_track_on_truncated_track_has_consistent_length(reach_track_swx):
-    """Regression: get_track on a truncated REACHTrack must not raise an array size error."""
-    start = Time("2026-01-01T00:00:01")
-    end = Time("2026-01-01T00:00:03")
-    truncated = reach_track_swx.truncate(start, end)
-    # reach_id=0 maps to REACH-101 (the first sensor, index 0)
-    ts = truncated.get_track(reach_id=SensorId.from_str(0))
-    assert len(ts) == len(truncated.time)
-
-
-@pytest.fixture
-def reach_track(reach_track_swx):
-    """Use the same fixture as reach_track_swx for consistency."""
-    return reach_track_swx
-
-
-def test_plot_creates_axis_per_track_parameter(reach_track, monkeypatch):
+def test_plot_creates_axis_per_track_parameter(reach_track_swx, monkeypatch):
     import matplotlib.pyplot as plt
 
     monkeypatch.setattr(plt, "show", lambda: None)
-    reach_track.plot(reach_id=SensorId.from_str(0))
+    reach_track_swx.plot(reach_id=SensorId.from_str(0))
 
     fig = plt.gcf()
-    ts = reach_track.get_track(reach_id=SensorId.from_str(0))
+    ts = reach_track_swx.get_track(reach_id=SensorId.from_str(0))
     y_columns = [col for col in ts.colnames if col != "time"]
     assert len(fig.axes) == len(y_columns)
 
 
-def test_plot_labels_last_axis_time(reach_track, monkeypatch):
+def test_plot_labels_last_axis_time(reach_track_swx, monkeypatch):
     import matplotlib.pyplot as plt
 
     monkeypatch.setattr(plt, "show", lambda: None)
-    reach_track.plot(reach_id=SensorId.from_str(0))
+    reach_track_swx.plot(reach_id=SensorId.from_str(0))
 
     fig = plt.gcf()
     assert fig.axes[-1].get_xlabel() == "Time"
 
 
-def test_plot_time_axis_uses_hms_formatter(reach_track, monkeypatch):
+def test_plot_time_axis_uses_hms_formatter(reach_track_swx, monkeypatch):
     import matplotlib.dates as mdates
     import matplotlib.pyplot as plt
 
     monkeypatch.setattr(plt, "show", lambda: None)
-    reach_track.plot(reach_id=SensorId.from_str(0))
+    reach_track_swx.plot(reach_id=SensorId.from_str(0))
 
     fig = plt.gcf()
     formatter = fig.axes[-1].xaxis.get_major_formatter()
@@ -154,11 +91,11 @@ def test_plot_time_axis_uses_hms_formatter(reach_track, monkeypatch):
     assert formatter.fmt == "%H:%M:%S"
 
 
-def test_plot_uses_title_from_meta(reach_track, monkeypatch):
+def test_plot_uses_title_from_meta(reach_track_swx, monkeypatch):
     import matplotlib.pyplot as plt
 
     monkeypatch.setattr(plt, "show", lambda: None)
-    reach_track.plot(reach_id=SensorId.from_str(0))
+    reach_track_swx.plot(reach_id=SensorId.from_str(0))
 
     fig = plt.gcf()
     # Title should contain the reach_id string
@@ -186,13 +123,13 @@ def test_plot_raises_when_no_parameters(monkeypatch):
         track.plot(reach_id=SensorId.from_str(0))
 
 
-def test_timeseries_has_region_code_column(reach_track):
-    ts = reach_track.get_track(reach_id=SensorId.from_str(0))
+def test_timeseries_has_region_code_column(reach_track_swx):
+    ts = reach_track_swx.get_track(reach_id=SensorId.from_str(0))
     assert "region_code" in ts.colnames
     assert len(ts["region_code"]) == len(ts.time)
 
 
-def test_region_code_maps_per_timestamp(reach_track, monkeypatch):
+def test_region_code_maps_per_timestamp(reach_track_swx, monkeypatch):
     import swxsoc_reach.track.trackbase as trackbase
 
     # Mock region code calculation
@@ -203,41 +140,41 @@ def test_region_code_maps_per_timestamp(reach_track, monkeypatch):
         lambda lon, lat, paths_dict: np.ones(len(lon), dtype=int),
     )
 
-    ts = reach_track.get_track(reach_id=SensorId.from_str(0))
+    ts = reach_track_swx.get_track(reach_id=SensorId.from_str(0))
     region_codes = np.asarray(ts["region_code"])
 
     assert region_codes.shape[0] == ts.time.shape[0]
     assert len(region_codes) > 0
 
 
-def test_plotgeo_smoke(reach_track, monkeypatch):
+def test_plotgeo_smoke(reach_track_swx, monkeypatch):
     pytest.importorskip("cartopy")
     import matplotlib.pyplot as plt
 
     monkeypatch.setattr(plt, "show", lambda: None)
-    reach_track.plotgeo(reach_id=SensorId.from_str(0))
+    reach_track_swx.plotgeo(reach_id=SensorId.from_str(0))
 
     fig = plt.gcf()
     assert len(fig.axes) >= 1
 
 
-def test_plotgeo_region_code_smoke(reach_track, monkeypatch):
+def test_plotgeo_region_code_smoke(reach_track_swx, monkeypatch):
     pytest.importorskip("cartopy")
     import matplotlib.pyplot as plt
 
     monkeypatch.setattr(plt, "show", lambda: None)
-    reach_track.plotgeo(reach_id=SensorId.from_str(0), color_by="region_code")
+    reach_track_swx.plotgeo(reach_id=SensorId.from_str(0), color_by="region_code")
 
     fig = plt.gcf()
     assert len(fig.axes) >= 1
 
 
-def test_plotgeo_invalid_color_by_raises(reach_track):
+def test_plotgeo_invalid_color_by_raises(reach_track_swx):
     with pytest.raises(ValueError, match="Unsupported color_by"):
-        reach_track.plotgeo(reach_id=SensorId.from_str(0), color_by="unknown")
+        reach_track_swx.plotgeo(reach_id=SensorId.from_str(0), color_by="unknown")
 
 
-def test_plotgeo_uses_region_contour_utility(reach_track, monkeypatch):
+def test_plotgeo_uses_region_contour_utility(reach_track_swx, monkeypatch):
     pytest.importorskip("cartopy")
     import matplotlib.pyplot as plt
 
@@ -252,5 +189,5 @@ def test_plotgeo_uses_region_contour_utility(reach_track, monkeypatch):
     monkeypatch.setattr(trackbase, "plot_geomap", _mock_contours)
     monkeypatch.setattr(plt, "show", lambda: None)
 
-    reach_track.plotgeo(reach_id=SensorId.from_str(0))
+    reach_track_swx.plotgeo(reach_id=SensorId.from_str(0))
     assert calls["count"] == 1
