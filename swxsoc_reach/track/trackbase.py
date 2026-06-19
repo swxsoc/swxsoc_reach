@@ -143,24 +143,24 @@ class REACHTrack(SWXData):
             The original object remains unchanged.
         """
         mask = (self.time >= start_time) & (self.time <= end_time)
-        truncated_data = deepcopy(self)
+        # Avoid deepcopy(self): SWXData may contain NDCollection objects that
+        # intentionally reject item assignment during deepcopy reconstruction.
+        default_key = self._default_timeseries_key
+        truncated_timeseries = self._timeseries[default_key][mask]
 
-        # Slice the internal TimeSeries directly (timeseries is a read-only property).
-        default_key = truncated_data._default_timeseries_key
-        truncated_data._timeseries[default_key] = truncated_data._timeseries[
-            default_key
-        ][mask]
+        # Preserve non-time-indexed support variables by reference and replace
+        # only variables that depend on Epoch.
+        truncated_support = dict(self.support)
 
-        # Slice all time-indexed (DEPEND_0=Epoch) support variables.
-        # NDData.data is read-only, so replace the whole NDData object.
         for key in ("dose_rate",):
-            if key in truncated_data.support:
+            if key in self.support:
                 orig = self[key]
-                truncated_data.support[key] = NDData(
+                truncated_support[key] = NDData(
                     data=orig.data[mask, :, :],
                     unit=orig.unit,
                     meta=orig.meta,
                 )
+
         for key in (
             "lat",
             "lon",
@@ -170,15 +170,21 @@ class REACHTrack(SWXData):
             "senPos1",
             "senPos2",
         ):
-            if key in truncated_data.support:
+            if key in self.support:
                 orig = self[key]
-                truncated_data.support[key] = NDData(
+                truncated_support[key] = NDData(
                     data=orig.data[mask, :],
                     unit=orig.unit,
                     meta=orig.meta,
                 )
 
-        return truncated_data
+        return REACHTrack(
+            timeseries=truncated_timeseries,
+            support=truncated_support,
+            spectra=self.spectra,
+            meta=deepcopy(self.meta),
+            schema=self.schema,
+        )
 
     def plot(self, reach_id: SensorId | int) -> None:
         """Plot track parameters as a function of time.
@@ -255,7 +261,7 @@ class REACHTrack(SWXData):
         plt.show()
 
     def plotgeo(
-        self, reach_id: SensorId | int, dose_index: int = 0, color_by: str = "dose0"
+        self, reach_id: SensorId | int, dose_index: int = 0
     ) -> None:
         """Plot the track on a global geomap.
 
@@ -271,43 +277,30 @@ class REACHTrack(SWXData):
         dose_index : int, optional
             Dosimeter index (0 or 1) to use for coloring when ``color_by``
             is ``"dose0"`` or ``"dose1"``. Default is 0.
-        color_by : str, optional
-            Scalar used to color track points. Supported values are
-            ``"dose0"`` (dose rate channel 0, log scale with ``viridis``),
-            ``"dose1"`` (dose rate channel 1, log scale with ``viridis``), and
-            ``"region_code"`` (integer region code, colored with ``tab10``).
-            Default is ``"dose0"``.
 
         Raises
         ------
         ValueError
-            If ``color_by`` is not ``"dose0"``, ``"dose1"``, or
-            ``"region_code"``, or if any :class:`ValueError` raised by
-            :meth:`get_track` propagates.
+            If dose_index is not 0 or 1, if no plottable track parameters are available,
         """
         # Get Specific Track TimeSeries for the Given Sensor and Dosimeter
         ts = self.get_track(reach_id=reach_id)
         lon = ts["longitude"]
         lat = ts["latitude"]
+        cmap = "viridis"
 
         # Verify Color Mapping and Prepare Color Values
-        if color_by == "dose0":
+        if dose_index == 0:
             dose_data = ts["dose0"]
             values = np.log10(dose_data.value)
             colorbar_label = f"Dose0 (log10 {dose_data.unit})"
-            cmap = "viridis"
-        elif color_by == "dose1":
+        elif dose_index == 1:
             dose_data = ts["dose1"]
             values = np.log10(dose_data.value)
             colorbar_label = f"Dose1 (log10 {dose_data.unit})"
-            cmap = "viridis"
-        elif color_by == "region_code":
-            values = ts["region_code"]
-            colorbar_label = "Region Code"
-            cmap = "tab10"
         else:
             raise ValueError(
-                f"Unsupported color_by {color_by!r}. Use 'dose0', 'dose1', or 'region_code'."
+                f"Unsupported dose_index {dose_index!r}. Use 0 or 1."
             )
 
         fig = plt.figure(figsize=(11, 6))
@@ -339,10 +332,7 @@ class REACHTrack(SWXData):
         )
 
         fig.colorbar(scatter, ax=ax, label=colorbar_label, shrink=0.85)
-        if color_by == "dose":
-            title = f"{ts.meta.get('reach_id')} {ts.meta.get('flavors')[dose_index]} {ts.time[0].iso} to {ts.time[-1].iso}"
-        else:
-            title = f"{ts.meta.get('reach_id')} {ts.time[0].iso} to {ts.time[-1].iso}"
+        title = f"{ts.meta.get('reach_id')} {ts.meta.get('flavors')[dose_index]} {ts.time[0].iso} to {ts.time[-1].iso}"
         ax.set_title(ts.meta.get("title", title))
         plt.show()
 
