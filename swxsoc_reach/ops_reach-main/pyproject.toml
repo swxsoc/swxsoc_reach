@@ -1,0 +1,69 @@
+[build-system]
+requires = ["setuptools", "pip >= 10"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ops_reach"
+version = "0.1.0"
+description = 'Scientific Operations support for REACH datasets'
+readme = "README.md"
+requires-python = ">=3.8"
+license = {file = "LICENSE"}
+authors = [
+    {name = "Jeff Klenzing", email = "jeffrey.klenzing@nasa.gov"},
+    {name = "Alexa Halford", email = "alexa.j.halford@nasa.gov"},
+    {name = "Jonathon M. Smith", email = "jonathon.m.smith@nasa.gov"}
+]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Topic :: Scientific/Engineering :: Astronomy",
+  "Topic :: Scientific/Engineering :: Physics",
+  "Topic :: Scientific/Engineering :: Atmospheric Science",
+  "Intended Audience :: Science/Research",
+  "License :: OSI Approved :: BSD License",
+  "Natural Language :: English",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.8",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Operating System :: POSIX :: Linux",
+  "Operating System :: MacOS :: MacOS X",
+]
+keywords = [
+  "reach",
+  "pysat",
+  "dosimeters"
+]
+dependencies = [
+  "numpy",
+  "pandas",
+  "pysat >= 3.0.4",
+]
+
+[project.optional-dependencies]
+ops = ["netCDF"]
+test = [
+  "coveralls < 3.3",
+  "flake8",
+  "flake8-docstrings",
+  "hacking >= 1.0",
+  "pytest",
+  "pytest-cov",
+  "pytest-ordering"
+]
+
+[project.urls]
+Source = "https://github.com/jklenzing/ops_reach"
+
+[tool.coverage.report]
+
+[tool.pytest.ini_options]
+addopts = "--cov=ops_reach"
+markers = [
+  "all_inst",
+  "download",
+  "no_download",
+  "load_options",
+  "first",
+  "second"
+]
