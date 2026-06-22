@@ -152,7 +152,8 @@ def test_process_file_cdf_creates_geomaps(tmpdir, monkeypatch):
         )
 
     num_statistics = len(valid_statistics)
-    num_flavors = len(Flavor)
+    # This is a behavior different in Python 3.10+
+    num_flavors = len(Flavor) - 1  # Exclude Flavor.ALL
     expected_num_plots = num_statistics * num_flavors
     assert len(geomap_pngs) >= expected_num_plots
 
