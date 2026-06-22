@@ -90,37 +90,25 @@ def process_file(
                 if flavor == Flavor.ALL:
                     continue
                 try:
-                    for this_statistic in geomap.support["statistics"].data:
-                        # Create and save plot as JPG
+                    for this_statistic in geomap["statistics"].data:
+                        # Create and save plot as PNG
                         ax, mesh = geomap.plot(flavor=flavor, statistic=this_statistic)
                         fig = ax.figure
 
-                        plot_jpg_filename = (
-                            file_path.stem
+                        plot_png_filename = (
+                            geomap_cdf_path.stem
                             + f"_geomap_{flavor.name}_{this_statistic}.png"
                         )
-                        plot_jpg_path = output_path / plot_jpg_filename
+                        plot_png_path = output_path / plot_png_filename
                         fig.savefig(
-                            str(plot_jpg_path),
+                            str(plot_png_path),
                             format="png",
                             dpi=150,
                             bbox_inches="tight",
                         )
                         plt.close(fig)
-                        log.info(f"Saved geomap plot to {plot_jpg_path}")
-                        output_files.append(plot_jpg_path)
-                    # Create and save plot as JPG
-                    ax, mesh = geomap.plot(flavor=flavor)
-                    fig = ax.figure
-
-                    plot_jpg_filename = file_path.stem + f"_geomap_{flavor.name}.png"
-                    plot_jpg_path = output_path / plot_jpg_filename
-                    fig.savefig(
-                        str(plot_jpg_path), format="png", dpi=150, bbox_inches="tight"
-                    )
-                    plt.close(fig)
-                    log.info(f"Saved geomap plot to {plot_jpg_path}")
-                    output_files.append(plot_jpg_path)
+                        log.info(f"Saved geomap plot to {plot_png_path}")
+                        output_files.append(plot_png_path)
 
                 except ValueError as e:
                     log.warning(
