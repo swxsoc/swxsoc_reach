@@ -6,8 +6,8 @@ from astropy.time import Time
 from swxsoc.util.util import TIME_FORMAT, parse_science_filename
 
 from swxsoc_reach import _data_directory
-from swxsoc_reach.util.geom import load_region_contours
 from swxsoc_reach.util.geom import contour_image_to_path  # noqa: F401
+from swxsoc_reach.util.geom import load_region_contours
 
 __all__ = [
     "contour_image_to_path",

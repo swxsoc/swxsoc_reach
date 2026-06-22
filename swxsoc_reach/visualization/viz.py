@@ -6,15 +6,15 @@ from typing import Any, Sequence
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
-from matplotlib.path import Path as MplPath
 import numpy as np
 from cartopy import crs as ccrs
+from matplotlib.path import Path as MplPath
 from swxsoc.swxdata import SWXData
 
 from swxsoc_reach import log
 from swxsoc_reach.util.enums import Region
-from swxsoc_reach.util.util import load_regions
 from swxsoc_reach.util.geom import load_region_contours
+from swxsoc_reach.util.util import load_regions
 
 # REACH dose data routinely contains zeros / non-positive values; log10 of
 # these is mathematically undefined but expected, so silence the resulting
