@@ -6,7 +6,6 @@ from pathlib import Path
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
-from astropy.coordinates import EarthLocation
 from cartopy import crs as ccrs
 from swxsoc.io.cdf_handler import CDFHandler
 from swxsoc.swxdata import SWXData
@@ -42,21 +41,22 @@ warnings.filterwarnings(
 
 
 class GenericGeoMap(SWXData):
-    """A generic 2D geospatial map object.
+    """
+    A generic 2D geospatial map object.
 
     Provides a compact, SunPy-like API for geospatial dose-rate grids:
     per-statistic map accessors (``median_map``, ``mean_map``, ...),
-    coordinate grid construction (``lon_lat_grid``), pixel/world
-    conversions (``pixel_to_world``, ``world_to_pixel``), an aggregated
-    plotter (``plot``), and per-region summaries (``sum_per_region``).
+    coordinate grid construction (``lon_lat_grid``), and an
+    aggregated plotter (``plot``).
 
     The underlying storage is an :class:`swxsoc.swxdata.SWXData` container
-    populated by :meth:`swxsoc_reach.track.trackbase.REACHTrack.to_geomap`. 
+    populated by :meth:`swxsoc_reach.track.trackbase.REACHTrack.to_geomap`.
     Each statistic map has shape ``(nflavors, ny, nx)``.
     """
 
     def __contains__(self, var_name: str) -> bool:
-        """Return whether ``var_name`` exists in the underlying SWXData storage.
+        """
+        Return whether ``var_name`` exists in the underlying SWXData storage.
 
         ``SWXData`` only implements ``__getitem__``, so the default ``in``
         operator falls back to integer-index iteration (``self[0]``, ``self[1]``,
@@ -77,7 +77,8 @@ class GenericGeoMap(SWXData):
         return self["dosimeter_flavor_names"].data
 
     def map_data(self, statistic: str, flavor: Flavor) -> np.ndarray:
-        """Return the map data for the specified statistic and flavor.
+        """
+        Return the map data for the specified statistic and flavor.
 
         Parameters
         ----------
@@ -85,7 +86,7 @@ class GenericGeoMap(SWXData):
                     Statistic name. One of ``"median"``, ``"mean"``, ``"count"``,
                     ``"min"``, ``"max"``, or ``"std"``.
         flavor : Flavor
-        
+
         Returns
         -------
         numpy.ndarray
@@ -142,7 +143,8 @@ class GenericGeoMap(SWXData):
 
     @property
     def shape(self) -> tuple[int, int]:
-        """Map shape as ``(ny, nx)`` - spatial dimensions only.
+        """
+        Map shape as ``(ny, nx)`` - spatial dimensions only.
 
         Returns the spatial dimensions of the map grid, regardless of whether
         time-indexed data is present in the underlying storage. If the internal
@@ -158,7 +160,8 @@ class GenericGeoMap(SWXData):
 
     @property
     def coordinate_system(self) -> str:
-        """Coordinate system label for this map.
+        """
+        Coordinate system label for this map.
 
         Returns the name of the coordinate system used by the map's longitude
         and latitude values. Typically ``"geodetic"`` for WGS84 coordinates.
@@ -167,7 +170,8 @@ class GenericGeoMap(SWXData):
 
     @property
     def extent(self) -> tuple[float, float, float, float]:
-        """Map extent as lon/lat min-max values in degrees.
+        """
+        Map extent as lon/lat min-max values in degrees.
 
         Returns
         -------
@@ -182,7 +186,8 @@ class GenericGeoMap(SWXData):
         )
 
     def _flavor_index(self, flavor: Flavor | int) -> int:
-        """Resolve a :class:`Flavor` (or integer index) to its position in :meth:`Flavor.ordered`.
+        """
+        Resolve a :class:`Flavor` (or integer index) to its position in :meth:`Flavor.ordered`.
 
         Parameters
         ----------
@@ -215,16 +220,6 @@ class GenericGeoMap(SWXData):
         if index < 0 or index >= len(flavor_order):
             raise ValueError(f"Flavor index {index} is out of range.")
         return index
-
-    def pixel_to_world(self, x: float, y: float) -> EarthLocation:
-        raise NotImplementedError()
-
-    def world_to_pixel(
-        self,
-        location_or_lon: EarthLocation | float,
-        lat: float | None = None,
-    ) -> tuple[int, int]:
-        raise NotImplementedError()
 
     def plot(
         self,
@@ -288,8 +283,10 @@ class GenericGeoMap(SWXData):
         -----
         - With ``log_scale=True`` the color scale is fixed to ``[-7, -2]`` in
           log10(rad/s).
-        - The figure title is formatted as ``"{Time_start} - {Time_end} - {flavor_label}"``
-          using the track time range and the selected flavor's label.
+        - The figure title is formatted as
+          ``"{Time_start} - {Time_end} - {flavor_label} {statistic} map"``
+          using the track time range, the selected flavor's label, and the
+          statistic name.
         """
 
         data_unit = self[f"{statistic}_map"].unit
@@ -322,8 +319,6 @@ class GenericGeoMap(SWXData):
             contour_data = _md
             contour_levels = None
 
-        # Split map data into per-region arrays using the pre-computed mask
-        # stored by to_geomap(). Shape: (nregions, nlat, nlon).
         xylon, xylat = self.lon_lat_grid
 
         if ax is None:

@@ -80,8 +80,8 @@ class REACHTrack(SWXData):
         Raises
         ------
         ValueError
-            If ``dose_id`` is out of range, if integer ``reach_id`` is outside
-            0-31, or if ``reach_id`` does not resolve to a single valid sensor.
+            If integer ``reach_id`` is outside 0-31, or if ``reach_id`` does
+            not resolve to a single valid sensor.
         """
         if isinstance(reach_id, int):
             sensor_id = SensorId.from_str(reach_id)
@@ -259,8 +259,8 @@ class REACHTrack(SWXData):
         """Plot the track on a global geomap.
 
         Displays track observations as points and lines on a global map with
-        region contour boundaries. Points can be colored by dose rate (log scale)
-        or region code.
+        region contour boundaries. Points are colored by the selected
+        dosimeter's dose rate on a log10 scale.
 
         Parameters
         ----------
@@ -268,8 +268,8 @@ class REACHTrack(SWXData):
             Sensor selector (0-31 or SensorId enum). Passed through to
             :meth:`get_track`.
         dose_index : int, optional
-            Dosimeter index (0 or 1) to use for coloring when ``color_by``
-            is ``"dose0"`` or ``"dose1"``. Default is 0.
+            Dosimeter index (0 or 1) selecting which dose-rate column
+            (``dose0`` or ``dose1``) is used to color the points. Default is 0.
 
         Raises
         ------

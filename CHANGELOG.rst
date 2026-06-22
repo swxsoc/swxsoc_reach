@@ -8,14 +8,15 @@ The format is based on `Keep a Changelog <https://keepachangelog.com/en/1.0.0/>`
 Unreleased
 ----------
 
-* Added canonical region handling via ``Region`` enum and applied it to map masking, contour behavior, and plotting flows.
-* Added persistent per-region boolean masks to geomap outputs via ``REACHTrack.to_geomap()``, stored as a single multidimensional ``mask`` support variable.
-* Added ``GenericGeoMap.sum_per_region()`` to aggregate map values by region using precomputed masks.
-* Added ``color_by_region`` option to ``GenericGeoMap.plot()`` to switch between per-region rendering and single-colormap rendering.
-* Added contour NPZ writer utility ``save_path_to_npz()`` to ``swxsoc_reach.util.geom`` next to contour loading utilities.
-* Added user documentation page for the new map and track data objects: ``docs/user-guide/data_objects.rst``.
-* Updated geomap plotting to consume precomputed region masks directly instead of recomputing region assignment at plot time.
-* Updated tests and contour-loading usage to current APIs without compatibility wrappers for removed legacy helpers.
+* Added :class:`~swxsoc_reach.track.trackbase.REACHTrack`, a container for L1C dosimeter track data.
+* Added :class:`~swxsoc_reach.geomap.geomapbase.GenericGeoMap`, a SunPy-like gridded geospatial map container with per-statistic/per-flavor data access.
+* Added the :class:`~swxsoc_reach.util.enums.Flavor`, :class:`~swxsoc_reach.util.enums.SensorId`, and :class:`~swxsoc_reach.util.enums.Region` enumerations.
+* Added the ``swxsoc_reach.util.geom`` module of region-geometry utilities to build, save, and load region contour paths.
+* Added geomap plotting helpers to ``swxsoc_reach.visualization.viz`` using canonical ``Region`` colors and contour levels.
+* Added the ``load_regions`` helper to ``swxsoc_reach.util.util`` to expose region longitudes, latitudes, and codes from the bundled contour data.
+* Extended the processing pipeline so ``process_file`` converts L1C/CDF input into a combined geomap CDF plus per-flavor, per-statistic PNG plots.
+* Added user guide pages for the constellation and enums (``constellation.rst``), region geometry (``geom.rst``), and the new map and track data objects (``data_objects.rst``).
+* Added test coverage for the flavor/enum, geometry, geomap, track, and visualization modules.
 * Project foundation and scaffolding were established, including the initial repository setup and template alignment.
 * Update to support data pipeline, imports JSON files from UDL and outputs to CDF with ISTP-compliant metadata.
 * Runtime and reliability improvements included temporary-path handling, logging improvements, and threaded UDL download support.

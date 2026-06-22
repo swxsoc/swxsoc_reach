@@ -73,7 +73,7 @@ It is frequently useful to visualize the spatial distribution of dose rates acro
 The :meth:`swxsoc_reach.track.trackbase.REACHTrack.to_geomap` method returns a
 :class:`swxsoc_reach.geomap.geomapbase.GenericGeoMap` object.
 This object contains gridded spatial data for the entire time window of the track data.
-The resolution of the grid can be controlled by the ``lat_bins`` and ``lon_bins`` parameters of the ``to_geomap`` method, which specify the number of latitude and longitude bins to use for the grid.
+The resolution of the grid can be controlled by the ``lat_resolution`` and ``lon_resolution`` parameters of the ``to_geomap`` method, which specify the latitude and longitude bin widths (as :class:`~astropy.units.Quantity` angles) to use for the grid.
 The :func:`scipy.stats.binned_statistic_2d` function from SciPy is used under the hood to perform the gridding and calculation of statistics.
 It calculates every statistic (sum, mean, median, count, min, max, std) for each flavor, so all of these are available as attributes of the returned ``GenericGeoMap`` object.
 
