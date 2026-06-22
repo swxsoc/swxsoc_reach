@@ -12,6 +12,7 @@ from astropy.nddata import NDData
 from astropy.time import Time
 from astropy.timeseries import TimeSeries
 from scipy.stats import binned_statistic_2d
+from swxsoc.io.cdf_handler import CDFHandler
 from swxsoc.swxdata import SWXData
 
 from swxsoc_reach import log
@@ -595,8 +596,6 @@ class REACHTrack(SWXData):
         ValueError: If the file type is not recognized as a file type that can be loaded.
 
         """
-        from swxsoc.util.io import CDFHandler
-
         # Ensure file_path is a Path object
         file_path = Path(file_path)
 

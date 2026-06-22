@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from astropy.coordinates import EarthLocation
 from cartopy import crs as ccrs
+from swxsoc.io.cdf_handler import CDFHandler
 from swxsoc.swxdata import SWXData
 
 from swxsoc_reach.util.enums import Flavor
@@ -55,11 +56,26 @@ class GenericGeoMap(SWXData):
     statistic map has shape ``(nflavors, ny, nx)``.
     """
 
+    def __contains__(self, var_name: str) -> bool:
+        """Return whether ``var_name`` exists in the underlying SWXData storage.
+
+        ``SWXData`` only implements ``__getitem__``, so the default ``in``
+        operator falls back to integer-index iteration (``self[0]``, ``self[1]``,
+        ...) which raises ``KeyError``. Routing membership tests through
+        ``__getitem__`` lets ``in`` resolve names across timeseries, support,
+        and spectra without the caller specifying which.
+        """
+        try:
+            self[var_name]
+        except KeyError:
+            return False
+        return True
+
     @property
     def flavor_names(self) -> np.ndarray:
-        if "dosimeter_flavor_names" not in self.support:
+        if "dosimeter_flavor_names" not in self:
             return np.asarray([], dtype="U")
-        return self.support["dosimeter_flavor_names"].data
+        return self["dosimeter_flavor_names"].data
 
     def map_data(self, statistic: str, flavor: Flavor) -> np.ndarray:
         """Return the map data for the specified statistic and flavor.
@@ -74,11 +90,11 @@ class GenericGeoMap(SWXData):
             Array of shape ``(ny, nx)`` corresponding to the specified flavor.
         """
         # remove the first dimension (time)
-        if f"{statistic}_map" not in self.data["support"]:
+        if f"{statistic}_map" not in self:
             raise ValueError(
                 f"Statistic '{statistic}' is not available in this GenericGeoMap."
             )
-        all_flavor_data = self.data["support"][f"{statistic}_map"].data[0]
+        all_flavor_data = self[f"{statistic}_map"].data[0]
         if flavor.name not in self.flavor_names:
             raise ValueError(
                 f"Flavor '{flavor.name}' is not available in this GenericGeoMap."
@@ -90,12 +106,12 @@ class GenericGeoMap(SWXData):
     @property
     def lon(self) -> np.ndarray:
         """Longitude coordinate array in degrees"""
-        return self.support["lon"].data
+        return self["lon"].data
 
     @property
     def lat(self) -> np.ndarray:
         """Latitude coordinate array in degrees"""
-        return self.support["lat"].data
+        return self["lat"].data
 
     @property
     def lon_lat_grid(self) -> tuple[np.ndarray, np.ndarray]:
@@ -213,7 +229,6 @@ class GenericGeoMap(SWXData):
         flavor: Flavor | int = Flavor.U,
         ax: "plt.Axes | None" = None,
         add_colorbar: bool = True,
-        color_by_region: bool = False,
         statistic: str = "median",
         log_scale: bool = True,
         draw_contours: bool = False,
@@ -264,9 +279,8 @@ class GenericGeoMap(SWXData):
         ax : matplotlib.axes.Axes
             The axes containing the plot.
         last_mesh : matplotlib.collections.QuadMesh
-            The ``pcolormesh`` artist for the last drawn region (or the single
-            mesh when ``color_by_region=False``).  Useful for further
-            colorbar customisation by the caller.
+            The ``pcolormesh`` artist for the last drawn region.
+            Useful for further colorbar customisation by the caller.
 
         Notes
         -----
@@ -274,13 +288,9 @@ class GenericGeoMap(SWXData):
           log10(rad/s).
         - The figure title is formatted as ``"{Time_start} - {Time_end} - {flavor_label}"``
           using the track time range and the selected flavor's label.
-        - When ``color_by_region=True`` the per-region colorbars are placed
-          below the map axes using absolute figure coordinates; callers
-          adjusting the axes position after calling ``plot`` may need to
-          reposition them.
         """
 
-        data_unit = self.data["support"][f"{statistic}_map"].unit
+        data_unit = self[f"{statistic}_map"].unit
         _md = self.map_data(statistic, flavor)
         finite_values = _md[np.isfinite(_md)]
         is_count = statistic == "count"
@@ -309,23 +319,6 @@ class GenericGeoMap(SWXData):
             colorbar_label = f"{data_unit}"
             contour_data = _md
             contour_levels = None
-
-        # Colorblind-friendly colormaps
-        # cdi = "#093145"
-        # cla = "#43abc9"
-        # cda = "#107896"
-        # clg = "#F3F4F6"
-        # cdk = "#829356"
-        # clk = "#b5c689"
-        # cdd = "#bca136"
-        # cld = "#efd469"
-        # cdr = "#9a2617"
-        # clr = "#cd594a"
-
-        # bluemap = mpl.colors.LinearSegmentedColormap.from_list("", [clg, cla, cda, cdi])
-        # greenmap = mpl.colors.LinearSegmentedColormap.from_list("", [clg, clk, cdk])
-        # yellowmap = mpl.colors.LinearSegmentedColormap.from_list("", [clg, cld, cdd])
-        # redmap = mpl.colors.LinearSegmentedColormap.from_list("", [clg, clr, cdr])
 
         # Split map data into per-region arrays using the pre-computed mask
         # stored by to_geomap(). Shape: (nregions, nlat, nlon).
@@ -439,9 +432,6 @@ class GenericGeoMap(SWXData):
 
         return ax, last_mesh
 
-    def sum_per_region(self) -> dict[str, float]:
-        return NotImplementedError()
-
     @classmethod
     def load(cls, file_path: Path):
         """
@@ -462,8 +452,6 @@ class GenericGeoMap(SWXData):
         ValueError: If the file type is not recognized as a file type that can be loaded.
 
         """
-        from swxsoc.util.io import CDFHandler
-
         # Ensure file_path is a Path object
         file_path = Path(file_path)
 
