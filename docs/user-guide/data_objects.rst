@@ -33,7 +33,7 @@ Each satellite has two dosimeters, so the returned time series contains two dose
    >>> print(ts.colnames)
    ['time', 'dose0', 'dose1', 'longitude', 'latitude', 'altitude', 'region_code']
    >>> len(ts)
-   17255
+   13
 
 To get the flavor for dosimeters for this specific satellite, check the meta data of the track object:
 
@@ -50,12 +50,12 @@ You can also truncate the track to a specific time range using :meth:`REACHTrack
 .. doctest::
 
    >>> start = track.time[0]  # Start from the first timestamp
-   >>> end = track.time[100]
+   >>> end = track.time[10]  
    >>> truncated = track.truncate(start, end)
    >>> print(f"Original length: {len(track.get_track(SensorId.REACH_101))}")
-   Original length: 17255
+   Original length: 13
    >>> print(f"Truncated length: {len(truncated.get_track(SensorId.REACH_101))}")
-   Truncated length: 101
+   Truncated length: 11
 
 There are also a couple of built-in plotting methods for quick-look visualization of the track data:
 
@@ -99,7 +99,7 @@ To check how many times each grid cell was sampled, use the ``count_map`` statis
 
    >>> count_map_U = geomap.map_data("count", Flavor.U)
    >>> print(count_map_U.max())
-   13.0
+   4.0
 
 Some flavors are more common than others, so the count map can be used to identify which flavors have sufficient data for analysis.
 
