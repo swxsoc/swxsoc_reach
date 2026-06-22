@@ -329,10 +329,11 @@ class REACHTrack(SWXData):
 
     def to_geomap(
         self,
-        lon_resolution: 1.0 * u.deg = 1.0 * u.deg,
-        lat_resolution: 1.0 * u.deg = 1.0 * u.deg,
+        lon_resolution: u.Quantity = 1.0 * u.deg,
+        lat_resolution: u.Quantity = 1.0 * u.deg,
     ) -> GenericGeoMap:
-        """Convert track observations into stacked geospatial maps.
+        """
+        Convert track observations into stacked geospatial maps.
 
         The track is aggregated for every individual flavor and for every
         supported statistic onto a regular geodetic longitude/latitude grid.

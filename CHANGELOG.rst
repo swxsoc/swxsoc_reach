@@ -1,12 +1,12 @@
-*********
+=========
 CHANGELOG
-*********
+=========
 
 Notable changes to this project will be documented in this file.
 The format is based on `Keep a Changelog <https://keepachangelog.com/en/1.0.0/>`__.
 
 Unreleased
-==========
+----------
 
 * Added canonical region handling via ``Region`` enum and applied it to map masking, contour behavior, and plotting flows.
 * Added persistent per-region boolean masks to geomap outputs via ``REACHTrack.to_geomap()``, stored as a single multidimensional ``mask`` support variable.

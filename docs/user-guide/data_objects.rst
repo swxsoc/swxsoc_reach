@@ -43,7 +43,7 @@ To get the flavor for dosimeters for this specific satellite, check the meta dat
    [<Flavor.X: 8>, <Flavor.W: 4>]
 
 These are returned as a list of :class:`swxsoc_reach.util.enums.Flavor` objects, which can be used to identify the dosimeter type for each column in the time series.
-Refer to :ref:`_constellation-guide` for a complete list of all dosimeter flavors and their corresponding sensor IDs.
+Refer to :ref:`constellation-guide` for a complete list of all dosimeter flavors and their corresponding sensor IDs.
 
 You can also truncate the track to a specific time range using :meth:`REACHTrack.truncate`, which returns a new ``REACHTrack`` object containing only data within the specified time window.
 

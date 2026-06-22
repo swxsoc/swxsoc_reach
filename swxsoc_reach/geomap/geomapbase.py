@@ -51,9 +51,8 @@ class GenericGeoMap(SWXData):
     plotter (``plot``), and per-region summaries (``sum_per_region``).
 
     The underlying storage is an :class:`swxsoc.swxdata.SWXData` container
-    populated by
-    :meth:`swxsoc_reach.track.trackbase.REACHTrack.to_geomap`. Each
-    statistic map has shape ``(nflavors, ny, nx)``.
+    populated by :meth:`swxsoc_reach.track.trackbase.REACHTrack.to_geomap`. 
+    Each statistic map has shape ``(nflavors, ny, nx)``.
     """
 
     def __contains__(self, var_name: str) -> bool:
@@ -80,10 +79,13 @@ class GenericGeoMap(SWXData):
     def map_data(self, statistic: str, flavor: Flavor) -> np.ndarray:
         """Return the map data for the specified statistic and flavor.
 
+        Parameters
+        ----------
         statistic : str
                     Statistic name. One of ``"median"``, ``"mean"``, ``"count"``,
                     ``"min"``, ``"max"``, or ``"std"``.
         flavor : Flavor
+        
         Returns
         -------
         numpy.ndarray

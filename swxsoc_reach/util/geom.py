@@ -126,12 +126,11 @@ def contour_image_to_path(
 def read_contour_path(
     contour_file: str | Path | None = None,
 ) -> mpath.Path:
-    """Read saved contour NPZ and return matplotlib paths for one region.
+    """
+    Read saved contour NPZ and return matplotlib path.
 
     Parameters
     ----------
-    region_code : int
-        Region code to filter by.
     contour_file : str | Path | None, optional
         Path to contour NPZ file. If None, uses package data file.
 
@@ -142,8 +141,8 @@ def read_contour_path(
 
     Returns
     -------
-    list[matplotlib.path.Path]
-        Matplotlib path objects for the selected region code.
+    matplotlib.path.Path
+        Matplotlib path object
     """
 
     contour_path = (

@@ -21,7 +21,7 @@ in the development notebook, with one panel per region code.
 
    from swxsoc_reach.util.geom import REGION_CODES, read_contour_path
    from swxsoc_reach.util.util import load_regions
-
+   
    lon_values, lat_values, region_grid = load_regions()
    ordered_codes = sorted(REGION_CODES)
 
@@ -39,12 +39,12 @@ in the development notebook, with one panel per region code.
                color="tab:blue",
                label="Region Samples",
            )
-
-       for path in read_contour_path(code):
-           vertices = np.asarray(path.vertices, dtype=float)
-           if vertices.shape[0] < 2:
-               continue
-           ax.plot(vertices[:, 0], vertices[:, 1], color="tab:red", linewidth=1.2)
+       
+       path = read_contour_path()
+       vertices = np.asarray(path.vertices, dtype=float)
+       if vertices.shape[0] < 2:
+           continue
+       ax.plot(vertices[:, 0], vertices[:, 1], color="tab:red", linewidth=1.2)
 
        ax.set_title(f"{code}: {REGION_CODES[code]}")
        ax.set_xlim(-180, 180)
