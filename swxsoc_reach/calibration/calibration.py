@@ -87,8 +87,6 @@ def process_file(
 
             # Iterate over all individual flavors (exclude ALL which is a combination)
             for flavor in Flavor:
-                if flavor == Flavor.ALL:
-                    continue
                 try:
                     for this_statistic in geomap["statistics"].data:
                         # Create and save plot as PNG

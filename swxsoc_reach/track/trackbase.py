@@ -38,15 +38,6 @@ warnings.filterwarnings(
     module=__name__,
 )
 
-_FLAVOR_ORDER: tuple[Flavor, ...] = (
-    Flavor.U,
-    Flavor.V,
-    Flavor.W,
-    Flavor.X,
-    Flavor.Y,
-    Flavor.Z,
-)
-
 
 class REACHTrack(SWXData):
     """
@@ -398,7 +389,7 @@ class REACHTrack(SWXData):
             statistic: [] for statistic in valid_statistics
         }
 
-        for flavor in _FLAVOR_ORDER:
+        for flavor in Flavor.ordered():
             flavor_mask = dosimeter_flavor_grid == flavor
 
             # Skip if no observations for this flavor
@@ -444,13 +435,13 @@ class REACHTrack(SWXData):
                         statistic_maps[statistic].append(np.full(grid_shape, np.nan))
 
         dosimeter_flavor_names = np.asarray(
-            [flavor.name for flavor in _FLAVOR_ORDER], dtype="U"
+            [flavor.name for flavor in Flavor.ordered()], dtype="U"
         )
         dosimeter_flavor_ids = np.array(
-            [i for i in range(len(_FLAVOR_ORDER))], dtype=int
+            [i for i in range(len(Flavor.ordered()))], dtype=int
         )
         dosimeter_flavor_labels = np.asarray(
-            [flavor.label for flavor in _FLAVOR_ORDER], dtype="U"
+            [flavor.label for flavor in Flavor.ordered()], dtype="U"
         )
 
         # Define CDF Variables Dict.

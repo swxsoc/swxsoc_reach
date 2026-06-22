@@ -185,45 +185,9 @@ class GenericGeoMap(SWXData):
             float(self.lat.max()),
         )
 
-    def _flavor_index(self, flavor: Flavor | int) -> int:
-        """
-        Resolve a :class:`Flavor` (or integer index) to its position in :meth:`Flavor.ordered`.
-
-        Parameters
-        ----------
-        flavor : Flavor or int
-            Either a :class:`~swxsoc_reach.util.enums.Flavor` member, or an
-            integer index into :meth:`Flavor.ordered`.
-
-        Returns
-        -------
-        int
-            Zero-based index into the ordered flavor list.
-
-        Raises
-        ------
-        ValueError
-            If ``flavor`` is an unrecognized :class:`Flavor`, or if the
-            resolved integer index is out of range.
-        """
-        flavor_order = Flavor.ordered()
-        flavor_values = [member.value for member in flavor_order]
-        if isinstance(flavor, int):
-            index = flavor
-        else:
-            if flavor.value not in flavor_values:
-                raise ValueError(
-                    f"Unsupported flavor {flavor!r}. Use one of {flavor_order}."
-                )
-            index = flavor_values.index(flavor.value)
-
-        if index < 0 or index >= len(flavor_order):
-            raise ValueError(f"Flavor index {index} is out of range.")
-        return index
-
     def plot(
         self,
-        flavor: Flavor | int = Flavor.U,
+        flavor: Flavor = Flavor.U,
         ax: "plt.Axes | None" = None,
         add_colorbar: bool = True,
         statistic: str = "median",
@@ -242,10 +206,9 @@ class GenericGeoMap(SWXData):
 
         Parameters
         ----------
-        flavor : Flavor or int, optional
-            Which dosimeter flavor to plot. May be a :class:`Flavor` member or
-            an integer index into :meth:`Flavor.ordered`. Default is
-            ``Flavor.U``.
+        flavor : Flavor, optional
+            Which dosimeter flavor to plot. Must be a :class:`Flavor` member.
+            Default is ``Flavor.U``.
         ax : matplotlib.axes.Axes, optional
             Axes to draw into.  When ``None`` (default) a new figure and axes
             are created with a ``PlateCarree`` projection.

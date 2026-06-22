@@ -1,5 +1,8 @@
+import matplotlib.dates as mdates
+import matplotlib.pyplot as plt
 import pytest
 from astropy.timeseries import TimeSeries
+from cartopy.mpl.geoaxes import GeoAxes
 
 from swxsoc_reach import _test_file_track
 from swxsoc_reach.track.trackbase import REACHTrack
@@ -22,9 +25,9 @@ def truncated_reach_track_swx() -> REACHTrack:
 def test_truncate_basic_functionality(truncated_reach_track_swx, reach_track_swx):
     assert isinstance(truncated_reach_track_swx, REACHTrack)
     assert len(truncated_reach_track_swx.time) < len(reach_track_swx.time)
-
-
-def test_truncate_reduces_time_length(truncated_reach_track_swx, reach_track_swx):
+    assert (
+        len(truncated_reach_track_swx.time) == 10
+    )  # Should have 10 timestamps: from index 0 to index 9 inclusive
     assert (
         len(truncated_reach_track_swx.time) == 10
     )  # Should have 10 timestamps: from index 0 to index 9 inclusive
@@ -51,9 +54,14 @@ def test_truncate_slices_support_variables(truncated_reach_track_swx):
         assert truncated_reach_track_swx.support["observations"].data.shape[0] == n
 
 
-def test_plot_creates_axis_per_track_parameter(reach_track_swx, monkeypatch):
-    import matplotlib.pyplot as plt
+def test_truncate_no_overlap(reach_track_swx):
+    start = reach_track_swx.time[-1] + 1
+    end = reach_track_swx.time[-1] + 10
+    with pytest.raises(ValueError):
+        reach_track_swx.truncate(start, end)
 
+
+def test_plot_creates_axis_per_track_parameter(reach_track_swx, monkeypatch):
     monkeypatch.setattr(plt, "show", lambda: None)
     reach_track_swx.plot(reach_id=SensorId.from_str(0))
 
@@ -64,8 +72,6 @@ def test_plot_creates_axis_per_track_parameter(reach_track_swx, monkeypatch):
 
 
 def test_plot_labels_last_axis_time(reach_track_swx, monkeypatch):
-    import matplotlib.pyplot as plt
-
     monkeypatch.setattr(plt, "show", lambda: None)
     reach_track_swx.plot(reach_id=SensorId.from_str(0))
 
@@ -74,9 +80,6 @@ def test_plot_labels_last_axis_time(reach_track_swx, monkeypatch):
 
 
 def test_plot_time_axis_uses_hms_formatter(reach_track_swx, monkeypatch):
-    import matplotlib.dates as mdates
-    import matplotlib.pyplot as plt
-
     monkeypatch.setattr(plt, "show", lambda: None)
     reach_track_swx.plot(reach_id=SensorId.from_str(0))
 
@@ -87,8 +90,6 @@ def test_plot_time_axis_uses_hms_formatter(reach_track_swx, monkeypatch):
 
 
 def test_plot_uses_title_from_meta(reach_track_swx, monkeypatch):
-    import matplotlib.pyplot as plt
-
     monkeypatch.setattr(plt, "show", lambda: None)
     reach_track_swx.plot(reach_id=SensorId.from_str(0))
 
@@ -98,8 +99,6 @@ def test_plot_uses_title_from_meta(reach_track_swx, monkeypatch):
 
 
 def test_plot_raises_when_no_parameters(monkeypatch):
-    import matplotlib.pyplot as plt
-
     # Create an empty track with no track data
     ts = TimeSeries(time=["2026-01-01T00:00:00", "2026-01-01T00:01:00"])
     ts.time.meta = {"CATDESC": "Observation Time", "VAR_TYPE": "support_data"}
@@ -116,6 +115,28 @@ def test_plot_raises_when_no_parameters(monkeypatch):
     monkeypatch.setattr(plt, "show", lambda: None)
     with pytest.raises(Exception):  # Could be KeyError or other errors
         track.plot(reach_id=SensorId.from_str(0))
+
+
+def test_plotgeo_creates_geoaxes(reach_track_swx, monkeypatch):
+    monkeypatch.setattr(plt, "show", lambda: None)
+    reach_track_swx.plotgeo(reach_id=SensorId.from_str(0))
+
+    fig = plt.gcf()
+    assert len(fig.axes) >= 1
+    # The map is drawn on a cartopy GeoAxes (PlateCarree projection).
+    assert isinstance(fig.axes[0], GeoAxes)
+
+
+def test_plotgeo_accepts_second_dosimeter(reach_track_swx, monkeypatch):
+    monkeypatch.setattr(plt, "show", lambda: None)
+    # dose_index=1 selects the second dosimeter and should not raise.
+    reach_track_swx.plotgeo(reach_id=SensorId.from_str(0), dose_index=1)
+
+
+def test_plotgeo_raises_for_invalid_dose_index(reach_track_swx, monkeypatch):
+    monkeypatch.setattr(plt, "show", lambda: None)
+    with pytest.raises(ValueError):
+        reach_track_swx.plotgeo(reach_id=SensorId.from_str(0), dose_index=2)
 
 
 def test_timeseries_has_region_code_column(reach_track_swx):

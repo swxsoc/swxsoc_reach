@@ -4,7 +4,9 @@ import pytest
 from swxsoc import swxdata
 
 import swxsoc_reach.calibration.calibration as calib
-from swxsoc_reach import _test_file_track, _test_files_directory
+from swxsoc_reach import _test_files_directory
+from swxsoc_reach.geomap.geomapbase import GenericGeoMap
+from swxsoc_reach.track.trackbase import REACHTrack
 from swxsoc_reach.util.enums import Flavor
 from swxsoc_reach.util.util import parse_science_filename
 
@@ -22,6 +24,11 @@ def test_l1_process_file(this_path, tmpdir, monkeypatch):
     # Set up the temporary directory as the current working directory
     monkeypatch.chdir(tmpdir)
     files = calib.process_file(this_path)
+
+    # Check only one CDF File is Produced
+    assert len(files) == 1, "Should produce exactly one output CDF file"
+    assert isinstance(files[0], (str, Path)), "Output file should be a string or Path"
+    assert Path(files[0]).suffix == ".cdf", "Output file should have .cdf extension"
     assert Path(files[0]).exists()
 
     # Make sure the filename is correctly parsed and the output filename is correct
@@ -35,6 +42,10 @@ def test_l1_process_file(this_path, tmpdir, monkeypatch):
     data = swxdata.SWXData.load(files[0])
     assert isinstance(data, swxdata.SWXData)
 
+    # Make sure the CDF can be loaded to a REACHTrack object without errors (this also tests that the CDF contains the expected variables and structure for a REACH L1C product)
+    track = REACHTrack.load(files[0])
+    assert isinstance(track, REACHTrack)
+
 
 def test_process_file_target(tmpdir, monkeypatch):
     # Set up the temporary directory as the current working directory
@@ -42,6 +53,10 @@ def test_process_file_target(tmpdir, monkeypatch):
 
     files = calib.process_file(target_udl_file_path)
     assert Path(files[0]).exists()
+
+    # Make sure the CDF can be loaded to a REACHTrack object without errors (this also tests that the CDF contains the expected variables and structure for a REACH L1C product)
+    track = REACHTrack.load(files[0])
+    assert isinstance(track, REACHTrack)
 
     # Make sure the filename is correctly parsed and the output filename is correct
     parsed_result = parse_science_filename(files[0])
@@ -61,6 +76,17 @@ def test_process_file_target(tmpdir, monkeypatch):
     level_2_files = calib.process_file(files[0])
     assert len(level_2_files) > 0, "Should produce at least one level 2 file"
 
+    # Make sure the filename is correctly parsed and the output filename is correct
+    parsed_result = parse_science_filename(level_2_files[0])
+    assert parsed_result["instrument"] == "reach"
+    assert parsed_result["level"] == "l2"
+    assert parsed_result["mode"] == "all"
+    assert parsed_result["version"] == "1.0.0"
+
+    # Make sure the level 2 CDF can be loaded by a GenericGeoMap object
+    geomap = GenericGeoMap.load(level_2_files[0])
+    assert isinstance(geomap, GenericGeoMap)
+
 
 def test_process_file_cdf_creates_geomaps(tmpdir, monkeypatch):
     """Test that processing a CDF file creates geomap CDFs and png plots for each flavor.
@@ -71,14 +97,17 @@ def test_process_file_cdf_creates_geomaps(tmpdir, monkeypatch):
     # Set up the temporary directory as the current working directory
     monkeypatch.chdir(tmpdir)
 
-    # First, process the UDL file to create a CDF
-    output_files = calib.process_file(_test_file_track)
-    assert len(output_files) > 0
+    # First, process the L1C CDF file to create a L2 CDF File with geomaps
+    output_files = calib.process_file(target_l1c_file_path)
+
+    # Number of Output Files should be
+    #   1 CDF
+    #   6 Flavors x 7 Statistics = 42 PNGs
+    assert len(output_files) == 43, "Should produce at least one CDF and 42 PNG files"
     cdf_path = Path(output_files[0])
     assert cdf_path.exists()
 
     # Should have: geomap CDFs + png plots
-    assert len(output_files) >= 1
     valid_statistics = ("sum", "mean", "median", "count", "min", "max", "std")
 
     # Collect geomap CDFs and pngs
@@ -102,6 +131,10 @@ def test_process_file_cdf_creates_geomaps(tmpdir, monkeypatch):
         and str(f).endswith(".png")
     ]
 
+    assert len(geomap_pngs) == 42, (
+        "Should create 42 geomap PNGs (6 flavors x 7 statistics) for the level 2 product"
+    )
+
     # Verify geomap CDFs exist and have content
     for geomap_cdf in geomap_cdfs:
         cdf_path_obj = Path(geomap_cdf)
@@ -119,7 +152,7 @@ def test_process_file_cdf_creates_geomaps(tmpdir, monkeypatch):
         )
 
     num_statistics = len(valid_statistics)
-    num_flavors = len(Flavor) - 1  # Exclude ALL flavor
+    num_flavors = len(Flavor)
     expected_num_plots = num_statistics * num_flavors
     assert len(geomap_pngs) >= expected_num_plots
 
