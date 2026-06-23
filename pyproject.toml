@@ -9,33 +9,38 @@ readme = "README.rst"
 dynamic = ["version"]
 authors = [
   {name = "Steven Christe", email="steven.christe@nasa.gov"},
-  {name = "Andrew Robbertz", email="a.robbertz@gmail.com"},
+  {name = "Andrew Robbertz", email="andrew.l.robbertz@nasa.gov"},
+  {name = "Aaron Breneman", email="aaron.w.breneman@nasa.gov"},
+  {name = "Alexa Halford", email="alexa.j.halford@nasa.gov"},
 ]
 license = {file = "LICENSE.rst"}
 requires-python = ">=3.10"
-keywords = ["nasa mission", "space weather"]
+keywords = ["nasa", "space weather"]
 classifiers = [
   "Development Status :: 3 - Alpha",
   "License :: OSI Approved :: Apache 2.0",
   "Natural Language :: English",
   "Operating System :: OS Independent",
   "Programming Language :: Python",
-  "Programming Language :: Python :: 3.8",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
   "Intended Audience :: Science/Research",
   "Topic :: Scientific/Engineering",
   "Topic :: Scientific/Engineering :: Physics",
 ]
 dependencies = [
-  'astropy==6.1.*',
-  'numpy<2.4',
-  'matplotlib==3.10.*',
-  'pandas==2.3.*',
+  'astropy',
+  'cartopy',
+  'numpy',
+  'scipy',
+  'matplotlib',
+  'pandas',
   'swxsoc @ git+https://github.com/swxsoc/swxsoc.git@main',
 ]
 
 [project.optional-dependencies]
 dev = [
-  "swxsoc_reach[docs, test, style, net]"
+  "swxsoc_reach[docs, test, style, net, other]"
 ]
 
 net = [
@@ -53,13 +58,15 @@ docs = [
 test = [
   'pytest',
   'pytest-astropy',
-  'pytest-doctestplus>=1.3.0',
+  'pytest-doctestplus',
   'pytest-cov',
   'coverage[toml]',
   'moto',
 ]
 
 style = ['ruff']
+
+other = ['pre-commit']
 
 [tool.setuptools.package-data]
 "swxsoc_reach.data" = ["**"]

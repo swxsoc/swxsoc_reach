@@ -1,9 +1,9 @@
 import pandas as pd
 import pytest
 
+from swxsoc_reach import _test_files_directory
 from swxsoc_reach.calibration import transform
 from swxsoc_reach.io.file_tools import read_udl_csv
-from swxsoc_reach import _test_files_directory
 
 
 def _make_input_dataframe(descriptors: list[str]) -> pd.DataFrame:

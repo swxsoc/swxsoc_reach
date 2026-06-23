@@ -1,21 +1,82 @@
+from pathlib import Path
+
+import numpy as np
+import numpy.typing as npt
 from astropy.time import Time
-from swxsoc.util.util import parse_science_filename, TIME_FORMAT
+from swxsoc.util.util import TIME_FORMAT, parse_science_filename
+
+from swxsoc_reach import _data_directory
+from swxsoc_reach.util.geom import contour_image_to_path  # noqa: F401
+from swxsoc_reach.util.geom import load_region_contours
 
 __all__ = [
+    "contour_image_to_path",
     "create_reach_filename",
+    "load_regions",
     "parse_science_filename",
     "TIME_FORMAT",
 ]
 
 
-def get_reachid_lut():
+def load_regions(
+    file_path: str | Path | None = None,
+) -> tuple[npt.NDArray[np.float64], npt.NDArray[np.float64], npt.NDArray[np.int_]]:
     """
-    Function to return a lookup table (dictionary) mapping Iridium satellite names to their corresponding REACH IDs and POD model numbers.
+    Load region longitudes, latitudes, and integer region codes.
+
+    Parameters
+    ----------
+    file_path : str, Path, or None, optional
+        Path to the combined contour NPZ file. If None, uses the default
+        contour file in the data directory.
 
     Returns
     -------
-    dict
-        A dictionary where the keys are Iridium satellite names (e.g., 'Iridium-102') and the values are dictionaries containing 'reachid' and 'pod_model' keys with their corresponding values.
+    tuple of (npt.NDArray[np.float64], npt.NDArray[np.float64], npt.NDArray[np.int_])
+        A tuple containing:
+        - Longitudes array (float64)
+        - Latitudes array (float64)
+        - Integer region codes array (int)
+    """
+    contour_file = (
+        Path(file_path)
+        if file_path is not None
+        else _data_directory / "region_contour_paths.npz"
+    )
+
+    lookuplon: list[float] = []
+    lookuplat: list[float] = []
+    glook: list[int] = []
+
+    contour_map = load_region_contours(contour_file=contour_file)
+    for region_code, path_obj in contour_map.items():
+        vertices = np.asarray(path_obj.vertices, dtype=float)
+        if vertices.size == 0:
+            continue
+        finite_vertices = vertices[np.all(np.isfinite(vertices), axis=1)]
+        if finite_vertices.size == 0:
+            continue
+
+        lookuplon.extend(finite_vertices[:, 0].tolist())
+        lookuplat.extend(finite_vertices[:, 1].tolist())
+        glook.extend([int(region_code)] * finite_vertices.shape[0])
+
+    return (
+        np.array(lookuplon, dtype=float),
+        np.array(lookuplat, dtype=float),
+        np.array(glook, dtype=int),
+    )
+
+
+def get_reachid_lut() -> dict[str, dict[str, str]]:
+    """
+    Return a lookup table mapping Iridium satellite names to REACH IDs and POD model numbers.
+
+    Returns
+    -------
+    dict[str, dict[str, str]]
+        A dictionary where keys are Iridium satellite names (e.g., 'Iridium-102') and values are
+        dictionaries containing 'reachid' and 'pod_model' keys with their corresponding string values.
     """
 
     reachids = {
@@ -62,28 +123,29 @@ def create_reach_filename(
     version: str,
     mode: str = "",
     descriptor: str = "",
-):
-    """
-    Generate the REACH filename based on the provided parameters.
+) -> str:
+    """Generate the REACH filename based on the provided parameters.
 
     Parameters
     ----------
     time : str
-        The time associated with the data.
+        The time associated with the data in ISO format.
     level : str
         The data level (e.g., "L1", "L2").
     version : str
-        The version string (e.g., "0.0.1"). This should be in the format major.minor.patch.
-        This should come from the global attribute `Data_version`.
-    mode : str
-        The instrument mode (e.g., "all"). This should come from the global attribute `Instrument_mode`.
-    descriptor : str
-        The dataset descriptor (e.g., "prelim"). This should come from the global attribute `Data_type`.
+        The version string (e.g., "0.0.1") in major.minor.patch format.
+        Should come from the global attribute `Data_version`.
+    mode : str, optional
+        The instrument mode (e.g., "all"). Default is empty string.
+        Should come from the global attribute `Instrument_mode`.
+    descriptor : str, optional
+        The dataset descriptor (e.g., "prelim"). Default is empty string.
+        Should come from the global attribute `Data_type`.
 
     Returns
     -------
     str
-        The generated REACH filename.
+        The generated REACH filename in CDF format (e.g., "reach_all_L1_prelim_20250612T000000_v1.0.0.cdf").
     """
     # Define Static Parts
     instrument_shortname = "reach"

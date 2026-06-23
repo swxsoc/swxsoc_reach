@@ -8,22 +8,21 @@ from pathlib import Path
 import pytest
 
 from swxsoc_reach.historical.download_orchestrator import (
-    DownloadRunConfig,
     EXPECTED_RECORDS_ALL,
     EXPECTED_RECORDS_SINGLE,
+    DownloadRunConfig,
     _decide_action,
     _iter_dates,
     run_download,
 )
 from swxsoc_reach.historical.telemetry import (
-    HistoricalTelemetry,
+    STATUS_DOWNLOAD_PENDING,
     STATUS_DOWNLOADED,
     STATUS_FAILED,
-    STATUS_DOWNLOAD_PENDING,
     STATUS_SKIPPED_NO_DATA,
+    HistoricalTelemetry,
     TelemetryRow,
 )
-
 
 # --- helpers ---
 
