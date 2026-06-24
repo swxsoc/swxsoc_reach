@@ -27,11 +27,13 @@ jobs:
     
         # Define mission name & instrument name from the repository name
         PACKAGE_NAME=$(basename -s .git $REPO_URL)
-        MISSION_NAME=$(echo $PACKAGE_NAME | awk -F'_' '{print $1}')
+        MISSION_NAME="swxsoc_pipeline"
+        MISSION_NAME_SLUG="swxsoc-pipeline"
         INSTRUMENT_NAME=$(echo $PACKAGE_NAME | awk -F'_' '{print $2}')
     
         echo "Package Name: $PACKAGE_NAME"
         echo "Mission Name: $MISSION_NAME"
+        echo "Mission Name Slug: $MISSION_NAME_SLUG"
         echo "Instrument Name: $INSTRUMENT_NAME"
     
         # Define the mission-specific requirements file
@@ -51,7 +53,7 @@ jobs:
         cat $REQUIREMENTS_FILE
     
         # Attempt to build using the base image from ECR
-        BASE_IMAGE="public.ecr.aws/w5r9l1c8/dev-${MISSION_NAME}-swsoc-docker-lambda-base:latest"
+        BASE_IMAGE="public.ecr.aws/w5r9l1c8/dev-${MISSION_NAME_SLUG}-docker-lambda-base:latest"
     
         if docker pull $BASE_IMAGE; then
           echo "Building Docker image with base image $BASE_IMAGE"
