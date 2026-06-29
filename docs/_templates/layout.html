@@ -1,4 +1,8 @@
+{%- if builder == 'epub' %}
+{%- extends "!layout.html" %}
+{%- else %}
 {%- extends "pydata_sphinx_theme/layout.html" %}
+{%- endif %}
 
 {%- block extrahead %}
 {{ super() }}
