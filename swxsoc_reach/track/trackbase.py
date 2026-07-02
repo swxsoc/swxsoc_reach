@@ -396,9 +396,9 @@ class REACHTrack(SWXData):
 
             # Skip if no observations for this flavor
             if not np.any(flavor_mask):
-                log.warning(
-                    f"No observations found for flavor {flavor.name}. Skipping."
-                )
+log.warning(
+    f"No observations found for flavor {flavor.name}. Filling with empty maps."
+)
                 for statistic in valid_statistics:
                     if statistic == "count":
                         statistic_maps[statistic].append(np.zeros(grid_shape))
