@@ -2,6 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pytest
 from astropy import units as u
+from astropy.nddata import NDData
 from cartopy import crs as ccrs
 from cartopy.mpl.geoaxes import GeoAxes
 from matplotlib.collections import QuadMesh
@@ -62,6 +63,12 @@ def test_shape_property(test_geomap):
 def test_flavor_names_property(test_geomap):
     """flavor_names should list the six dosimeter flavors in canonical order."""
     assert list(test_geomap.flavor_names) == ["U", "V", "W", "X", "Y", "Z"]
+
+
+def test_statistic_maps_preserve_six_flavor_axis(test_geomap):
+    """All statistic maps should retain the canonical six-flavor axis."""
+    for statistic in ("sum", "mean", "median", "count", "min", "max", "std"):
+        assert test_geomap[f"{statistic}_map"].data.shape[1] == 6
 
 
 def test_lon_property(test_geomap):
@@ -143,6 +150,20 @@ def test_map_data(test_geomap):
     # The per-flavor maps only contain U, V, W, X, Y, Z, so Flavor.ALL is absent.
     with pytest.raises(ValueError):
         test_geomap.map_data("median", Flavor.ALL)
+
+
+def test_map_data_raises_for_misaligned_flavor_metadata(test_geomap):
+    """map_data should fail loudly when flavor metadata and data axes disagree."""
+    original = test_geomap["dosimeter_flavor_names"]
+    test_geomap.support["dosimeter_flavor_names"] = NDData(
+        data=original.data[:-1],
+        meta=original.meta,
+    )
+
+    with pytest.raises(
+        ValueError, match="flavor metadata does not match the data axis"
+    ):
+        test_geomap.map_data("median", Flavor.X)
 
 
 def test_plot_returns_geoaxes_and_mesh(test_geomap):
