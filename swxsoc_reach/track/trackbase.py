@@ -389,14 +389,21 @@ class REACHTrack(SWXData):
             statistic: [] for statistic in valid_statistics
         }
 
-        for flavor in Flavor.ordered():
+        # Loop over all flavors in canonical order and compute the statistics for each flavor, then append to the corresponding list in statistic_maps.
+        ordered_flavors = Flavor.ordered()
+        for flavor in ordered_flavors:
             flavor_mask = dosimeter_flavor_grid == flavor
 
             # Skip if no observations for this flavor
             if not np.any(flavor_mask):
                 log.warning(
-                    f"No observations found for flavor {flavor.name}. Skipping."
+                    f"No observations found for flavor {flavor.name}. Filling with empty maps."
                 )
+                for statistic in valid_statistics:
+                    if statistic == "count":
+                        statistic_maps[statistic].append(np.zeros(grid_shape))
+                    else:
+                        statistic_maps[statistic].append(np.full(grid_shape, np.nan))
                 continue
 
             # Slice out the dose_rate data for this flavor
@@ -435,13 +442,13 @@ class REACHTrack(SWXData):
                         statistic_maps[statistic].append(np.full(grid_shape, np.nan))
 
         dosimeter_flavor_names = np.asarray(
-            [flavor.name for flavor in Flavor.ordered()], dtype="U"
+            [flavor.name for flavor in ordered_flavors], dtype="U"
         )
         dosimeter_flavor_ids = np.array(
-            [i for i in range(len(Flavor.ordered()))], dtype=int
+            [i for i in range(len(ordered_flavors))], dtype=int
         )
         dosimeter_flavor_labels = np.asarray(
-            [flavor.label for flavor in Flavor.ordered()], dtype="U"
+            [flavor.label for flavor in ordered_flavors], dtype="U"
         )
 
         # Define CDF Variables Dict.
@@ -515,6 +522,11 @@ class REACHTrack(SWXData):
         }
 
         for statistic in valid_statistics:
+            if len(statistic_maps[statistic]) != len(ordered_flavors):
+                raise ValueError(
+                    f"Statistic '{statistic}' has {len(statistic_maps[statistic])} flavor slices, "
+                    f"expected {len(ordered_flavors)}."
+                )
             unit = u.count if statistic == "count" else u.rad / u.s
             flavor_maps = np.stack(statistic_maps[statistic], axis=0, dtype=np.float32)
             variables[f"{statistic}_map"] = NDData(

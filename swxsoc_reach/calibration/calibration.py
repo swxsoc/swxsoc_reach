@@ -108,15 +108,21 @@ def process_file(
                         log.info(f"Saved geomap plot to {plot_png_path}")
                         output_files.append(plot_png_path)
 
-                except ValueError as e:
+                except ValueError:
                     log.warning(
-                        f"Could not create geomap for flavor {flavor.name}: {e}"
+                        "Could not create geomap for flavor %s",
+                        flavor.name,
+                        exc_info=True,
                     )
-                except Exception as e:
-                    log.warning(f"Error creating geomap for flavor {flavor.name}: {e}")
+                except Exception:
+                    log.warning(
+                        "Error creating geomap for flavor %s",
+                        flavor.name,
+                        exc_info=True,
+                    )
 
         except Exception as e:
-            log.warning(f"Could not create geomaps and plots: {e}")
+            log.warning(f"Could not create geomaps and plots: {e}", exc_info=True)
 
         return output_files
     # Otherwise, assume it's a raw CSV/JSON file that needs to be processed into a CDF.

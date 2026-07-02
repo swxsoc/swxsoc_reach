@@ -1,12 +1,14 @@
 import matplotlib.dates as mdates
 import matplotlib.pyplot as plt
+import numpy as np
 import pytest
 from astropy.timeseries import TimeSeries
 from cartopy.mpl.geoaxes import GeoAxes
 
 from swxsoc_reach import _test_file_track
+from swxsoc_reach.geomap import GenericGeoMap
 from swxsoc_reach.track.trackbase import REACHTrack
-from swxsoc_reach.util.enums import SensorId
+from swxsoc_reach.util.enums import Flavor, SensorId
 
 
 @pytest.fixture
@@ -143,3 +145,32 @@ def test_timeseries_has_region_code_column(reach_track_swx):
     ts = reach_track_swx.get_track(reach_id=SensorId.from_str(0))
     assert "region_code" in ts.colnames
     assert len(ts["region_code"]) == len(ts.time)
+
+
+@pytest.fixture
+def sparse_flavor_reach_track(reach_track_swx) -> REACHTrack:
+    reach_track_swx["dosimeter_flavors"].data[:] = [
+        "DOSE1 (Flavor V) in rad/second",
+        "DOSE2 (Flavor Y) in rad/second",
+    ]
+    return reach_track_swx
+
+
+def test_to_geomap_preserves_canonical_flavor_axis(sparse_flavor_reach_track):
+    geomap = sparse_flavor_reach_track.to_geomap()
+
+    assert isinstance(geomap, GenericGeoMap)
+    assert list(geomap.flavor_names) == ["U", "V", "W", "X", "Y", "Z"]
+    for statistic in ("sum", "mean", "median", "count", "min", "max", "std"):
+        assert geomap[f"{statistic}_map"].data.shape[1] == 6
+
+
+def test_to_geomap_fills_missing_flavors(sparse_flavor_reach_track):
+    geomap = sparse_flavor_reach_track.to_geomap()
+
+    for flavor in (Flavor.U, Flavor.W, Flavor.X, Flavor.Z):
+        assert np.isnan(geomap.map_data("median", flavor)).all()
+        assert np.array_equal(geomap.map_data("count", flavor), np.zeros(geomap.shape))
+
+    assert np.isfinite(geomap.map_data("median", Flavor.V)).any()
+    assert np.isfinite(geomap.map_data("median", Flavor.Y)).any()

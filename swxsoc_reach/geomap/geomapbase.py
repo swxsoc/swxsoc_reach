@@ -97,7 +97,18 @@ class GenericGeoMap(SWXData):
             raise ValueError(
                 f"Statistic '{statistic}' is not available in this GenericGeoMap."
             )
+
+        # Parse out the Statistic Map for each flavor
+        # shape: (nflavors, lat, lon)
         all_flavor_data = self[f"{statistic}_map"].data[0]
+
+        # Make sure the number of flavors in the metadata matches the number of slices in the statistic map
+        if all_flavor_data.shape[0] != len(self.flavor_names):
+            raise ValueError(
+                "GeoMap flavor metadata does not match the data axis. "
+                f"Metadata has {len(self.flavor_names)} flavors but "
+                f"'{statistic}_map' stores {all_flavor_data.shape[0]} slices."
+            )
         if flavor.name not in self.flavor_names:
             raise ValueError(
                 f"Flavor '{flavor.name}' is not available in this GenericGeoMap."

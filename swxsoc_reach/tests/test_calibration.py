@@ -86,6 +86,8 @@ def test_process_file_target(tmpdir, monkeypatch):
     # Make sure the level 2 CDF can be loaded by a GenericGeoMap object
     geomap = GenericGeoMap.load(level_2_files[0])
     assert isinstance(geomap, GenericGeoMap)
+    assert list(geomap.flavor_names) == ["U", "V", "W", "X", "Y", "Z"]
+    assert geomap["median_map"].data.shape[1] == 6
 
 
 def test_process_file_cdf_creates_geomaps(tmpdir, monkeypatch):
