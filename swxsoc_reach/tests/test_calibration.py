@@ -46,6 +46,12 @@ def test_l1_process_file(this_path, tmpdir, monkeypatch):
     track = REACHTrack.load(files[0])
     assert isinstance(track, REACHTrack)
 
+    # L1C product shapes are canonical and concatenation-safe.
+    assert track["dose_rate"].data.shape[1:] == (32, 2)
+    assert track["lat"].data.shape[1] == 32
+    assert track["lon"].data.shape[1] == 32
+    assert track["alt"].data.shape[1] == 32
+
 
 def test_process_file_target(tmpdir, monkeypatch):
     # Set up the temporary directory as the current working directory
@@ -57,6 +63,10 @@ def test_process_file_target(tmpdir, monkeypatch):
     # Make sure the CDF can be loaded to a REACHTrack object without errors (this also tests that the CDF contains the expected variables and structure for a REACH L1C product)
     track = REACHTrack.load(files[0])
     assert isinstance(track, REACHTrack)
+    assert track["dose_rate"].data.shape[1:] == (32, 2)
+    assert track["lat"].data.shape[1] == 32
+    assert track["lon"].data.shape[1] == 32
+    assert track["alt"].data.shape[1] == 32
 
     # Make sure the filename is correctly parsed and the output filename is correct
     parsed_result = parse_science_filename(files[0])
@@ -87,7 +97,10 @@ def test_process_file_target(tmpdir, monkeypatch):
     geomap = GenericGeoMap.load(level_2_files[0])
     assert isinstance(geomap, GenericGeoMap)
     assert list(geomap.flavor_names) == ["U", "V", "W", "X", "Y", "Z"]
+    assert geomap["median_map"].data.shape[0] == 1
     assert geomap["median_map"].data.shape[1] == 6
+    assert geomap["median_map"].data.shape[2] == len(geomap.lat)
+    assert geomap["median_map"].data.shape[3] == len(geomap.lon)
 
 
 def test_process_file_cdf_creates_geomaps(tmpdir, monkeypatch):
@@ -124,6 +137,13 @@ def test_process_file_cdf_creates_geomaps(tmpdir, monkeypatch):
     assert len(geomap_cdfs) == 1, (
         "Should create exactly one geomap CDF for the level 2 product"
     )
+
+    geomap = GenericGeoMap.load(geomap_cdfs[0])
+    assert isinstance(geomap, GenericGeoMap)
+    assert geomap["median_map"].data.shape[0] == 1
+    assert geomap["median_map"].data.shape[1] == 6
+    assert geomap["median_map"].data.shape[2] == len(geomap.lat)
+    assert geomap["median_map"].data.shape[3] == len(geomap.lon)
 
     geomap_pngs = [
         f
