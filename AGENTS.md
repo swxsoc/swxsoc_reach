@@ -91,8 +91,6 @@ REACHTrack.load(L1C).to_geomap()   (scipy.stats.binned_statistic_2d per flavor,
         │                            7 statistics: sum/mean/median/count/min/max/std)
         ▼
 GenericGeoMap.save()  ──►  L2 gridded CDF  +  per-flavor PNG (visualization/viz.plot_geomap)
-        ▼
-historical/s3_upload.upload_cdf_to_s3()  ──►  S3   (optional; via sdc_aws_utils)
 ```
 
 `calibration.process_file()` is the single entry point used by both the historical CLI and
