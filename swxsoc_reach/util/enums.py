@@ -261,14 +261,21 @@ _RELATIONSHIP_CACHE: dict["SensorId", tuple["Flavor", ...]] | None = None
 
 def load_reach_id_dosimeter_relationship(
     file_path: str | Path | None = None,
+    *,
+    force_reload: bool = False,
 ) -> dict[SensorId, tuple[Flavor, ...]]:
     """Load REACH-to-dosimeter mapping JSON as enum-typed dictionary.
+
+    This function uses a module-level cache as a singleton configuration
+    source. By default it reads from disk only once per Python process.
 
     Parameters
     ----------
     file_path : str or pathlib.Path, optional
         Path to the mapping JSON file. When ``None``, uses the package default
         ``swxsoc_reach/data/reach_id_dosimeter_relationship.json``.
+    force_reload : bool, optional
+        When ``True``, re-read from disk even if cached. Default is ``False``.
 
     Returns
     -------
@@ -276,6 +283,12 @@ def load_reach_id_dosimeter_relationship(
         Mapping from :class:`SensorId` to an ordered tuple of :class:`Flavor`
         values.
     """
+    global _RELATIONSHIP_CACHE
+
+    # Singleton-style fast path: default configuration is loaded once.
+    if file_path is None and not force_reload and _RELATIONSHIP_CACHE is not None:
+        return _RELATIONSHIP_CACHE
+
     path = (
         Path(file_path)
         if file_path is not None
@@ -287,14 +300,16 @@ def load_reach_id_dosimeter_relationship(
     with path.open(encoding="utf-8-sig") as f:
         raw: dict[str, dict[str, list[str]]] = json.load(f)
 
-    global _RELATIONSHIP_CACHE
-    _RELATIONSHIP_CACHE = {
+    mapping = {
         SensorId.from_str(sensor_id): tuple(
             Flavor.from_str(flavor_name) for flavor_name in payload["dosimeters"]
         )
         for sensor_id, payload in raw.items()
     }
-    return _RELATIONSHIP_CACHE
+
+    # Maintain a single shared in-memory mapping.
+    _RELATIONSHIP_CACHE = mapping
+    return mapping
 
 
 def sensor_ids_for_flavor(flavor: Flavor | str) -> list[SensorId]:
@@ -312,11 +327,7 @@ def sensor_ids_for_flavor(flavor: Flavor | str) -> list[SensorId]:
         Sensor IDs that contain ``flavor`` in their dosimeter list.
     """
     target = Flavor.from_str(flavor) if isinstance(flavor, str) else flavor
-    mapping = (
-        _RELATIONSHIP_CACHE
-        if _RELATIONSHIP_CACHE is not None
-        else load_reach_id_dosimeter_relationship()
-    )
+    mapping = load_reach_id_dosimeter_relationship()
 
     return [
         sensor_id for sensor_id, dosimeters in mapping.items() if target in dosimeters
