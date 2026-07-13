@@ -6,10 +6,11 @@ build sparse time-aligned arrays, and assemble an SWXData object
 ready for CDF output.
 """
 
+import re
+
 import astropy.units as u
 import numpy as np
 import pandas as pd
-import re
 from astropy.nddata import NDData
 from astropy.time import Time
 from astropy.timeseries import TimeSeries
