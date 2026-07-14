@@ -189,12 +189,20 @@ class REACHClient(GenericClient):
         for instrument in instruments:
             for level in levels:
                 for vehicle in vehicles:
-                    for data_type in data_types:
+                    if vehicle == "all_satellites":
+                        for data_type in data_types:
+                            for time_path in time_paths:
+                                # For other levels, include data type in the path
+                                # ex. /reach/dosimeter/l1c/all_satellites/prelim/2026
+                                paths.append(
+                                    f"{mission}/{instrument}/{level}/{vehicle}/{data_type}/{time_path}/"
+                                )
+                    else:
+                        # For specific vehicles, we dont have any data_type in the path.
+                        # ex. /reach/dosimeter/l1c/vid-136_nc/2019/
                         for time_path in time_paths:
-                            # For other levels, include data type in the path
-                            # ex. /reach/dosimeter/l1c/all_satellites/prelim/2026
                             paths.append(
-                                f"{mission}/{instrument}/{level}/{vehicle}/{data_type}/{time_path}/"
+                                f"{mission}/{instrument}/{level}/{vehicle}/{time_path}/"
                             )
         return paths
 
@@ -217,22 +225,10 @@ class REACHClient(GenericClient):
         list
             List of path strings in format 'YYYY'
         """
-        # Parse the ISO format times
-        start_date = start_time.datetime
-        end_date = end_time.datetime
-
-        # Initialize empty list for paths
-        time_paths = []
-
-        # Iterate through each year in the range
-        current_date = start_date
-        while current_date <= end_date:
-            # Format as YYYY
-            path = f"{current_date.year}"
-            time_paths.append(path)
-
-            # Move to next year
-            current_date = current_date.replace(year=current_date.year + 1)
+        # Iterate over every calendar year in the range, inclusive of both ends.
+        start_year = start_time.datetime.year
+        end_year = end_time.datetime.year
+        time_paths = [str(year) for year in range(start_year, end_year + 1)]
 
         log.debug(
             f"Generated {len(time_paths)} time paths from {start_time} to {end_time}"
