@@ -14,6 +14,7 @@ For more details checkout the :ref:`reference`.
    constellation
    geom
    data_objects
+   retrieving_data
    logger
    customization
    historical-download
