@@ -2,18 +2,17 @@
 
 Stubs ``process_fn`` (writes a fake CDF) and ``upload_fn`` (returns a
 fake S3 key) so we never touch real CDF tooling, real boto3, or
-sdc_aws_utils.
+swxsoc.io.s3.
 """
 
 from __future__ import annotations
 
-import sys
-import types
 from datetime import date
 from pathlib import Path
 
 import pytest
 
+from swxsoc_reach.historical import process_orchestrator
 from swxsoc_reach.historical.process_orchestrator import (
     ProcessRunConfig,
     _decide_process_action,
@@ -395,44 +394,11 @@ _REACH_CDF = "reach_all_l1c_prelim_20260101T000000_v1.0.0.cdf"
 _NESTED_KEY = "l1c/prelim/2026/01/01/" + _REACH_CDF
 
 
-def _fake_sdc_modules(nested_key: str) -> tuple[types.ModuleType, types.ModuleType]:
-    """Return fake (sdc_aws_utils, sdc_aws_utils.aws) module objects."""
-    fake_aws = types.ModuleType("sdc_aws_utils.aws")
-    fake_aws.create_s3_file_key = lambda parser, filename: nested_key
-    fake_sdc = types.ModuleType("sdc_aws_utils")
-    fake_sdc.aws = fake_aws
-    return fake_sdc, fake_aws
-
-
-def _fake_swxsoc_modules() -> tuple[
-    types.ModuleType, types.ModuleType, types.ModuleType
-]:
-    """Return fake (swxsoc, swxsoc.util, swxsoc.util.util) module objects."""
-    sentinel_parser = object()
-    fake_util_util = types.ModuleType("swxsoc.util.util")
-    fake_util_util.parse_science_filename = sentinel_parser
-    fake_util = types.ModuleType("swxsoc.util")
-    fake_util.util = fake_util_util
-    fake_swxsoc = types.ModuleType("swxsoc")
-    fake_swxsoc.util = fake_util
-    return fake_swxsoc, fake_util, fake_util_util
-
-
 def test_relocate_to_nested_layout_success(tmp_path, monkeypatch):
-    """When sdc_aws_utils is importable and key computation succeeds, the CDF
-    is moved into the nested subdirectory under output_dir."""
+    """test the CDF is moved into the nested subdirectory under output_dir."""
     flat = tmp_path / _REACH_CDF
     flat.write_bytes(b"FAKE_CDF" * 32)
     output_dir = tmp_path  # same root; nested dest will be a subdirectory
-
-    fake_sdc, fake_aws = _fake_sdc_modules(_NESTED_KEY)
-    fake_swxsoc, fake_util, fake_util_util = _fake_swxsoc_modules()
-
-    monkeypatch.setitem(sys.modules, "sdc_aws_utils", fake_sdc)
-    monkeypatch.setitem(sys.modules, "sdc_aws_utils.aws", fake_aws)
-    monkeypatch.setitem(sys.modules, "swxsoc", fake_swxsoc)
-    monkeypatch.setitem(sys.modules, "swxsoc.util", fake_util)
-    monkeypatch.setitem(sys.modules, "swxsoc.util.util", fake_util_util)
 
     result = _relocate_to_nested_layout(flat, output_dir)
 
@@ -440,20 +406,6 @@ def test_relocate_to_nested_layout_success(tmp_path, monkeypatch):
     assert result == expected
     assert expected.exists()
     assert not flat.exists()  # moved, not copied
-
-
-def test_relocate_to_nested_layout_import_error(tmp_path, monkeypatch):
-    """When sdc_aws_utils is not importable, the flat path is returned unchanged."""
-    flat = tmp_path / _REACH_CDF
-    flat.write_bytes(b"FAKE_CDF" * 32)
-
-    monkeypatch.setitem(sys.modules, "sdc_aws_utils", None)
-    monkeypatch.setitem(sys.modules, "sdc_aws_utils.aws", None)
-
-    result = _relocate_to_nested_layout(flat, tmp_path)
-
-    assert result == flat
-    assert flat.exists()
 
 
 def test_relocate_to_nested_layout_key_computation_error(tmp_path, monkeypatch):
@@ -464,17 +416,7 @@ def test_relocate_to_nested_layout_key_computation_error(tmp_path, monkeypatch):
     def _boom(parser, filename):
         raise ValueError("bad filename")
 
-    fake_aws = types.ModuleType("sdc_aws_utils.aws")
-    fake_aws.create_s3_file_key = _boom
-    fake_sdc = types.ModuleType("sdc_aws_utils")
-    fake_sdc.aws = fake_aws
-    fake_swxsoc, fake_util, fake_util_util = _fake_swxsoc_modules()
-
-    monkeypatch.setitem(sys.modules, "sdc_aws_utils", fake_sdc)
-    monkeypatch.setitem(sys.modules, "sdc_aws_utils.aws", fake_aws)
-    monkeypatch.setitem(sys.modules, "swxsoc", fake_swxsoc)
-    monkeypatch.setitem(sys.modules, "swxsoc.util", fake_util)
-    monkeypatch.setitem(sys.modules, "swxsoc.util.util", fake_util_util)
+    monkeypatch.setattr(process_orchestrator, "create_s3_file_key", _boom)
 
     result = _relocate_to_nested_layout(flat, tmp_path)
 
@@ -492,17 +434,11 @@ def test_relocate_to_nested_layout_already_at_dest(tmp_path, monkeypatch):
 
     # Tell the fake key builder to return the *same* relative path.
     full_nested_key = "l1c/prelim/2026/01/01/" + _REACH_CDF
-    fake_aws = types.ModuleType("sdc_aws_utils.aws")
-    fake_aws.create_s3_file_key = lambda parser, filename: full_nested_key
-    fake_sdc = types.ModuleType("sdc_aws_utils")
-    fake_sdc.aws = fake_aws
-    fake_swxsoc, fake_util, fake_util_util = _fake_swxsoc_modules()
-
-    monkeypatch.setitem(sys.modules, "sdc_aws_utils", fake_sdc)
-    monkeypatch.setitem(sys.modules, "sdc_aws_utils.aws", fake_aws)
-    monkeypatch.setitem(sys.modules, "swxsoc", fake_swxsoc)
-    monkeypatch.setitem(sys.modules, "swxsoc.util", fake_util)
-    monkeypatch.setitem(sys.modules, "swxsoc.util.util", fake_util_util)
+    monkeypatch.setattr(
+        process_orchestrator,
+        "create_s3_file_key",
+        lambda parser, filename: full_nested_key,
+    )
 
     result = _relocate_to_nested_layout(already_nested, tmp_path)
 
@@ -526,20 +462,10 @@ def _make_process_fn_reach(cdf_name: str = _REACH_CDF):
     return _fn
 
 
-def test_run_process_nested_layout_integration(tmp_path, monkeypatch):
-    """When sdc_aws_utils is importable, process_fn output is relocated
-    to the nested path and telemetry records the nested cdf_path."""
+def test_run_process_nested_layout_integration(tmp_path):
+    """Process_fn output is relocated to the nested path and telemetry records the nested cdf_path."""
     cfg = _config(tmp_path)
     _make_csv(cfg.input_dir, date(2026, 1, 1))
-
-    fake_sdc, fake_aws = _fake_sdc_modules(_NESTED_KEY)
-    fake_swxsoc, fake_util, fake_util_util = _fake_swxsoc_modules()
-
-    monkeypatch.setitem(sys.modules, "sdc_aws_utils", fake_sdc)
-    monkeypatch.setitem(sys.modules, "sdc_aws_utils.aws", fake_aws)
-    monkeypatch.setitem(sys.modules, "swxsoc", fake_swxsoc)
-    monkeypatch.setitem(sys.modules, "swxsoc.util", fake_util)
-    monkeypatch.setitem(sys.modules, "swxsoc.util.util", fake_util_util)
 
     summary = run_process(cfg, process_fn=_make_process_fn_reach())
     assert summary.days_processed == 1
@@ -563,18 +489,6 @@ def test_run_process_nested_layout_skip_existing_on_rerun(tmp_path, monkeypatch)
     cfg = _config(tmp_path)
     _make_csv(cfg.input_dir, date(2026, 1, 1))
 
-    fake_sdc, fake_aws = _fake_sdc_modules(_NESTED_KEY)
-    fake_swxsoc, fake_util, fake_util_util = _fake_swxsoc_modules()
-
-    for key, val in [
-        ("sdc_aws_utils", fake_sdc),
-        ("sdc_aws_utils.aws", fake_aws),
-        ("swxsoc", fake_swxsoc),
-        ("swxsoc.util", fake_util),
-        ("swxsoc.util.util", fake_util_util),
-    ]:
-        monkeypatch.setitem(sys.modules, key, val)
-
     run_process(cfg, process_fn=_make_process_fn_reach())
 
     def boom(csv_path):
@@ -589,18 +503,6 @@ def test_run_process_nested_layout_upload_only(tmp_path, monkeypatch):
     """Nested-layout CDF path flows into upload_fn correctly."""
     cfg_local = _config(tmp_path)
     _make_csv(cfg_local.input_dir, date(2026, 1, 1))
-
-    fake_sdc, fake_aws = _fake_sdc_modules(_NESTED_KEY)
-    fake_swxsoc, fake_util, fake_util_util = _fake_swxsoc_modules()
-
-    for key, val in [
-        ("sdc_aws_utils", fake_sdc),
-        ("sdc_aws_utils.aws", fake_aws),
-        ("swxsoc", fake_swxsoc),
-        ("swxsoc.util", fake_util),
-        ("swxsoc.util.util", fake_util_util),
-    ]:
-        monkeypatch.setitem(sys.modules, key, val)
 
     run_process(cfg_local, process_fn=_make_process_fn_reach())
 

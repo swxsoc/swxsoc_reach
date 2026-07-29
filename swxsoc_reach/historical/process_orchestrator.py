@@ -29,6 +29,9 @@ from datetime import date
 from pathlib import Path
 from typing import Callable
 
+from swxsoc.io.s3 import create_s3_file_key
+from swxsoc.util.util import parse_science_filename
+
 from swxsoc_reach import log
 from swxsoc_reach.historical._dates import iter_dates as _iter_dates
 from swxsoc_reach.historical.telemetry import (
@@ -45,9 +48,6 @@ from swxsoc_reach.historical.telemetry import (
     TelemetryRow,
     utcnow_iso,
 )
-
-# Lazy: imported only when needed, to keep ``process_orchestrator``
-# importable on machines without the calibration stack ready.
 
 
 @dataclass
@@ -252,21 +252,10 @@ def _relocate_to_nested_layout(flat_path: Path, output_dir: Path) -> Path:
     """Move *flat_path* into a nested subdirectory of *output_dir*.
 
     The subdirectory mirrors the S3 key produced by
-    :func:`sdc_aws_utils.aws.create_s3_file_key` (e.g.
+    :func:`swxsoc.io.s3.create_s3_file_key` (e.g.
     ``l1c/prelim/2026/01/01/``). Falls back to returning *flat_path*
-    unchanged if ``sdc_aws_utils`` or ``swxsoc`` are not importable, or
-    if key computation raises for any reason.
+    unchanged if key computation raises for any reason.
     """
-    try:
-        from sdc_aws_utils.aws import create_s3_file_key
-        from swxsoc.util.util import parse_science_filename
-    except ImportError:
-        log.debug(
-            f"_relocate_to_nested_layout: sdc_aws_utils/swxsoc not available; "
-            f"keeping flat layout for {flat_path.name!r}"
-        )
-        return flat_path
-
     try:
         nested_key = create_s3_file_key(parse_science_filename, flat_path.name)
     except Exception as exc:  # noqa: BLE001

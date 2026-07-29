@@ -164,7 +164,7 @@ def _add_process_subparser(subparsers: argparse._SubParsersAction) -> None:
         help="Historical CSV → CDF processor (with optional S3 upload).",
         description=(
             "Convert per-day UDL CSVs (produced by 'download') into CDFs "
-            "and optionally upload them to S3 via sdc_aws_utils. Inputs "
+            "and optionally upload them to AWS S3. Inputs "
             "are discovered by globbing --input-dir for filenames "
             "matching each UTC day in [start-date, end-date]. Reuses the "
             "Phase 1 telemetry CSV (extended schema) so the full "
@@ -251,7 +251,7 @@ def _add_process_subparser(subparsers: argparse._SubParsersAction) -> None:
 
     s3 = pr.add_argument_group(
         "S3 upload",
-        "Optional upload of the produced CDF to S3 via sdc_aws_utils.",
+        "Optional upload of the produced CDF to S3.",
     )
     s3.add_argument(
         "--upload-to-s3",

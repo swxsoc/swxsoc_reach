@@ -73,7 +73,7 @@ S3 upload arguments
 -------------------
 
 - ``--upload-to-s3`` — when set, uploads each successful CDF to S3
-  via :func:`sdc_aws_utils.aws.push_science_file`. ``UPLOADED`` is the
+  via :func:`swxsoc.io.s3.push_science_file`. ``UPLOADED`` is the
   terminal status. Without this flag, ``PROCESSED`` is terminal.
 - ``--s3-bucket`` — destination bucket (required iff
   ``--upload-to-s3`` is set).
@@ -89,7 +89,7 @@ S3 upload requires the optional ``net`` extra:
 
     pip install 'swxsoc_reach[net]'
 
-This installs ``boto3`` and ``sdc_aws_utils``. Without these, calling
+This installs ``boto3``. Without these, calling
 ``--upload-to-s3`` raises ``RuntimeError`` with an install hint.
 
 Status lifecycle
@@ -124,7 +124,7 @@ columns (all default to ``""`` for older rows):
 - ``s3_bucket`` — destination bucket reported on a successful
   upload.
 - ``s3_key`` — S3 key returned by
-  :func:`sdc_aws_utils.aws.push_science_file`.
+  :func:`swxsoc.io.s3.push_science_file`.
 
 Restart semantics
 =================

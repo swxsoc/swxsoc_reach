@@ -157,10 +157,10 @@ python -m swxsoc_reach process  --help   # per-day CSV → CDF (+ optional --upl
 - **Lambda path**: `calibration.process_file()` detects `LAMBDA_ENVIRONMENT` and writes
   outputs to `/tmp` (Lambda's only writable dir). S3 upload
   ([historical/s3_upload.py](swxsoc_reach/historical/s3_upload.py)) stages the CDF in
-  `/tmp` before calling `sdc_aws_utils.aws.push_science_file()`. The
+  `/tmp` before calling `swxsoc.io.s3.push_science_file()`. The
   [calibration.yml](.github/workflows/calibration.yml) workflow builds & smoke-tests the
   SWxSOC processing Lambda against PRs — keep `process_file()`'s signature/behavior stable.
-- **AWS bits are optional**: `boto3` + `sdc_aws_utils` come from the `[net]` extra; code
+- **AWS bits are optional**: `boto3` comes from the `[net]` extra; code
   degrades gracefully when they're absent.
 
 ## Pitfalls
@@ -169,8 +169,8 @@ python -m swxsoc_reach process  --help   # per-day CSV → CDF (+ optional --upl
   `docs/_autosummary/` / `docs/_build/` outputs.
 - **Never strip whitespace from data fixtures.** pre-commit excludes `.json`/`.txt`/`.fits`
   from the trailing-whitespace and line-ending hooks — respect that for `data/` files.
-- **Editable cross-repo installs can desync.** If an import resolves `swxsoc` (or
-  `sdc_aws_utils`) from an unexpected location, check `pip show <pkg>` before debugging logic.
+- **Editable cross-repo installs can desync.** If an import resolves `swxsoc` 
+  from an unexpected location, check `pip show <pkg>` before debugging logic.
 - **Descriptor/flavor names differ between docs and code** — verify against `--help` and the
   enums, not the prose docs.
 - **Geomap/plot code deliberately suppresses `log10(0)` and Matplotlib label warnings**
