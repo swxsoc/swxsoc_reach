@@ -40,7 +40,7 @@ jobs:
 
 
     - name: Run tests
-      run: pytest swxsoc_reach docs --cov swxsoc_reach
+      run: pytest --pyargs swxsoc_reach --cov --junitxml=junit.xml -o junit_family=legacy swxsoc_reach
       env:
         #
         PLATFORM: ${{ matrix.platform }}
