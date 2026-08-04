@@ -35,7 +35,7 @@ dependencies = [
   'scipy',
   'matplotlib',
   'pandas',
-  'swxsoc @ git+https://github.com/swxsoc/swxsoc.git@main',
+  'swxsoc[cdf] @ git+https://github.com/swxsoc/swxsoc.git@main',
 ]
 
 [project.optional-dependencies]
