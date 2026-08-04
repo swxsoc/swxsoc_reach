@@ -7,6 +7,7 @@ from __future__ import annotations
 import shutil
 import tempfile
 from pathlib import Path
+
 from swxsoc.io.s3 import push_science_file
 from swxsoc.util.util import parse_science_filename
 
