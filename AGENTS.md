@@ -8,7 +8,8 @@ package built on top of the shared [`swxsoc`](https://github.com/swxsoc/swxsoc) 
 mission packages.
 
 For deeper background see the docs (built with Sphinx, published on ReadTheDocs):
-- [docs/user-guide/](docs/user-guide/index.rst) — overview, constellation, data objects, geomaps, historical CLI, customization, logging
+- [docs/user-guide/](docs/user-guide/index.rst) — overview, constellation, data objects, retrieving data,
+  geometry, historical download/process CLIs, customization, logging
 - [docs/dev-guide/](docs/dev-guide/index.rst) — coding standards, dev env, tests, docs, maintainer workflow
 - [README.rst](README.rst) — mission summary and data availability
 
@@ -59,7 +60,8 @@ cd docs && make html                    # Sphinx build (sphinx-automodapi, pydat
   [.devcontainer/devcontainer.json](.devcontainer/devcontainer.json) still points VS Code
   at black/pylint; **ignore that** and use ruff.
 - **Doctests count.** Examples in docstrings and `docs/**/*.rst` are collected by
-  `pytest-doctestplus` (`addopts = --doctest-rst --doctest-plus`). Keep examples runnable.
+  `pytest-doctestplus` (`addopts = --doctest-rst --doctest-plus --doctest-report ndiff`).
+  Keep examples runnable.
 - **Version is generated** by `setuptools_scm` into
   [swxsoc_reach/_version.py](swxsoc_reach/_version.py) — never hand-edit it.
 - Store new test fixtures under `swxsoc_reach/data/test/` and keep them small (<~100 kB).
@@ -102,15 +104,15 @@ produces the L2 geomap CDF + PNGs.
 | Subpackage | Responsibility | Key symbols |
 |---|---|---|
 | [calibration/](swxsoc_reach/calibration/) | UDL→`SWXData`→CDF transform; L1C→L2 geomap+PNG | `process_file()`, `build_swxdata()`, `deduplicate_records()` |
-| [io/](swxsoc_reach/io/) | File dispatch (UDL JSON/CSV/CDF) → DataFrame/`SWXData` | `read_file()`, `read_udl_json()`, `read_udl_csv()` |
-| [net/](swxsoc_reach/net/) | UDL HTTP query, auth, AIMD rate limiting | `download_UDL_reach_window()`, `resolve_udl_auth()`, `AdaptiveRateController` |
+| [io/](swxsoc_reach/io/) | File dispatch (UDL JSON/CSV/CDF) → DataFrame/`SWXData`; housekeeping DB stub | `read_file()`, `read_udl_json()`, `read_udl_csv()`, `record_housekeeping()` |
+| [net/](swxsoc_reach/net/) | UDL HTTP query, auth, AIMD rate limiting; Fido client | `download_UDL_reach_window()`, `resolve_udl_auth()`, `AdaptiveRateController`, `REACHClient` |
 | [historical/](swxsoc_reach/historical/) | Multi-day orchestration, telemetry, S3 upload | `run_download()`, `run_process()`, `HistoricalTelemetry`, `upload_cdf_to_s3()` |
-| [track/](swxsoc_reach/track/) | L1C CDF wrapper; per-sensor extraction, geomapping | `REACHTrack.get_track()/.to_geomap()/.truncate()/.plot()` |
-| [geomap/](swxsoc_reach/geomap/) | L2 gridded map storage + plotting | `GenericGeoMap.map_data()/.lon_lat_grid()/.plot()` |
+| [track/](swxsoc_reach/track/) | L1C CDF wrapper; per-sensor extraction, geomapping | `REACHTrack.load()/.get_track()/.to_geomap()/.truncate()/.plot()/.plotgeo()` |
+| [geomap/](swxsoc_reach/geomap/) | L2 gridded map storage + plotting | `GenericGeoMap.load()/.map_data()/.lon_lat_grid()/.plot()` |
 | [visualization/](swxsoc_reach/visualization/) | Cartopy region maps, geomaps, dose plots | `plot_geomap()`, `plot_regions()`, `plot_region_contours()` |
 | [util/](swxsoc_reach/util/) | Enums, CDF schema, geometry, filename helpers | `Region`, `Flavor`, `SensorId`, `REACHDataSchema`, `create_reach_filename()` |
 | [data/](swxsoc_reach/data/) | Mission config, CDF attr schemas (YAML), region contours (NPZ) | `reach_id_dosimeter_relationship.json`, `region_contour_paths.npz` |
-| [tests/](swxsoc_reach/tests/) | Unit + integration (pipeline, CLI, orchestrators) | `test_calibration.py`, `test_cli.py`, `test_udl.py` |
+| [tests/](swxsoc_reach/tests/) | Unit + integration (pipeline, CLI, orchestrators) | 17 modules, e.g. `test_calibration.py`, `test_transform.py`, `test_cli.py`, `test_udl.py`, `test_historical_*.py`, `test_trackbase.py`, `test_geomapbase.py` |
 
 ### Core enums — [swxsoc_reach/util/enums.py](swxsoc_reach/util/enums.py)
 
@@ -124,24 +126,38 @@ pipeline:
 - **`Region`** — geomagnetic zones `SAA`, `POLAR_CAP`, `OUTER_ZONE`, `SLOT` (mask index,
   code, label, color) used to tag points and color geomaps.
 - **`load_reach_id_dosimeter_relationship()`** loads
-  `data/reach_id_dosimeter_relationship.json` at import into the package-level
-  `REACH_ID_DOSIMETER_RELATIONSHIP` (`dict[SensorId, tuple[Flavor, ...]]`); it is cached.
+  `data/reach_id_dosimeter_relationship.json` and is memoized behind a module-level
+  `_RELATIONSHIP_CACHE` (bypass with `force_reload=True` or a custom `file_path`).
+  [`swxsoc_reach/__init__.py`](swxsoc_reach/__init__.py) calls it at import to populate the
+  package-level `REACH_ID_DOSIMETER_RELATIONSHIP` (`dict[SensorId, tuple[Flavor, ...]]`).
 
 ## The `historical` CLI
 
 `python -m swxsoc_reach` ([swxsoc_reach/__main__.py](swxsoc_reach/__main__.py)) exposes two
 idempotent, telemetry-tracked subcommands. Always treat `--help` as the source of truth for
-flag values (docs and code have drifted on descriptor naming, e.g. `QUICKLOOK`/`PROVISIONAL`
-vs. `prelim`).
+flag values.
 
 ```bash
 python -m swxsoc_reach download --help   # per-day UDL download over a UTC date range
-python -m swxsoc_reach process  --help   # per-day CSV → CDF (+ optional --upload-s3)
+python -m swxsoc_reach process  --help   # per-day CSV → CDF (+ optional --upload-to-s3)
 ```
 
+- Both take `--start-date`/`--end-date` (inclusive UTC), `--sensor-id` (default `ALL`),
+  `--output-format` (`csv`|`json`), `--telemetry-file`, `--limit-days`, `--retry-failed`,
+  `--dry-run`, `--aws-region`, `-v`/`-vv`.
+- **`--descriptor` choices differ between subcommands**: `download` accepts
+  `QUICKLOOK`/`PROVISIONAL`, `process` accepts `QUICKLOOK`/`PRELIMINARY` (both default
+  `QUICKLOOK`). This is a real divergence in the code, not a doc typo.
+- `download` has an **AIMD rate controller** argument group:
+  `--max-concurrent-requests` (4), `--initial-rate` (5.0), `--additive-increase` (1.0),
+  `--multiplicative-decrease` (0.5), `--min-rate` (5.0), `--max-rate` (25.0).
+- `process` has an **S3 upload** argument group: `--upload-to-s3` (note: *not*
+  `--upload-s3`), which requires `--s3-bucket`.
 - Reruns skip days already terminal in the append-only telemetry CSV
   ([historical/telemetry.py](swxsoc_reach/historical/telemetry.py)); use `--retry-failed`
-  / `--dry-run` when iterating.
+  / `--dry-run` when iterating. Both phases share one telemetry file (defaults to
+  `<output-dir>/download_telemetry.csv` for `download`, `<input-dir>/download_telemetry.csv`
+  for `process`).
 - `sensor_id=ALL` fans out into ~288 UDL requests/day (5-min chunks); a specific sensor
   uses ~4/day (6-hour chunks). See
   [historical/download_orchestrator.py](swxsoc_reach/historical/download_orchestrator.py).
@@ -171,8 +187,9 @@ python -m swxsoc_reach process  --help   # per-day CSV → CDF (+ optional --upl
   from the trailing-whitespace and line-ending hooks — respect that for `data/` files.
 - **Editable cross-repo installs can desync.** If an import resolves `swxsoc` 
   from an unexpected location, check `pip show <pkg>` before debugging logic.
-- **Descriptor/flavor names differ between docs and code** — verify against `--help` and the
-  enums, not the prose docs.
+- **Descriptor choices are subcommand-specific** (`PROVISIONAL` for `download`,
+  `PRELIMINARY` for `process`) and flavor names differ between prose docs and code —
+  verify against `--help` and the enums, not the prose docs.
 - **Geomap/plot code deliberately suppresses `log10(0)` and Matplotlib label warnings**
   because REACH dose data legitimately contains zeros; don't "fix" those by removing the
   guards.
