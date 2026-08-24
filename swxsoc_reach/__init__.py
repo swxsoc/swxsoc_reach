@@ -9,18 +9,17 @@ except ImportError:
     __version__ = "unknown version"
     version_tuple = (0, 0, "unknown version")
 
-# Get SWXSOC_MISSIONS environment variable if it exists or use default for mission
-SWXSOC_MISSION = os.getenv("SWXSOC_MISSION", "swxsoc_pipeline")
-os.environ["SWXSOC_MISSION"] = SWXSOC_MISSION
-
-from swxsoc import config as swxsoc_config  # noqa: E402
-from swxsoc import log as swxsoc_log
+import swxsoc
 
 from swxsoc_reach.util.enums import load_reach_id_dosimeter_relationship
 
+# Force the mission environment variable and reconfigure regardless of import order
+os.environ["SWXSOC_MISSION"] = "swxsoc_pipeline"
+swxsoc.reconfigure()
+
 # Load user configuration
-config = swxsoc_config
-log = swxsoc_log
+config = swxsoc.config
+log = swxsoc.log
 
 _package_directory = Path(__file__).parent
 _data_directory = _package_directory / "data"
