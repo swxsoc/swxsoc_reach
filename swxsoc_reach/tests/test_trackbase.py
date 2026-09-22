@@ -1,3 +1,6 @@
+from unittest.mock import Mock
+
+import astropy.units as u
 import matplotlib.dates as mdates
 import matplotlib.pyplot as plt
 import numpy as np
@@ -5,7 +8,7 @@ import pytest
 from astropy.timeseries import TimeSeries
 from cartopy.mpl.geoaxes import GeoAxes
 
-from swxsoc_reach import _test_file_track
+from swxsoc_reach import _test_file_track, log
 from swxsoc_reach.geomap import GenericGeoMap
 from swxsoc_reach.track.trackbase import REACHTrack
 from swxsoc_reach.util.enums import Flavor, SensorId
@@ -43,6 +46,137 @@ def test_truncate_does_not_modify_original(reach_track_swx):
     end = reach_track_swx.time[-1]
     truncated_track = reach_track_swx.truncate(start, end)
     assert len(truncated_track.time) == original_len
+
+
+def test_to_tracks_filters_all_sensors_by_flavor(reach_track_swx):
+    tracks = reach_track_swx.to_tracks(Flavor.X)
+    flavor_grid = np.vectorize(Flavor.from_str)(
+        reach_track_swx["dosimeter_flavors"].data
+    )
+    sensor_indices, dosimeter_indices = np.nonzero(flavor_grid == Flavor.X)
+
+    dose_rate = reach_track_swx["dose_rate"].data[:, sensor_indices, dosimeter_indices]
+    longitude = reach_track_swx["lon"].data[:, sensor_indices]
+    latitude = reach_track_swx["lat"].data[:, sensor_indices]
+    altitude = reach_track_swx["alt"].data[:, sensor_indices]
+    valid_measurements = (
+        np.isfinite(dose_rate)
+        & np.isfinite(longitude)
+        & np.isfinite(latitude)
+        & np.isfinite(altitude)
+    )
+    valid_measurements &= np.count_nonzero(valid_measurements, axis=0) >= 2
+    expected_measurements = np.count_nonzero(valid_measurements)
+    assert len(tracks.time) == expected_measurements
+    assert tracks["dose_rate"].shape == (expected_measurements,)
+    assert (
+        tracks["sensor_id"].tolist()
+        == np.tile(
+            reach_track_swx["sensor_ids"].data[sensor_indices],
+            len(reach_track_swx.time),
+        )[valid_measurements.ravel()].tolist()
+    )
+    assert (
+        tracks["flavor"].tolist()
+        == np.tile(
+            [
+                selected_flavor.name
+                for selected_flavor in flavor_grid[sensor_indices, dosimeter_indices]
+            ],
+            len(reach_track_swx.time),
+        )[valid_measurements.ravel()].tolist()
+    )
+    assert "region_code" in tracks.colnames
+    assert "direction" in tracks.colnames
+    assert set(tracks["direction"]) <= {"north", "south"}
+    assert set(tracks["direction"]) == {"north", "south"}
+
+
+def test_to_region_indices_aggregates_each_region(reach_track_swx):
+    tracks = reach_track_swx.to_tracks(Flavor.X)
+    aggregated = reach_track_swx.to_region_indices(
+        Flavor.X,
+        integration_time=10 * u.s,
+        statistic="count",
+    )
+    region_codes = np.asarray(tracks["region_code"], dtype=float)
+    expected_codes = np.unique(region_codes[np.isfinite(region_codes)]).astype(int)
+
+    assert aggregated.meta["statistic"] == "count"
+    assert aggregated.meta["integration_time"] == "10.0 s"
+    assert set(aggregated.colnames) == {
+        "time",
+        *[f"region_code_{code}" for code in expected_codes],
+    }
+    assert all(
+        aggregated[f"region_code_{code}"].unit == u.count for code in expected_codes
+    )
+    dose_rates = tracks["dose_rate"].to_value(u.rad / u.s)
+    for code in expected_codes:
+        expected_count = np.count_nonzero(
+            (region_codes == code) & np.isfinite(dose_rates)
+        )
+        assert aggregated[f"region_code_{code}"].sum().value == expected_count
+
+
+def test_add_concatenates_tracks_without_modifying_inputs(
+    truncated_reach_track_swx, monkeypatch
+):
+    original_len = len(truncated_reach_track_swx.time)
+    warning = Mock()
+    monkeypatch.setattr(log, "warning", warning)
+
+    combined_track = truncated_reach_track_swx + truncated_reach_track_swx
+
+    warning.assert_called_once_with("Discarded %d duplicate time-series row(s).", 10)
+    assert isinstance(combined_track, REACHTrack)
+    assert len(combined_track.time) == original_len
+    assert len(truncated_reach_track_swx.time) == original_len
+    for key, data in truncated_reach_track_swx.data["support"].items():
+        combined_data = combined_track.data["support"][key].data
+        if data.data.shape[0] == original_len:
+            assert combined_data.shape[0] == original_len
+        else:
+            assert np.array_equal(
+                combined_data,
+                data.data,
+                equal_nan=np.issubdtype(data.data.dtype, np.inexact),
+            )
+
+
+def test_add_reconstructs_track_from_two_halves(reach_track_swx):
+    midpoint = len(reach_track_swx.time) // 2
+    first_half = reach_track_swx.truncate(
+        reach_track_swx.time[0], reach_track_swx.time[midpoint - 1]
+    )
+    second_half = reach_track_swx.truncate(
+        reach_track_swx.time[midpoint], reach_track_swx.time[-1]
+    )
+
+    reconstructed_track = first_half + second_half
+
+    assert np.all(reconstructed_track.time == reach_track_swx.time)
+    for key, data in reach_track_swx.data["support"].items():
+        reconstructed_data = reconstructed_track.data["support"][key].data
+        assert np.array_equal(
+            reconstructed_data,
+            data.data,
+            equal_nan=np.issubdtype(data.data.dtype, np.inexact),
+        )
+
+
+def test_add_preserves_deduplicated_spectra(reach_track_swx):
+    combined_track = reach_track_swx + reach_track_swx
+
+    assert set(combined_track.data["spectra"]) == set(reach_track_swx.data["spectra"])
+    for key, data in reach_track_swx.data["spectra"].items():
+        combined_data = combined_track.data["spectra"][key].data
+        assert combined_data.shape == data.data.shape
+        assert np.array_equal(
+            combined_data,
+            data.data,
+            equal_nan=np.issubdtype(data.data.dtype, np.inexact),
+        )
 
 
 def test_truncate_slices_support_variables(truncated_reach_track_swx):
@@ -145,6 +279,21 @@ def test_timeseries_has_region_code_column(reach_track_swx):
     ts = reach_track_swx.get_track(reach_id=SensorId.from_str(0))
     assert "region_code" in ts.colnames
     assert len(ts["region_code"]) == len(ts.time)
+
+
+def test_get_track_filters_nonfinite_measurements(reach_track_swx):
+    reach_index = SensorId.from_str(0).to_index()
+    reach_track_swx["dose_rate"].data[0, reach_index, 0] = np.nan
+    reach_track_swx["lat"].data[1, reach_index] = np.nan
+
+    ts = reach_track_swx.get_track(reach_id=SensorId.from_str(0))
+
+    assert len(ts) == len(reach_track_swx.time) - 2
+    assert np.isfinite(ts["dose0"].value).all()
+    assert np.isfinite(ts["dose1"].value).all()
+    assert np.isfinite(ts["longitude"].value).all()
+    assert np.isfinite(ts["latitude"].value).all()
+    assert np.isfinite(ts["altitude"].value).all()
 
 
 @pytest.fixture

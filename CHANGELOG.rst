@@ -8,6 +8,7 @@ The format is based on `Keep a Changelog <https://keepachangelog.com/en/1.0.0/>`
 Unreleased
 ----------
 
+* Added ``REACHTrack`` addition for combining compatible tracks, including support and spectra data concatenation, duplicate-entry removal with logging, regression tests, and user-guide documentation.
 * Added :class:`~swxsoc_reach.track.trackbase.REACHTrack`, a container for L1C dosimeter track data.
 * Added :class:`~swxsoc_reach.geomap.geomapbase.GenericGeoMap`, a SunPy-like gridded geospatial map container with per-statistic/per-flavor data access.
 * Added the :class:`~swxsoc_reach.util.enums.Flavor`, :class:`~swxsoc_reach.util.enums.SensorId`, and :class:`~swxsoc_reach.util.enums.Region` enumerations.

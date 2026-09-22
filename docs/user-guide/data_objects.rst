@@ -50,7 +50,7 @@ You can also truncate the track to a specific time range using :meth:`REACHTrack
 .. doctest::
 
    >>> start = track.time[0]  # Start from the first timestamp
-   >>> end = track.time[10]  
+   >>> end = track.time[10]
    >>> truncated = track.truncate(start, end)
    >>> print(f"Original length: {len(track.get_track(SensorId.REACH_101))}")
    Original length: 13
@@ -65,6 +65,34 @@ There are also a couple of built-in plotting methods for quick-look visualizatio
      # This will show a multi-panel plot of dose rates and coordinates vs time for the specified satellite.
    >>> track.plotgeo(reach_id=SensorId.REACH_101)  # doctest: +SKIP
      # This will show a global map of the satellite's track colored by dose rate or region code.
+
+Combining Tracks
+-----------------
+
+Two compatible :class:`~swxsoc_reach.track.trackbase.REACHTrack` objects can be
+combined with the ``+`` operator. The result is a new track containing the
+observations from both inputs; neither input is modified.
+
+.. code-block:: python
+
+   combined = first_track + second_track
+
+The operation concatenates the time series, time-varying support data, and
+spectra data. Duplicate entries are ignored: duplicate timestamps are retained
+only once, using the first occurrence, and a warning is written to the REACH
+logger when rows are discarded. Static support metadata, such as sensor identifiers, must match in
+both tracks. The tracks must also contain matching variable names and compatible
+non-time dimensions.
+
+This is useful for joining adjacent time ranges or combining files before
+calling :meth:`REACHTrack.to_geomap`:
+
+.. code-block:: python
+
+   first_track = REACHTrack.load(first_file)
+   second_track = REACHTrack.load(second_file)
+   combined = first_track + second_track
+   geomap = combined.to_geomap()
 
 GeoMaps
 =======
