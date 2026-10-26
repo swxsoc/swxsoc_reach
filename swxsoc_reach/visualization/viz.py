@@ -192,7 +192,7 @@ def plot_geomap(
 
     ax.set_global()
     if draw_coastlines:
-        ax.coastlines()
+        ax.coastlines(color="black", linewidth=0.5, zorder=5)
     if draw_gridlines:
         ax.gridlines(
             draw_labels=True,

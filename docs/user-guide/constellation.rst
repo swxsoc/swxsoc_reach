@@ -33,11 +33,11 @@ the :ref:`reference`.
 
    >>> from swxsoc_reach.util.enums import Flavor
    >>> Flavor.W.label
-   'W $\\geq$ 12 MeV $p^{+}$'
+   '$\\geq$ 12 MeV $p^{+}$'
    >>> Flavor.from_str("w")
    <Flavor.W: 4>
    >>> Flavor.U | Flavor.W # doctest: +SKIP
-   <Flavor.U|W: 5> 
+   <Flavor.U|W: 5>
    >>> Flavor.W in Flavor.ALL
    True
 
@@ -54,8 +54,6 @@ Energy thresholds
       ...         .replace(r"$e^{-}$", "e-")
       ...         .replace(r"$p^{+}$", "p+")
       ...         .replace("$", ""))
-      ...     if name and lbl.startswith(name + " "):
-      ...         lbl = lbl[len(name) + 1:]
       ...     return lbl
       >>> rows = [
       ...     (f.name, _clean(f.label, f.name), len(sensor_ids_for_flavor(f)))
@@ -220,8 +218,6 @@ Flavor statistics
       ...         .replace(r"$e^{-}$", "e-")
       ...         .replace(r"$p^{+}$", "p+")
       ...         .replace("$", ""))
-      ...     if name and lbl.startswith(name + " "):
-      ...         lbl = lbl[len(name) + 1:]
       ...     return lbl
       >>> rows = []
       >>> for f in (f for f in Flavor if f != Flavor.ALL):

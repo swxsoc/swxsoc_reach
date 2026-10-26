@@ -100,12 +100,12 @@ class Flavor(Flag):
     def label(self) -> str:
         """Human-readable particle energy threshold label."""
         labels = {
-            Flavor.U: r"U $\geq$ 5.0 MeV $e^{-}$, $\geq$ 57 MeV $p^{+}$",
-            Flavor.V: r"V $\geq$ 3.4 MeV $e^{-}$, $\geq$ 47 MeV $p^{+}$",
-            Flavor.W: r"W $\geq$ 12 MeV $p^{+}$",
-            Flavor.X: r"X $\geq$ 360 keV $e^{-}$, $\geq$ 12 MeV $p^{+}$",
-            Flavor.Y: r"Y $\geq$ 1.6 MeV $e^{-}$, $\geq$ 31 MeV $p^{+}$",
-            Flavor.Z: r"Z $\geq$ 50 keV $e^{-}$, $\geq$ 200 keV $p^{+}$",
+            Flavor.U: r"$\geq$ 5.0 MeV $e^{-}$, $\geq$ 57 MeV $p^{+}$",
+            Flavor.V: r"$\geq$ 3.4 MeV $e^{-}$, $\geq$ 47 MeV $p^{+}$",
+            Flavor.W: r"$\geq$ 12 MeV $p^{+}$",
+            Flavor.X: r"$\geq$ 360 keV $e^{-}$, $\geq$ 12 MeV $p^{+}$",
+            Flavor.Y: r"$\geq$ 1.6 MeV $e^{-}$, $\geq$ 31 MeV $p^{+}$",
+            Flavor.Z: r"$\geq$ 50 keV $e^{-}$, $\geq$ 200 keV $p^{+}$",
             Flavor.ALL: r"All flavors $\geq$ 50 keV $e^{-}$, $\geq$ 200 keV $p^{+}$",
         }
         return labels[self]

@@ -6,6 +6,7 @@ from pathlib import Path
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
+from astropy.time import Time
 from cartopy import crs as ccrs
 from swxsoc.io.cdf_handler import CDFHandler
 from swxsoc.swxdata import SWXData
@@ -198,13 +199,13 @@ class GenericGeoMap(SWXData):
 
     def plot(
         self,
-        flavor: Flavor = Flavor.U,
+        flavor: Flavor,
         ax: "plt.Axes | None" = None,
         add_colorbar: bool = True,
         statistic: str = "median",
         log_scale: bool = True,
-        draw_contours: bool = False,
-        draw_regions: bool = True,
+        draw_contours: bool = True,
+        draw_regions: bool = False,
         contour_blur_sigma: float = 1.0,
     ) -> tuple["plt.Axes", "mpl.collections.QuadMesh"]:
         """
@@ -217,9 +218,8 @@ class GenericGeoMap(SWXData):
 
         Parameters
         ----------
-        flavor : Flavor, optional
+        flavor : Flavor
             Which dosimeter flavor to plot. Must be a :class:`Flavor` member.
-            Default is ``Flavor.U``.
         ax : matplotlib.axes.Axes, optional
             Axes to draw into.  When ``None`` (default) a new figure and axes
             are created with a ``PlateCarree`` projection.
@@ -237,7 +237,7 @@ class GenericGeoMap(SWXData):
             Ignored when ``statistic="count"``.
         draw_contours : bool, optional
             When ``True`` draw contour lines from the plotted map data on top of
-            the filled mesh. Default is ``False``.
+            the filled mesh. Default is ``True``.
         draw_regions : bool, optional
             When ``True`` (default) label the region contours drawn by
             :func:`~swxsoc_reach.visualization.viz.plot_geomap`.
@@ -257,10 +257,6 @@ class GenericGeoMap(SWXData):
         -----
         - With ``log_scale=True`` the color scale is fixed to ``[-7, -2]`` in
           log10(rad/s).
-        - The figure title is formatted as
-          ``"{Time_start} - {Time_end} - {flavor_label} {statistic} map"``
-          using the track time range, the selected flavor's label, and the
-          statistic name.
         """
 
         data_unit = self[f"{statistic}_map"].unit
@@ -284,8 +280,9 @@ class GenericGeoMap(SWXData):
             colorbarmin = -7
             colorbar_label = f"log ({data_unit})"
             contour_data = np.where(_md > 0, np.log10(_md), np.nan)
-            # Plot contours only at 1e-6, 1e-5, 1e-4, 1e-3, 1e-2.
-            contour_levels = np.array([-6, -5, -4, -3, -2], dtype=float)
+            # Plot contours only at 1e-4, 1e-3, 1e-2.
+            contour_levels = np.array([-4.5, -4, -3.5, -3, -2], dtype=float)
+            contour_linestyles = ["solid", "dashed", "dotted", "dashdot", "solid"]
         else:
             colorbarmax = None
             colorbarmin = None
@@ -347,7 +344,8 @@ class GenericGeoMap(SWXData):
                     xylat,
                     contour_source,
                     levels=contour_levels,
-                    cmap="Reds",
+                    colors="black",
+                    linestyles=contour_linestyles,
                     linewidths=0.8,
                 )
             elif (
@@ -361,12 +359,26 @@ class GenericGeoMap(SWXData):
                     xylon,
                     xylat,
                     contour_source,
-                    cmap="Reds",
+                    colors="black",
                     linewidths=0.8,
+                    levels=contour_levels,
                 )
 
-        time_str = self.meta["Time_start"] + " - " + self.meta["Time_end"]
-        ax.set_title(f"{time_str} - {flavor.label} {statistic} map")
+        time_start = Time(self.meta["Time_start"], format="isot", scale="utc")
+        time_start.precision = 0
+        time_end = Time(self.meta["Time_end"], format="isot", scale="utc")
+        time_end.precision = 0
+        same_day = time_start.datetime.date() == time_end.datetime.date()
+
+        if same_day:
+            time_str = f"{time_start.iso} to {time_end.isot.split('T')[1]}"
+        else:
+            time_str = f"{time_start.iso} - {time_end.iso}"
+        plot_title = f"REACH-{flavor.name} ({flavor.label}) {statistic} {time_str}"
+        ax.set_title(plot_title)
+
+        cmap = plt.get_cmap("coolwarm").copy()
+        cmap.set_bad((1, 1, 1, 0))  # transparent so land fill shows through gaps
 
         plot_data = contour_data
         last_mesh = ax.pcolormesh(
@@ -375,7 +387,7 @@ class GenericGeoMap(SWXData):
             plot_data,
             vmin=colorbarmin,
             vmax=colorbarmax,
-            cmap="viridis",
+            cmap=cmap,
         )
         if add_colorbar:
             cbar = fig.colorbar(
@@ -396,7 +408,8 @@ class GenericGeoMap(SWXData):
                             0.0,
                             1.0,
                             transform=cbar.ax.get_xaxis_transform(),
-                            colors="red",
+                            colors="black",
+                            linestyles=contour_linestyles,
                             linewidth=1.0,
                             alpha=0.9,
                         )

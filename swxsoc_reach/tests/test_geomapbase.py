@@ -175,8 +175,8 @@ def test_plot_returns_geoaxes_and_mesh(test_geomap):
     # Assert Title is Properly Formed
     title = ax.get_title()
     assert Flavor.X.label in title
-    assert "median map" in title
-    assert test_geomap.meta["Time_start"] in title
+    assert "median" in title
+    assert test_geomap.meta["Time_start"][0:9] in title
 
 
 def test_plot_log_scale_adds_colorbar(test_geomap):
