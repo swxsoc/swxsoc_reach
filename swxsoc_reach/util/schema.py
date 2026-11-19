@@ -104,19 +104,16 @@ class REACHDataSchema(SWXSchema):
         str
             ``Logical_source`` value.
         """
-        attr_name = "Logical_source"
-        if (attr_name not in data.meta) or (not data.meta[attr_name]):
-            # Get Parts
-            instrument_id = self._get_instrument_id(data)
-            data_type = self._get_data_type(data)
-            data_type_short_name, _ = data_type.split(">")
-            instrument_mode = self._get_instrument_mode(data)
+        # Get Parts
+        instrument_id = self._get_instrument_id(data)
+        data_type = self._get_data_type(data)
+        data_type_short_name, _ = data_type.split(">")
+        instrument_mode = self._get_instrument_mode(data)
 
-            # Build Derivation
-            # reach_all_prelim
-            logical_source = f"{instrument_id}_{instrument_mode}_{data_type_short_name}"
-        else:
-            logical_source = data.meta[attr_name]
+        # Build Derivation
+        # reach_all_prelim
+        logical_source = f"{instrument_id}_{instrument_mode}_{data_type_short_name}"
+
         return logical_source
 
     def _get_logical_file_id(self, data):
@@ -137,30 +134,26 @@ class REACHDataSchema(SWXSchema):
         str
             ``Logical_file_id`` value (CDF filename without extension).
         """
-        attr_name = "Logical_file_id"
-        if (attr_name not in data.meta) or (not data.meta[attr_name]):
-            # Get Parts
-            start_time = self._get_start_time(data)
-            data_level = self._get_data_level(data)
-            version = self._get_version(data)
-            mode = self._get_instrument_mode(data)
-            data_type = self._get_data_type(data)
-            data_type_short_name, _ = data_type.split(">")
+        # Get Parts
+        start_time = self._get_start_time(data)
+        data_level = self._get_data_level(data)
+        version = self._get_version(data)
+        mode = self._get_instrument_mode(data)
+        data_type = self._get_data_type(data)
+        data_type_short_name, _ = data_type.split(">")
 
-            # Build Derivation
-            science_filename = create_reach_filename(
-                time=start_time,
-                level=data_level,
-                version=version,
-                mode=mode,
-                descriptor=data_type_short_name,
-            )
-            science_filename = science_filename.rstrip(
-                swxsoc_reach.config["mission"]["file_extension"]
-            )
+        # Build Derivation
+        science_filename = create_reach_filename(
+            time=start_time,
+            level=data_level,
+            version=version,
+            mode=mode,
+            descriptor=data_type_short_name,
+        )
+        science_filename = science_filename.rstrip(
+            swxsoc_reach.config["mission"]["file_extension"]
+        )
 
-        else:
-            science_filename = data.meta[attr_name]
         return science_filename
 
     def _get_reach_version(self, data):

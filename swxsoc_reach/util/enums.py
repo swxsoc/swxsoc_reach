@@ -312,6 +312,27 @@ def load_reach_id_dosimeter_relationship(
     return mapping
 
 
+def dosimeter_flavor(reachid: str, slot: int) -> str:
+    """
+    Return the flavor letter for a dosimeter slot (0 = DOSE1, 1 = DOSE2) from the relationship JSON.
+
+    Parameters
+    ----------
+    reachid : str
+        The REACH ID of the satellite (e.g., "REACH-101").
+    slot : int
+        The dosimeter slot index (0 = DOSE1, 1 = DOSE2).
+
+    Returns
+    -------
+    str
+        The flavor letter corresponding to the given REACH ID and slot. (e.g., "U", "V", "W", "X", "Y", or "Z").
+    """
+    dosimeter_relationship = load_reach_id_dosimeter_relationship()
+    # Return the flavor name for the given REACH ID and slot
+    return dosimeter_relationship[SensorId.from_str(reachid)][slot].name
+
+
 def sensor_ids_for_flavor(flavor: Flavor | str) -> list[SensorId]:
     """Return all sensor IDs that include the requested flavor.
 

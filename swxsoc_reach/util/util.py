@@ -1,3 +1,4 @@
+from datetime import datetime
 from pathlib import Path
 
 import numpy as np
@@ -16,6 +17,8 @@ __all__ = [
     "parse_science_filename",
     "TIME_FORMAT",
 ]
+
+LEGACY_PIPELINE_TIME_FORMAT = "%Y%m%d"
 
 
 def load_regions(
@@ -117,6 +120,46 @@ def get_reachid_lut() -> dict[str, dict[str, str]]:
     return reachids
 
 
+def parse_legacy_pipeline_filename(file_path: Path):
+    """
+    Parse the legacy pipeline filename to extract relevant information.
+    Exposes the same information as swxsoc.util.util.parse_science_filename
+    tailored to the legacy pipeline filename format.
+
+    Ex: reach.20260801.vid-101.l1b.v3.csv
+
+    Args:
+        file_path (Path): The path to the CSV file.
+
+    Returns:
+        dict: A dictionary containing extracted information.
+
+        {
+            mission: str,
+            instrument: str,
+            mode: str | None,
+            test: bool,
+            time: astropy.time.Time,
+            level: str,
+            version: str | None,
+            descriptor: str | None,
+        }
+    """
+    # Example parsing logic (adjust based on actual filename structure)
+    parts = file_path.stem.split(".")
+    return {
+        "mission": "swxsoc_pipeline",
+        "instrument": parts[0],
+        "mode": None,
+        "test": False,
+        "time": Time(datetime.strptime(parts[1], LEGACY_PIPELINE_TIME_FORMAT)),
+        "level": parts[3],
+        "version": parts[4],
+        "descriptor": parts[2],
+        "file_path": str(file_path),
+    }
+
+
 def create_reach_filename(
     time: str,
     level: str,
@@ -153,6 +196,15 @@ def create_reach_filename(
     # Format Time String
     start_time = Time(time, format="isot")
     time_str = start_time.strftime(TIME_FORMAT)
+
+    # UDL is L1C
+    # "Legacy" Pipeline is just L1
+    # for the "Legacy" pipeline data we don't want to include HHMMSS in the filename,
+    # so we will only use the date portion of the time string
+    if level.lower() == "l1":
+        time_str = start_time.strftime(
+            LEGACY_PIPELINE_TIME_FORMAT
+        )  # Only use the date portion for legacy L1 files
 
     # Combine Parts into Filename
     filename = (

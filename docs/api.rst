@@ -10,6 +10,7 @@ API Reference
 
    swxsoc_reach
    swxsoc_reach.calibration.calibration
+   swxsoc_reach.calibration.legacy
    swxsoc_reach.calibration.transform
    swxsoc_reach.geomap.geomapbase
    swxsoc_reach.historical.download_orchestrator
