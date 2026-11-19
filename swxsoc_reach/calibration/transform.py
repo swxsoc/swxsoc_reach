@@ -33,6 +33,9 @@ __all__ = [
     "build_swxdata",
 ]
 
+# Values at or below this threshold are UDL FILLVAL markers (REACH uses -1e31).
+REACH_FILLVAL_THRESHOLD = -1e30
+
 
 def deduplicate_records(data: pd.DataFrame) -> pd.DataFrame:
     """
@@ -60,7 +63,7 @@ def deduplicate_records(data: pd.DataFrame) -> pd.DataFrame:
         .reset_index(drop=True)
     )
     after = len(data)
-    log.info("Dropped %d duplicate records (%d → %d)", before - after, before, after)
+    log.debug("Dropped %d duplicate records (%d → %d)", before - after, before, after)
     return data
 
 
@@ -101,6 +104,35 @@ def impute_sensor_metadata(data: pd.DataFrame) -> pd.DataFrame:
     return data
 
 
+def replace_fill_values_with_nan(data: pd.DataFrame) -> pd.DataFrame:
+    """
+    Replace delivered FILLVAL entries in numeric columns with NaN.
+
+    UDL and Legacy pipeline files mark missing numeric values with a FILLVAL
+    of ``-1e31``. Converting these to NaN here means the only fill-value
+    conversion in the pipeline is the NaN-to-CDF-FILLVAL conversion performed
+    by :class:`~swxsoc.swxdata.SWXData` when the file is saved.
+
+    Any numeric value at or below ``REACH_FILLVAL_THRESHOLD`` is treated as fill.
+
+    Parameters
+    ----------
+    data : pd.DataFrame
+        Flat DataFrame as returned by :func:`~swxsoc_reach.io.file_tools.read_udl_csv`.
+
+    Returns
+    -------
+    pd.DataFrame
+        DataFrame with fill values in numeric columns replaced by NaN.
+    """
+    numeric_cols = data.select_dtypes(include="number").columns
+    fill_mask = data[numeric_cols] <= REACH_FILLVAL_THRESHOLD
+    n_fill = int(fill_mask.to_numpy().sum())
+    data[numeric_cols] = data[numeric_cols].mask(fill_mask)
+    log.debug("Replaced %d UDL FILLVAL entries with NaN", n_fill)
+    return data
+
+
 def extract_sensor_metadata() -> tuple[list[str], list[list[str | None]]]:
     """
     Extract canonical sensor IDs and per-sensor dosimeter flavor slots.
@@ -125,7 +157,7 @@ def extract_sensor_metadata() -> tuple[list[str], list[list[str | None]]]:
         labels.extend([""] * (2 - len(labels)))
         observation_flavors.append(labels)
 
-    log.info(
+    log.debug(
         "Found %d sensors, flavors per sensor: %s",
         len(sensor_ids),
         [len(f) for f in observation_flavors],
@@ -138,6 +170,8 @@ def create_observation_array(
     sensor_ids: list[str],
     times_pd: pd.DatetimeIndex,
     observation_flavors: list[list[str]],
+    observation_col: str = "obValue",
+    dtype: np.dtype = np.float64,
 ) -> np.ndarray:
     """
     Create a sparse observation array for ``obValue``.
@@ -152,13 +186,17 @@ def create_observation_array(
         Deduplicated DataFrame with columns ``idSensor``, ``obDescription``,
         ``obTime``, and ``obValue``.
     sensor_ids : list[str]
-        Sorted list of unique sensor IDs.
+        Sorted list of unique sensor IDs. e.g. ``['REACH-101', 'REACH-102', ...]``.
     times_pd : pd.DatetimeIndex
         Sorted, UTC-localized DatetimeIndex of unique observation times.
     observation_flavors : list[list[str]]
         For each sensor (matching ``sensor_ids`` order), a list of the
         canonical dosimeter flavor strings in fixed slot order, padded to
         exactly two slots per sensor.
+    observation_col : str, optional
+        Column name to extract (default ``'obValue'``).
+    dtype : np.dtype, optional
+        Desired data type of the returned array (default ``np.float64``).
 
     Returns
     -------
@@ -170,7 +208,7 @@ def create_observation_array(
     n_sensors = len(sensor_ids)
     n_flavors = len(observation_flavors[0])
 
-    dose_rate = np.full((n_times, n_sensors, n_flavors), np.nan, dtype=float)
+    obs_array = np.full((n_times, n_sensors, n_flavors), np.nan, dtype=dtype)
 
     sensor_to_index = {sensor: idx for idx, sensor in enumerate(sensor_ids)}
     slot_lookup: dict[str, dict[Flavor, int]] = {}
@@ -188,7 +226,7 @@ def create_observation_array(
 
     row_sensors = data["idSensor"].astype(str).to_numpy()
     row_descriptions = data["obDescription"].astype(str).to_numpy()
-    row_values = pd.to_numeric(data["obValue"], errors="coerce").to_numpy()
+    row_values = pd.to_numeric(data[observation_col], errors="coerce").to_numpy()
 
     for i, sensor in enumerate(row_sensors):
         if pd.isna(row_time_indices[i]):
@@ -211,9 +249,9 @@ def create_observation_array(
         if slot_idx is None:
             continue
 
-        dose_rate[int(row_time_indices[i]), sensor_idx, slot_idx] = row_values[i]
+        obs_array[int(row_time_indices[i]), sensor_idx, slot_idx] = row_values[i]
 
-    return dose_rate
+    return obs_array
 
 
 def create_sensor_array(
@@ -222,6 +260,7 @@ def create_sensor_array(
     sensor_ids: list[str],
     times_pd: pd.DatetimeIndex,
     col: str,
+    dtype: np.dtype = np.float64,
 ) -> np.ndarray:
     """
     Create a sparse per-sensor array for a single column.
@@ -239,11 +278,13 @@ def create_sensor_array(
         Datetime-converted ``obTime`` column from the sensor-deduplicated
         DataFrame, sharing the same index so it can be used for alignment.
     sensor_ids : list[str]
-        Sorted list of unique sensor IDs.
+        Sorted list of unique sensor IDs. e.g. ``['REACH-101', 'REACH-102', ...]``.
     times_pd : pd.DatetimeIndex
         Sorted, UTC-localized DatetimeIndex of unique observation times.
     col : str
         Column name to extract (e.g. ``'lat'``, ``'lon'``, ``'alt'``).
+    dtype : np.dtype, optional
+        Desired data type of the returned array (default ``np.float64``).
 
     Returns
     -------
@@ -270,7 +311,7 @@ def create_sensor_array(
 
     df = pd.concat(sensor_dfs, axis=1)
     df = df.reindex(times_pd)
-    return df.values.astype(float)
+    return df.values.astype(dtype)
 
 
 def build_swxdata(
@@ -285,6 +326,7 @@ def build_swxdata(
     This is the main entry point for the transformation layer.  It runs
     the following pipeline in order:
 
+    0. **Replace UDL FILLVAL with NaN** via :func:`replace_fill_values_with_nan`.
     1. **Deduplicate** records via :func:`deduplicate_records`.
     2. **Extract canonical sensor metadata** (all sensor IDs and fixed
        two-slot dosimeter flavor layout)
@@ -343,6 +385,14 @@ def build_swxdata(
         Fully assembled SWXData instance ready to be saved as CDF.
 
     """
+    # --- 0. Replace UDL FILLVAL with NaN -------------------------------------
+    data = replace_fill_values_with_nan(data)
+
+    # We can't have NaNs in the obQuality column, because we want to cast it to uint8 for CDF output.
+    # So, we replace any NaNs in obQuality with -1 for "Missing Data".
+    # See TOR-2021-01076 for details.
+    data["obQuality"] = data["obQuality"].fillna(-1).astype(np.int8)
+
     # --- 0.5 Fix and drop NaNs in Sensor Metadata ----------------------------------------
     data = impute_sensor_metadata(data)
 
@@ -355,7 +405,7 @@ def build_swxdata(
     # Convert Sensor Labels to pure numeric IDs if they follow the "REACH-XXX" pattern
     sensor_ids = np.asanyarray(
         [int(sensor.replace("REACH-", "").strip()) for sensor in sensor_labels],
-        dtype=np.int32,
+        dtype=np.uint8,
     )
 
     # --- 3. Build common time axis -------------------------------------
@@ -380,15 +430,15 @@ def build_swxdata(
     # --- 5. Build variable dict ----------------------------------------
     variables: dict[str, NDData] = {
         "sensor_labels": NDData(
-            data=sensor_labels,
+            data=sensor_labels,  # U<n> (unicode) / CDF_CHAR*9 [32] NRV
             meta={"CATDESC": "REACH Sensor Labels", "VAR_TYPE": "metadata"},
         ),
         "sensor_ids": NDData(
-            data=sensor_ids,
+            data=sensor_ids,  # uint8 / CDF_UINT1 [32] NRV
             meta={"CATDESC": "REACH Sensor IDs", "VAR_TYPE": "metadata"},
         ),
         "dosimeter_flavor_labels": NDData(
-            data=np.array(
+            data=np.array(  # U<n> (unicode) / CDF_CHAR*8 [2] NRV
                 [f"flavor_{i}" for i in range(len(observation_flavors[0]))]
             ),  # Canonical two-slot flavor axis shared across all sensors
             meta={
@@ -398,8 +448,8 @@ def build_swxdata(
             },
         ),
         "dosimeter_flavor_ids": NDData(
-            data=np.array(
-                [i for i in range(len(observation_flavors[0]))], dtype=np.int32
+            data=np.array(  # uint8 / CDF_UINT1 [2] NRV
+                [i for i in range(len(observation_flavors[0]))], dtype=np.uint8
             ),  # Canonical two-slot flavor axis shared across all sensors
             meta={
                 "CATDESC": "ID for dosimeter flavors dimension",
@@ -408,7 +458,9 @@ def build_swxdata(
             },
         ),
         "dosimeter_flavors": NDData(
-            data=np.array(observation_flavors),
+            data=np.array(
+                observation_flavors
+            ),  # U<n> (unicode) / CDF_CHAR*30 [32, 2] NRV
             meta={
                 "CATDESC": "Observation Flavors per Sensor",
                 "VAR_TYPE": "metadata",
@@ -416,66 +468,103 @@ def build_swxdata(
         ),
         "dose_rate": NDData(
             data=create_observation_array(
-                data, sensor_labels, times_pd, observation_flavors
+                data=data,
+                sensor_ids=sensor_labels,
+                times_pd=times_pd,
+                observation_flavors=observation_flavors,
+                observation_col="obValue",
+                dtype=np.float64,
             ),
             meta={
                 "CATDESC": "Dose rate for combined sensors and dosimeter flavors",
                 "VAR_TYPE": "data",
-                "UNITS": (u.J / u.kg * 0.01).to_string(),
+                "UNITS": (u.J / u.kg / u.s * 0.01).to_string(),
                 "DEPEND_0": "Epoch",
                 "DEPEND_1": "sensor_ids",
                 "DEPEND_2": "dosimeter_flavor_ids",
                 "LABL_PTR_1": "sensor_labels",
                 "LABL_PTR_2": "dosimeter_flavor_labels",
+                "VALIDMIN": 0.0,
+                "VALIDMAX": 1000000000.0,
+                "SCALETYP": "log",
             },
         ),
         "lat": NDData(
             data=create_sensor_array(
-                sensor_grouped, sensor_deduped_dt, sensor_labels, times_pd, "lat"
+                sensor_grouped=sensor_grouped,
+                sensor_deduped_dt=sensor_deduped_dt,
+                sensor_ids=sensor_labels,
+                times_pd=times_pd,
+                col="lat",
+                dtype=np.float64,
             ),
             meta={
-                "CATDESC": "Latitude",
+                "CATDESC": "Geodetic Latitude",
                 "VAR_TYPE": "data",
                 "UNITS": u.degree.to_string(),
                 "DEPEND_0": "Epoch",
                 "DEPEND_1": "sensor_ids",
                 "LABL_PTR_1": "sensor_labels",
+                "VALIDMIN": -90.0,
+                "VALIDMAX": 90.0,
             },
         ),
         "lon": NDData(
             data=create_sensor_array(
-                sensor_grouped, sensor_deduped_dt, sensor_labels, times_pd, "lon"
+                sensor_grouped=sensor_grouped,
+                sensor_deduped_dt=sensor_deduped_dt,
+                sensor_ids=sensor_labels,
+                times_pd=times_pd,
+                col="lon",
+                dtype=np.float64,
             ),
             meta={
-                "CATDESC": "Longitude",
+                "CATDESC": "Geodetic Longitude",
                 "VAR_TYPE": "data",
                 "UNITS": u.degree.to_string(),
                 "DEPEND_0": "Epoch",
                 "DEPEND_1": "sensor_ids",
                 "LABL_PTR_1": "sensor_labels",
+                "VALIDMIN": -180.0,
+                "VALIDMAX": 180.0,
             },
         ),
         "alt": NDData(
             data=create_sensor_array(
-                sensor_grouped, sensor_deduped_dt, sensor_labels, times_pd, "alt"
+                sensor_grouped=sensor_grouped,
+                sensor_deduped_dt=sensor_deduped_dt,
+                sensor_ids=sensor_labels,
+                times_pd=times_pd,
+                col="alt",
+                dtype=np.float64,
             ),
             meta={
-                "CATDESC": "Altitude",
+                "CATDESC": "Geodetic Altitude",
                 "VAR_TYPE": "data",
                 "UNITS": u.km.to_string(),
                 "DEPEND_0": "Epoch",
                 "DEPEND_1": "sensor_ids",
                 "LABL_PTR_1": "sensor_labels",
+                "VALIDMIN": 750.0,
+                "VALIDMAX": 850.0,
             },
         ),
         "obQuality": NDData(
             data=create_sensor_array(
-                sensor_grouped, sensor_deduped_dt, sensor_labels, times_pd, "obQuality"
+                sensor_grouped=sensor_grouped,
+                sensor_deduped_dt=sensor_deduped_dt,
+                sensor_ids=sensor_labels,
+                times_pd=times_pd,
+                col="obQuality",
+                dtype=np.int8,
             ),
             meta={
                 "CATDESC": "Observation Quality",
                 "VAR_TYPE": "data",
                 "UNITS": "unitless",
+                "VAR_NOTES": (
+                    "-1: no data; 0: No known problems; 1: Test Mode; 2: Possible temperature-related self-counting in Dosimeter A.; 4: Possible temperature-related self-counting in Dosimeter B.; 8: Duplicate packets detected.; 16: Unknown issue with VID 163/Dosimeter B. See TOR-2021-01076 Section 32.6 for details."
+                ),
                 "DEPEND_0": "Epoch",
                 "DEPEND_1": "sensor_ids",
                 "LABL_PTR_1": "sensor_labels",
@@ -483,7 +572,12 @@ def build_swxdata(
         ),
         "sensor_position_x": NDData(
             data=create_sensor_array(
-                sensor_grouped, sensor_deduped_dt, sensor_labels, times_pd, "senPos0"
+                sensor_grouped=sensor_grouped,
+                sensor_deduped_dt=sensor_deduped_dt,
+                sensor_ids=sensor_labels,
+                times_pd=times_pd,
+                col="senPos0",
+                dtype=np.float64,
             ),
             meta={
                 "CATDESC": "GEI Coordinate Position X in KM",
@@ -496,7 +590,12 @@ def build_swxdata(
         ),
         "sensor_position_y": NDData(
             data=create_sensor_array(
-                sensor_grouped, sensor_deduped_dt, sensor_labels, times_pd, "senPos1"
+                sensor_grouped=sensor_grouped,
+                sensor_deduped_dt=sensor_deduped_dt,
+                sensor_ids=sensor_labels,
+                times_pd=times_pd,
+                col="senPos1",
+                dtype=np.float64,
             ),
             meta={
                 "CATDESC": "GEI Coordinate Position Y in KM",
@@ -509,7 +608,12 @@ def build_swxdata(
         ),
         "sensor_position_z": NDData(
             data=create_sensor_array(
-                sensor_grouped, sensor_deduped_dt, sensor_labels, times_pd, "senPos2"
+                sensor_grouped=sensor_grouped,
+                sensor_deduped_dt=sensor_deduped_dt,
+                sensor_ids=sensor_labels,
+                times_pd=times_pd,
+                col="senPos2",
+                dtype=np.float64,
             ),
             meta={
                 "CATDESC": "GEI Coordinate Position Z in KM",
@@ -543,8 +647,23 @@ def build_swxdata(
             f"Expected only one unique descriptor value to determine data provenance, but found multiple: {unique_descriptors}"
         )
     descriptor = unique_descriptors[0]
+
     # Set Global Provenance based on descriptor content
-    meta["UDL_Source"] = descriptor
+    # if descriptor is one of PROVISIONAL or QUICKLOOK, it comes from UDL
+    # if descriptor is "LEGACY", it comes from the legacy pipeline
+    if descriptor in ["PROVISIONAL", "QUICKLOOK"]:
+        meta["Source_pipeline"] = f"UDL_{descriptor}"
+    elif descriptor == "LEGACY":
+        meta["Source_pipeline"] = "LEGACY_PIPELINE"
+
+    # Set Parents based on the unique "source_file" values in the input data
+    if "source_file" in data.columns:
+        unique_source_files = data["source_file"].unique()
+        meta["Parents"] = ", ".join(unique_source_files)
+    else:
+        log.warning(
+            "Input data does not contain a 'source_file' column. 'Parents' global attribute will not be set."
+        )
 
     # --- 7. Assemble SWXData -------------------------------------------
     reach_data = SWXData(timeseries=ts, support=variables, meta=meta, schema=schema)

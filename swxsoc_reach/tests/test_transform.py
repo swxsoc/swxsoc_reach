@@ -1,3 +1,4 @@
+import numpy as np
 import pandas as pd
 import pytest
 
@@ -61,6 +62,18 @@ def test_build_swxdata_sets_udl_source_from_descriptor():
 
     assert reach_data.meta["UDL_Source"] == "QUICKLOOK"
     assert reach_data.meta["Data_version"] == "1.2.3"
+
+
+def test_replace_fill_values_with_nan_converts_udl_fillval():
+    data = _make_input_dataframe(["QUICKLOOK"])
+    data.loc[0, "obValue"] = -1e31
+    data.loc[0, "lat"] = -1e31
+
+    result = transform.replace_fill_values_with_nan(data)
+
+    assert np.isnan(result.loc[0, "obValue"])
+    assert np.isnan(result.loc[0, "lat"])
+    assert result.loc[0, "lon"] == 20.0
 
 
 def test_build_swxdata_raises_without_descriptor_column():
